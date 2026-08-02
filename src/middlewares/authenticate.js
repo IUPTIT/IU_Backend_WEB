@@ -2,7 +2,6 @@ import ApiError from "../utils/ApiError.js";
 import { verifyAccessToken } from "../services/token.service.js";
 import User from "../models/user.model.js";
 
-// Verify the Bearer access token and attach the user to req.user.
 export default async function authenticate(req, _res, next) {
   try {
     const header = req.headers.authorization || "";

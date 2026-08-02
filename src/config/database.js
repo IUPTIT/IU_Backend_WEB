@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import config from "./env.js";
 
-// Connect to MongoDB; server.js awaits this before listening.
 export async function connectDatabase() {
   mongoose.set("strictQuery", true);
 

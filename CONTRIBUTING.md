@@ -5,7 +5,7 @@ checked automatically by Husky hooks; please follow them from the start.
 
 ## 1. Branch naming rule
 
-Never commit directly to `main` (or `develop`). Create a branch named:
+Never commit directly to `main` (or `development`). Create a branch named:
 
 ```
 <type>/<short-kebab-description>
@@ -24,7 +24,7 @@ docs/api-readme
 chore/eslint-config
 ```
 
-The pre-commit hook rejects commits made on `main`/`develop` or on a branch
+The pre-commit hook rejects commits made on `main`/`development` or on a branch
 that does not match this pattern.
 
 ### Typical flow

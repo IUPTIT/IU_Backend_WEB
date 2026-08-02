@@ -16,7 +16,6 @@ function parseDurationMs(str) {
   return n * unit;
 }
 
-// ── Access token (stateless JWT) ──
 export function signAccessToken(user) {
   return jwt.sign({ sub: user.id, role: user.role }, config.jwt.accessSecret, {
     expiresIn: config.jwt.accessExpires,
@@ -27,7 +26,6 @@ export function verifyAccessToken(token) {
   return jwt.verify(token, config.jwt.accessSecret);
 }
 
-// ── Refresh token (JWT + hashed DB record) ──
 export async function createRefreshToken(user) {
   const token = jwt.sign({ sub: user.id }, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpires,
@@ -43,7 +41,7 @@ export async function createRefreshToken(user) {
   return token;
 }
 
-// Verify signature and that it's a live (non-blacklisted) record.
+// Verify signature AND that it's a live (non-blacklisted) record.
 export async function verifyRefreshToken(token) {
   const payload = jwt.verify(token, config.jwt.refreshSecret);
   const record = await Token.findOne({
@@ -59,7 +57,6 @@ export async function revokeRefreshToken(token) {
   await Token.deleteOne({ token: hash(token), type: TOKEN_TYPES.REFRESH });
 }
 
-// ── One-time codes ──
 // Returns the RAW value to email; only the hash is persisted.
 export async function createOtp(
   user,

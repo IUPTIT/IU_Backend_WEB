@@ -4,7 +4,6 @@ import { TOKEN_TYPES } from "../models/token.model.js";
 import * as tokenService from "./token.service.js";
 import * as emailService from "./email.service.js";
 
-// Issue an access + refresh token pair.
 async function issueTokens(user) {
   const accessToken = tokenService.signAccessToken(user);
   const refreshToken = await tokenService.createRefreshToken(user);
@@ -112,7 +111,6 @@ export async function resetPassword({ email, token, password }) {
   await user.save();
 }
 
-// Find or create a user from a verified Google profile, then issue tokens.
 export async function loginWithGoogle(profile) {
   const email = profile.emails?.[0]?.value?.toLowerCase();
   if (!email) throw ApiError.badRequest("Google account has no email");

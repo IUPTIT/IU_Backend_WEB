@@ -11,7 +11,6 @@ import { notFound, errorHandler } from "./middlewares/error.js";
 
 const app = express();
 
-// Global middleware
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
@@ -20,10 +19,9 @@ app.use(cookieParser());
 if (!config.isProd) app.use(morgan("dev"));
 app.use(initPassport().initialize()); // stateless; we issue our own JWTs
 
-// Routes
 app.use("/api/v1", routes);
 
-// Error handling (last)
+// Error handling must be registered last.
 app.use(notFound);
 app.use(errorHandler);
 

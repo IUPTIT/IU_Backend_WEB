@@ -2,12 +2,11 @@ import { isCelebrateError } from "celebrate";
 import config from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
 
-// 404 for unmatched routes.
 export function notFound(req, _res, next) {
   next(ApiError.notFound(`Route not found: ${req.method} ${req.originalUrl}`));
 }
 
-// Central error handler (registered last, four args).
+// Central error handler — must be registered last, with four args.
 export function errorHandler(err, _req, res, _next) {
   let statusCode = 500;
   let message = "Internal server error";
