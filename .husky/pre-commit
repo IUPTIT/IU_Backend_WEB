@@ -1,7 +1,7 @@
 branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
 
 # Block direct commits to protected branches.
-if echo "$branch" | grep -qE '^(main|master|develop)$'; then
+if echo "$branch" | grep -qE '^(main|master|development)$'; then
   echo "✖ Direct commits to '$branch' are not allowed. Create a feature branch (see CONTRIBUTING.md)."
   exit 1
 fi
