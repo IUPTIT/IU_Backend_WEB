@@ -7,12 +7,12 @@ async function start() {
 
   const server = app.listen(config.port, () => {
     console.log(
-      `[server] IU_CLUB API listening on http://localhost:${config.port} (${config.env})`,
+      `[server] listening on http://localhost:${config.port} (${config.env})`,
     );
   });
 
   // Graceful shutdown.
-  const shutdown = async (signal) => {
+  const shutdown = (signal) => {
     console.log(`\n[server] ${signal} received, shutting down...`);
     server.close(async () => {
       await disconnectDatabase();

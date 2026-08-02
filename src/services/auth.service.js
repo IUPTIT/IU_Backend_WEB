@@ -4,7 +4,7 @@ import { TOKEN_TYPES } from "../models/token.model.js";
 import * as tokenService from "./token.service.js";
 import * as emailService from "./email.service.js";
 
-// Issue a fresh access + refresh token pair for a user.
+// Issue an access + refresh token pair.
 async function issueTokens(user) {
   const accessToken = tokenService.signAccessToken(user);
   const refreshToken = await tokenService.createRefreshToken(user);
@@ -49,14 +49,12 @@ export async function verifyEmail({ email, otp }) {
 
 export async function resendOtp({ email }) {
   const user = await User.findOne({ email });
-  // Do not reveal whether the email exists.
-  if (!user || user.emailVerified) return;
+  if (!user || user.emailVerified) return; // don't reveal existence
   const otp = await tokenService.createOtp(user, TOKEN_TYPES.VERIFY_EMAIL);
   await emailService.sendVerificationEmail(user.email, otp);
 }
 
 export async function login({ email, password }) {
-  // Select the password explicitly since it is `select:false` by default.
   const user = await User.findOne({ email }).select("+password");
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized("Invalid email or password");
@@ -73,10 +71,8 @@ export async function refresh(oldRefreshToken) {
   if (!oldRefreshToken) throw ApiError.unauthorized("Missing refresh token");
 
   let payload;
-  let record;
   try {
-    ({ payload, record } =
-      await tokenService.verifyRefreshToken(oldRefreshToken));
+    ({ payload } = await tokenService.verifyRefreshToken(oldRefreshToken));
   } catch {
     throw ApiError.unauthorized("Invalid refresh token");
   }
@@ -84,9 +80,8 @@ export async function refresh(oldRefreshToken) {
   const user = await User.findById(payload.sub);
   if (!user) throw ApiError.unauthorized("Invalid refresh token");
 
-  // Rotation: delete the used token, then issue a brand new pair.
+  // Rotation: revoke the used token, issue a new pair.
   await tokenService.revokeRefreshToken(oldRefreshToken);
-  void record;
   const tokens = await issueTokens(user);
   return { user, ...tokens };
 }
@@ -97,8 +92,7 @@ export async function logout(refreshToken) {
 
 export async function forgotPassword({ email }) {
   const user = await User.findOne({ email });
-  // Always succeed to avoid user enumeration.
-  if (!user) return;
+  if (!user) return; // avoid user enumeration
   const resetToken = await tokenService.createResetToken(user);
   await emailService.sendPasswordResetEmail(user.email, resetToken);
 }

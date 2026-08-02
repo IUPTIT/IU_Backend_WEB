@@ -1,1 +1,16 @@
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
+
+# Block direct commits to protected branches.
+if echo "$branch" | grep -qE '^(main|master|develop)$'; then
+  echo "✖ Direct commits to '$branch' are not allowed. Create a feature branch (see CONTRIBUTING.md)."
+  exit 1
+fi
+
+# Enforce branch naming: type/short-kebab-description.
+valid='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|release|hotfix)\/[a-z0-9._-]+$'
+if [ -n "$branch" ] && ! echo "$branch" | grep -qE "$valid"; then
+  echo "✖ Branch '$branch' breaks the naming rule: type/short-kebab-description (see CONTRIBUTING.md)."
+  exit 1
+fi
+
 npm run lint

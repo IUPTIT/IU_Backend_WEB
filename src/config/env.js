@@ -3,8 +3,7 @@ import Joi from "joi";
 
 dotenv.config();
 
-// Validate and normalize process.env once at startup. The app fails fast
-// with a clear message if a required variable is missing or malformed.
+// Validate env once at startup; fail fast on missing/invalid vars.
 const schema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "production", "test")

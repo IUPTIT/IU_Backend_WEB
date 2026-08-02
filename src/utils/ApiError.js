@@ -1,3 +1,4 @@
+// HTTP error with a status code; caught by the central error middleware.
 export default class ApiError extends Error {
   constructor(
     statusCode,

@@ -11,26 +11,19 @@ import { notFound, errorHandler } from "./middlewares/error.js";
 
 const app = express();
 
-// ── Global middleware ────────────────────────────────
+// Global middleware
 app.use(helmet());
-app.use(
-  cors({
-    origin: config.clientUrl,
-    credentials: true, // allow the refresh-token cookie
-  }),
-);
+app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 if (!config.isProd) app.use(morgan("dev"));
+app.use(initPassport().initialize()); // stateless; we issue our own JWTs
 
-// Passport in stateless mode (no sessions; we issue our own JWTs).
-app.use(initPassport().initialize());
-
-// ── Routes ───────────────────────────────────────────
+// Routes
 app.use("/api/v1", routes);
 
-// ── Error handling (must come last) ──────────────────
+// Error handling (last)
 app.use(notFound);
 app.use(errorHandler);
 

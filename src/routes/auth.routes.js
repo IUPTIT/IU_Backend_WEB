@@ -15,7 +15,6 @@ import {
 
 const router = Router();
 
-// Throttle all auth endpoints.
 router.use(authLimiter);
 
 router.post("/register", registerValidator, authController.register);
@@ -37,7 +36,7 @@ router.post(
 
 router.get("/me", authenticate, authController.me);
 
-// ── Google SSO ───────────────────────────────────────
+// Google SSO (only when configured).
 if (config.google.enabled) {
   router.get(
     "/google",

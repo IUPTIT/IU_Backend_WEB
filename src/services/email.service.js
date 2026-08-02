@@ -1,9 +1,7 @@
 import nodemailer from "nodemailer";
 import config from "../config/env.js";
 
-// Lazily create the transport. When SMTP is not configured (e.g. local dev
-// without credentials), fall back to logging the email to the console so the
-// rest of the auth flow remains testable.
+// Lazily built transport; when SMTP is unset, emails are logged to console.
 let transporter = null;
 
 function getTransporter() {
@@ -42,7 +40,7 @@ export function sendPasswordResetEmail(to, resetToken) {
   return send({
     to,
     subject: "Reset your IU_CLUB password",
-    text: `Reset your password using this link: ${url} (valid for 30 minutes).`,
+    text: `Reset your password: ${url} (valid for 30 minutes).`,
     html: `<p>Reset your password: <a href="${url}">${url}</a> (valid for 30 minutes).</p>`,
   });
 }

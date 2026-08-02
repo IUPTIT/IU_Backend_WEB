@@ -2,15 +2,11 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import config from "./env.js";
 
-// Register the Google OAuth strategy only when credentials are present, so the
-// app boots fine in environments without SSO configured. We use passport in
-// stateless mode (session: false) and hand the raw profile to the controller,
-// which delegates to auth.service for user lookup/creation + JWT issuance.
+// Register the Google strategy only when credentials exist. Stateless
+// (session: false); the raw profile is passed to the controller/service.
 export function initPassport() {
   if (!config.google.enabled) {
-    console.warn(
-      "[auth] Google SSO disabled (missing GOOGLE_CLIENT_ID/SECRET)",
-    );
+    console.warn("[auth] Google SSO disabled (missing credentials)");
     return passport;
   }
 
@@ -22,10 +18,7 @@ export function initPassport() {
         callbackURL: config.google.callbackUrl,
         scope: ["profile", "email"],
       },
-      (_accessToken, _refreshToken, profile, done) => {
-        // Defer all business logic to the controller/service layer.
-        done(null, profile);
-      },
+      (_accessToken, _refreshToken, profile, done) => done(null, profile),
     ),
   );
 

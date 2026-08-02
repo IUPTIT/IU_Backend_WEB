@@ -2,12 +2,12 @@ import { isCelebrateError } from "celebrate";
 import config from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
 
-// 404 for unmatched routes — forwards to the error handler below.
+// 404 for unmatched routes.
 export function notFound(req, _res, next) {
   next(ApiError.notFound(`Route not found: ${req.method} ${req.originalUrl}`));
 }
 
-// Central error handler. Must be registered last, with four arguments.
+// Central error handler (registered last, four args).
 export function errorHandler(err, _req, res, _next) {
   let statusCode = 500;
   let message = "Internal server error";
@@ -25,18 +25,14 @@ export function errorHandler(err, _req, res, _next) {
     message = err.message;
     errors = err.errors;
   } else if (err.name === "ValidationError") {
-    // Mongoose schema validation.
-    statusCode = 400;
+    statusCode = 400; // mongoose validation
     message = err.message;
   } else if (err.code === 11000) {
-    // Mongo duplicate key.
-    statusCode = 409;
+    statusCode = 409; // mongo duplicate key
     message = "Duplicate value violates a unique constraint";
   }
 
-  if (statusCode >= 500) {
-    console.error("[error]", err);
-  }
+  if (statusCode >= 500) console.error("[error]", err);
 
   res.status(statusCode).json({
     success: false,

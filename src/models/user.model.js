@@ -6,11 +6,7 @@ export const USER_STATUS = ["pending", "active", "disabled"];
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    name: { type: String, required: true, trim: true },
     email: {
       type: String,
       required: true,
@@ -18,40 +14,18 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    // Not required: Google-only accounts have no local password.
-    password: {
-      type: String,
-      select: false,
-    },
-    googleId: {
-      type: String,
-      // sparse unique: many docs without googleId are allowed, but set
-      // values must be unique.
-      index: { unique: true, sparse: true },
-    },
-    role: {
-      type: String,
-      enum: ROLES,
-      default: "member",
-    },
-    status: {
-      type: String,
-      enum: USER_STATUS,
-      default: "pending",
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    avatar: {
-      type: String,
-      default: "",
-    },
+    // Optional: Google-only accounts have no local password.
+    password: { type: String, select: false },
+    googleId: { type: String, index: { unique: true, sparse: true } },
+    role: { type: String, enum: ROLES, default: "member" },
+    status: { type: String, enum: USER_STATUS, default: "pending" },
+    emailVerified: { type: Boolean, default: false },
+    avatar: { type: String, default: "" },
   },
   { timestamps: true },
 );
 
-// Hash the password whenever it is set or changed.
+// Hash password on set/change.
 userSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 10);
@@ -63,7 +37,7 @@ userSchema.methods.comparePassword = function comparePassword(plain) {
   return bcrypt.compare(plain, this.password);
 };
 
-// Never leak sensitive fields in JSON responses.
+// Strip sensitive fields from JSON output.
 userSchema.set("toJSON", {
   virtuals: true,
   transform(_doc, ret) {

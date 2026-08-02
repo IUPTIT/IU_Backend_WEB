@@ -5,13 +5,13 @@ import * as authService from "../services/auth.service.js";
 
 const REFRESH_COOKIE = "refreshToken";
 
-// httpOnly cookie so the refresh token is not readable by JS (XSS-safe).
+// httpOnly so the refresh token is not readable by JS (XSS-safe).
 const refreshCookieOptions = {
   httpOnly: true,
   secure: config.isProd,
   sameSite: "lax",
   path: "/api/v1/auth",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 function setRefreshCookie(res, token) {
@@ -83,8 +83,6 @@ export const googleCallback = catchAsync(async (req, res) => {
     req.user,
   );
   setRefreshCookie(res, refreshToken);
-  // For a real SPA you would redirect to CLIENT_URL with the token; we return
-  // JSON here to keep the scaffold self-contained.
   sendSuccess(res, {
     message: "Logged in with Google",
     data: { user, accessToken },
