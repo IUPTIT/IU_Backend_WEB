@@ -6,12 +6,10 @@ on:
   pull_request:
     branches: [main, development]
 
-# Hủy run cũ khi có commit mới trên cùng nhánh -> tiết kiệm CI minutes
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege: job chỉ đọc code, không cần quyền write
 permissions:
   contents: read
 
@@ -19,14 +17,14 @@ jobs:
   quality-code:
     name: Lint & Format
     runs-on: ubuntu-latest
-    timeout-minutes: 10 # chặn job treo, tránh cháy quota
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: 20
           cache: npm

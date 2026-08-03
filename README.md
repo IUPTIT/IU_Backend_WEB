@@ -52,19 +52,19 @@ Controllers never contain business logic; services never touch `req`/`res`.
 
 ## Auth API (`/api/v1/auth`)
 
-| Method | Path              | Auth   | Purpose                                       |
-| ------ | ----------------- | ------ | --------------------------------------------- |
-| POST   | `/register`       | —      | Register (email/password), sends OTP          |
-| POST   | `/verify-email`   | —      | Verify OTP → activate account                 |
-| POST   | `/resend-otp`     | —      | Resend verification code                      |
-| POST   | `/login`          | —      | Returns `accessToken` (body) + refresh cookie |
-| POST   | `/refresh`        | cookie | Rotate refresh token, new access token        |
-| POST   | `/logout`         | cookie | Revoke refresh token                          |
-| POST   | `/forgot-password`| —      | Email a password-reset link                   |
-| POST   | `/reset-password` | —      | Set a new password                            |
-| GET    | `/google`         | —      | Start Google SSO (if configured)              |
-| GET    | `/google/callback`| —      | Finish Google SSO → issue JWT                 |
-| GET    | `/me`             | Bearer | Current authenticated user                    |
+| Method | Path               | Auth   | Purpose                                       |
+| ------ | ------------------ | ------ | --------------------------------------------- |
+| POST   | `/register`        | —      | Register (email/password), sends OTP          |
+| POST   | `/verify-email`    | —      | Verify OTP → activate account                 |
+| POST   | `/resend-otp`      | —      | Resend verification code                      |
+| POST   | `/login`           | —      | Returns `accessToken` (body) + refresh cookie |
+| POST   | `/refresh`         | cookie | Rotate refresh token, new access token        |
+| POST   | `/logout`          | cookie | Revoke refresh token                          |
+| POST   | `/forgot-password` | —      | Email a password-reset link                   |
+| POST   | `/reset-password`  | —      | Set a new password                            |
+| GET    | `/google`          | —      | Start Google SSO (if configured)              |
+| GET    | `/google/callback` | —      | Finish Google SSO → issue JWT                 |
+| GET    | `/me`              | Bearer | Current authenticated user                    |
 
 **Tokens:** the access token is a short-lived JWT returned in the JSON body
 (`Authorization: Bearer <token>`). The refresh token is a long-lived JWT stored
@@ -87,11 +87,11 @@ Code style is enforced by **Prettier** (`npm run format`).
 
 ## Scripts
 
-| Command                | Description                     |
-| ---------------------- | ------------------------------- |
-| `npm start`            | Run the server                  |
-| `npm run dev`          | Run with nodemon                |
-| `npm run lint`         | ESLint check                    |
-| `npm run lint:fix`     | ESLint autofix                  |
-| `npm run format`       | Format the codebase (Prettier)  |
-| `npm run format:check` | Verify formatting               |
+| Command                | Description                    |
+| ---------------------- | ------------------------------ |
+| `npm start`            | Run the server                 |
+| `npm run dev`          | Run with nodemon               |
+| `npm run lint`         | ESLint check                   |
+| `npm run lint:fix`     | ESLint autofix                 |
+| `npm run format`       | Format the codebase (Prettier) |
+| `npm run format:check` | Verify formatting              |
