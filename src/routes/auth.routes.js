@@ -19,9 +19,24 @@ const router = Router();
 // Chỉ throttle các endpoint nhập credential (chống brute-force).
 // refresh/logout/me là request nền của phiên hợp lệ — không giới hạn,
 // nếu không mỗi lần reload trang sẽ ăn dần quota và dính 429 oan.
-router.post("/register", authLimiter, registerValidator, authController.register);
-router.post("/verify-email", authLimiter, verifyEmailValidator, authController.verifyEmail);
-router.post("/resend-otp", authLimiter, resendOtpValidator, authController.resendOtp);
+router.post(
+  "/register",
+  authLimiter,
+  registerValidator,
+  authController.register,
+);
+router.post(
+  "/verify-email",
+  authLimiter,
+  verifyEmailValidator,
+  authController.verifyEmail,
+);
+router.post(
+  "/resend-otp",
+  authLimiter,
+  resendOtpValidator,
+  authController.resendOtp,
+);
 router.post("/login", authLimiter, loginValidator, authController.login);
 router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);

@@ -25,9 +25,19 @@ const userSchema = new mongoose.Schema(
     // Bắt buộc đổi mật khẩu ở lần đăng nhập đầu (tài khoản Ứng viên sinh tự động,
     // password mặc định là ngày sinh DDMMYYYY) — không cho bỏ qua.
     requirePasswordChange: { type: Boolean, default: false },
+    // Liên kết ngược tới hồ sơ ứng tuyển gốc (tài khoản sinh từ luồng tuyển thành viên)
+    sourceApplicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Application",
+      default: null,
+    },
+    // Vô hiệu hoá thay vì xoá (rớt phỏng vấn / không trúng tuyển)
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
+
+userSchema.index({ role: 1, isActive: 1 });
 
 userSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password") || !this.password) return next();

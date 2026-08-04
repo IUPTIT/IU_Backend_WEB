@@ -69,7 +69,8 @@ export function uploadBuffer(kind, file) {
         unique_filename: true,
       },
       (err, result) => {
-        if (err) return reject(ApiError.badRequest(`Upload failed: ${err.message}`));
+        if (err)
+          return reject(ApiError.badRequest(`Upload failed: ${err.message}`));
         return resolve({ url: result.secure_url, publicId: result.public_id });
       },
     );

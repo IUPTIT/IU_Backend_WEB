@@ -5,9 +5,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const { connectDatabase, disconnectDatabase } = await import(
-  "../config/database.js"
-);
+const { connectDatabase, disconnectDatabase } =
+  await import("../config/database.js");
 const { default: User } = await import("../models/user.model.js");
 
 const name = process.env.ADMIN_NAME || "IU Club Admin";
