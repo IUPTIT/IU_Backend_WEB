@@ -33,10 +33,26 @@ export async function listSlots(campaignId) {
   return { slots, bookings };
 }
 
+function timeToMinutes(time) {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(total) {
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 // Sửa slot (phân công người phỏng vấn, đổi địa điểm/giờ) — không đụng bookedCount
 export async function updateSlot(slotId, data) {
   const slot = await InterviewSlot.findById(slotId);
   if (!slot) throw ApiError.notFound("Không tìm thấy ca phỏng vấn");
+
+  // Đổi startTime mà không gửi endTime → dời endTime giữ nguyên thời lượng ca
+  if (data.startTime !== undefined && data.endTime === undefined) {
+    const duration = timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime);
+    data = { ...data, endTime: minutesToTime(timeToMinutes(data.startTime) + duration) };
+  }
+
   const allowed = ["interviewerIds", "location", "date", "startTime", "endTime", "capacity"];
   for (const key of allowed) {
     if (data[key] !== undefined) slot[key] = data[key];
