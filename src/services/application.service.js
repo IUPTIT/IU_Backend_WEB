@@ -2,6 +2,7 @@ import crypto from "crypto";
 import ApiError from "../utils/ApiError.js";
 import Application from "../models/application.model.js";
 import ApplicationForm from "../models/applicationForm.model.js";
+import ApplicationScore from "../models/applicationScore.model.js";
 import * as campaignService from "./campaign.service.js";
 import * as emailService from "./email.service.js";
 import { transition } from "./applicationStateMachine.js";
@@ -291,5 +292,28 @@ export async function listApplications({
       .populate("campaignId", "name closeAt status"),
     Application.countDocuments(filter),
   ]);
-  return { applications, total, page: numericPage, limit: numericLimit };
+
+  // Đính kèm điểm trung bình từng vòng (thang 0-100) để FE hiển thị danh sách
+  const averages = await ApplicationScore.aggregate([
+    { $match: { applicationId: { $in: applications.map((a) => a._id) } } },
+    {
+      $group: {
+        _id: { applicationId: "$applicationId", round: "$round" },
+        avg: { $avg: "$totalScore" },
+      },
+    },
+  ]);
+  const scoreMap = new Map(
+    averages.map((s) => [`${s._id.applicationId}:${s._id.round}`, s.avg]),
+  );
+  const enriched = applications.map((doc) => {
+    const obj = doc.toObject({ virtuals: true });
+    const cv = scoreMap.get(`${doc._id}:cv`);
+    const interview = scoreMap.get(`${doc._id}:interview`);
+    obj.cvScore = cv != null ? Number(cv.toFixed(2)) : null;
+    obj.interviewScore = interview != null ? Number(interview.toFixed(2)) : null;
+    return obj;
+  });
+
+  return { applications: enriched, total, page: numericPage, limit: numericLimit };
 }
