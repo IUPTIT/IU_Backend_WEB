@@ -38,11 +38,11 @@ const formFieldSchema = new mongoose.Schema(
 const applicationFormSchema = new mongoose.Schema(
   {
     // ID đợt tuyển tương ứng (1-1 với RecruitmentCampaign)
+    // unique qua schema.index() bên dưới — không khai báo tại field để tránh trùng index
     campaignId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "RecruitmentCampaign",
       required: true,
-      unique: true,
     },
 
     // Danh sách các trường trong form
