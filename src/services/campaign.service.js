@@ -72,7 +72,9 @@ export async function updateCampaign(id, data) {
 export async function publishCampaign(id) {
   const campaign = await getCampaign(id);
   if (campaign.status !== "draft") {
-    throw ApiError.badRequest("Chỉ đợt tuyển ở trạng thái draft mới được publish");
+    throw ApiError.badRequest(
+      "Chỉ đợt tuyển ở trạng thái draft mới được publish",
+    );
   }
 
   // Không cho 2 đợt "open" trùng thời gian cho cùng một ban (nghiệp vụ 0.1)

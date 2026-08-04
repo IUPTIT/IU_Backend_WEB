@@ -61,7 +61,8 @@ const applicationScoreSchema = new mongoose.Schema(
             const sumWeight = arr.reduce((sum, item) => sum + item.weight, 0);
             return Math.abs(sumWeight - 100) < 0.01;
           },
-          message: "Tổng trọng số (weight) của các tiêu chí trong mảng phải bằng 100",
+          message:
+            "Tổng trọng số (weight) của các tiêu chí trong mảng phải bằng 100",
         },
       ],
     },
@@ -84,7 +85,8 @@ const applicationScoreSchema = new mongoose.Schema(
           }
           return true;
         },
-        message: "Chỉ được phép nhập điểm danh (attendance) cho vòng phỏng vấn (round='interview')",
+        message:
+          "Chỉ được phép nhập điểm danh (attendance) cho vòng phỏng vấn (round='interview')",
       },
     },
   },
@@ -148,7 +150,8 @@ applicationScoreSchema.statics.getAverageAndVariance = async function (
     const diff = maxScore - minScore;
 
     // Chênh lệch điểm % so với điểm trung bình (hoặc chênh lệch tuyệt đối trên thang 100)
-    maxDiffPercent = average > 0 ? Number(((diff / average) * 100).toFixed(2)) : 0;
+    maxDiffPercent =
+      average > 0 ? Number(((diff / average) * 100).toFixed(2)) : 0;
   }
 
   return {

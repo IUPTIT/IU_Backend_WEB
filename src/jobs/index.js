@@ -52,4 +52,3 @@ export {
   JOB_DISABLE_ACCOUNT,
   JOB_PROMOTE_TO_MEMBER,
 };
-

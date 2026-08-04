@@ -5,9 +5,11 @@ export const lookup = celebrate({
   [Segments.QUERY]: Joi.object({
     email: Joi.string().email().lowercase().trim(),
     code: Joi.string().trim().uppercase(),
-  }).or("email", "code").messages({
-    "object.missing": "Cần cung cấp email hoặc mã hồ sơ (code) để tra cứu",
-  }),
+  })
+    .or("email", "code")
+    .messages({
+      "object.missing": "Cần cung cấp email hoặc mã hồ sơ (code) để tra cứu",
+    }),
 });
 
 const departmentPreferenceSchema = Joi.object({
@@ -30,9 +32,11 @@ export const editWithEmail = celebrate({
     studentId: Joi.string().trim(),
     className: Joi.string().trim(),
     faculty: Joi.string().trim(),
-    phone: Joi.string().pattern(/^[0-9]{10}$/).messages({
-      "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
-    }),
+    phone: Joi.string()
+      .pattern(/^[0-9]{10}$/)
+      .messages({
+        "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
+      }),
     dateOfBirth: Joi.date().iso().max("now"),
     avatarUrl: Joi.string().uri(),
     cvUrl: Joi.string().uri(),
@@ -42,9 +46,11 @@ export const editWithEmail = celebrate({
       .max(3)
       .unique("priority"),
     answers: Joi.array().items(answerSchema),
-  }).min(2).messages({
-    "object.min": "Cần ít nhất 1 trường để cập nhật ngoài email",
-  }),
+  })
+    .min(2)
+    .messages({
+      "object.min": "Cần ít nhất 1 trường để cập nhật ngoài email",
+    }),
 });
 
 export const withdraw = celebrate({
@@ -60,7 +66,9 @@ export const updateDraftBody = celebrate({
     studentId: Joi.string().trim().allow(""),
     className: Joi.string().trim().allow(""),
     faculty: Joi.string().trim().allow(""),
-    phone: Joi.string().pattern(/^[0-9]{10}$/).allow(""),
+    phone: Joi.string()
+      .pattern(/^[0-9]{10}$/)
+      .allow(""),
     dateOfBirth: Joi.date().iso().max("now"),
     avatarUrl: Joi.string().allow(""),
     cvUrl: Joi.string().allow(""),

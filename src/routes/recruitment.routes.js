@@ -32,16 +32,30 @@ const updateCampaignValidator = celebrate({
 // ---- BCN: quản lý đợt tuyển & form (Phần 0) ----
 router.use(authenticate, authorize("bcn"));
 
-router.post("/campaigns", campaignValidation.createCampaign, controller.createCampaign);
+router.post(
+  "/campaigns",
+  campaignValidation.createCampaign,
+  controller.createCampaign,
+);
 router.get("/campaigns", controller.listCampaigns);
 router.get("/campaigns/:id", idParam, controller.getCampaign);
-router.patch("/campaigns/:id", idParam, updateCampaignValidator, controller.updateCampaign);
+router.patch(
+  "/campaigns/:id",
+  idParam,
+  updateCampaignValidator,
+  controller.updateCampaign,
+);
 router.post("/campaigns/:id/publish", idParam, controller.publishCampaign);
 router.post("/campaigns/:id/close", idParam, controller.closeCampaign);
 router.delete("/campaigns/:id", idParam, controller.deleteCampaign);
 
 router.get("/campaigns/:id/form", idParam, controller.getForm);
-router.put("/campaigns/:id/form", idParam, formValidation.updateForm, controller.updateForm);
+router.put(
+  "/campaigns/:id/form",
+  idParam,
+  formValidation.updateForm,
+  controller.updateForm,
+);
 
 // ---- BCN: hồ sơ vòng đơn (Phần 2 — mới có list, chấm điểm làm ở PR sau) ----
 router.get("/applications", controller.listApplications);

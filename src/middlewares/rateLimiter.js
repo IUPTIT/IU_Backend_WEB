@@ -23,4 +23,3 @@ export const publicLimiter = rateLimit({
     message: "Quá nhiều yêu cầu từ IP của bạn. Vui lòng thử lại sau 1 phút.",
   },
 });
-

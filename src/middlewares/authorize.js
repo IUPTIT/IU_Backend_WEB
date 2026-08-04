@@ -34,4 +34,3 @@ export function authorizeCandidateOwner(req, _res, next) {
 
   return next();
 }
-

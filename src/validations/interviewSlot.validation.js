@@ -43,7 +43,8 @@ export const createSlot = celebrate({
       .required()
       .messages({
         "array.min": "Phải phân công ít nhất 1 người phỏng vấn",
-        "any.required": "Danh sách người phỏng vấn (interviewerIds) là bắt buộc",
+        "any.required":
+          "Danh sách người phỏng vấn (interviewerIds) là bắt buộc",
       }),
 
     capacity: Joi.number().integer().min(1).required().messages({
@@ -65,14 +66,10 @@ export const bulkGenerateSlots = celebrate({
       "any.required": "campaignId là bắt buộc",
     }),
 
-    dates: Joi.array()
-      .items(Joi.date().iso())
-      .min(1)
-      .required()
-      .messages({
-        "array.min": "Phải chọn ít nhất 1 ngày",
-        "any.required": "Danh sách ngày (dates) là bắt buộc",
-      }),
+    dates: Joi.array().items(Joi.date().iso()).min(1).required().messages({
+      "array.min": "Phải chọn ít nhất 1 ngày",
+      "any.required": "Danh sách ngày (dates) là bắt buộc",
+    }),
 
     startHour: Joi.number().integer().min(0).max(23).required().messages({
       "number.min": "startHour phải từ 0 đến 23",
@@ -91,11 +88,17 @@ export const bulkGenerateSlots = celebrate({
         "any.required": "endHour là bắt buộc",
       }),
 
-    durationMinutes: Joi.number().integer().min(5).max(480).required().messages({
-      "number.min": "Thời lượng mỗi ca (durationMinutes) tối thiểu 5 phút",
-      "number.max": "Thời lượng mỗi ca (durationMinutes) tối đa 480 phút (8 giờ)",
-      "any.required": "durationMinutes là bắt buộc",
-    }),
+    durationMinutes: Joi.number()
+      .integer()
+      .min(5)
+      .max(480)
+      .required()
+      .messages({
+        "number.min": "Thời lượng mỗi ca (durationMinutes) tối thiểu 5 phút",
+        "number.max":
+          "Thời lượng mỗi ca (durationMinutes) tối đa 480 phút (8 giờ)",
+        "any.required": "durationMinutes là bắt buộc",
+      }),
 
     capacity: Joi.number().integer().min(1).required().messages({
       "number.min": "Sức chứa tối thiểu phải là 1",

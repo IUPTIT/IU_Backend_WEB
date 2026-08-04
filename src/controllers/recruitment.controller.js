@@ -25,7 +25,10 @@ export const getCampaign = catchAsync(async (req, res) => {
 });
 
 export const updateCampaign = catchAsync(async (req, res) => {
-  const campaign = await campaignService.updateCampaign(req.params.id, req.body);
+  const campaign = await campaignService.updateCampaign(
+    req.params.id,
+    req.body,
+  );
   sendSuccess(res, { message: "Đã cập nhật đợt tuyển", data: { campaign } });
 });
 

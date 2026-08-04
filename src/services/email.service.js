@@ -65,7 +65,7 @@ export function sendApplicationReceivedEmail(application) {
 
 // Email gửi link tiếp tục điền đơn nháp cho Guest (nghiệp vụ 1.2)
 export function sendDraftLinkEmail(application, draftToken) {
-  const url = `${config.clientUrl}/ung-tuyen/nhap?token=${draftToken}`;
+  const url = `${config.clientUrl}/tuyen-thanh-vien?token=${draftToken}`;
   return send({
     to: application.email,
     subject: "IU_CLUB - Link tiep tuc dien don ung tuyen cua ban",

@@ -27,7 +27,11 @@ router.get("/campaigns/:id/form", idParam, controller.getForm);
 router.post("/uploads", upload.single("file"), controller.uploadFile);
 
 // ---- Đơn nháp (nghiệp vụ 1.2) ----
-router.post("/applications/draft", applicationValidation.saveDraft, controller.saveDraft);
+router.post(
+  "/applications/draft",
+  applicationValidation.saveDraft,
+  controller.saveDraft,
+);
 router.get("/applications/draft/:token", tokenParam, controller.getDraft);
 router.put(
   "/applications/draft/:token",
@@ -50,7 +54,11 @@ router.post(
 );
 
 // ---- Tra cứu / sửa / rút đơn (nghiệp vụ 1.5) ----
-router.get("/applications/lookup", publicValidation.lookup, controller.lookupApplication);
+router.get(
+  "/applications/lookup",
+  publicValidation.lookup,
+  controller.lookupApplication,
+);
 router.put(
   "/applications/:code/edit",
   codeParam,

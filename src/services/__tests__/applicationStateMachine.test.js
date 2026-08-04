@@ -38,10 +38,7 @@ describe("Application State Machine - canTransition()", () => {
   test("Case 4 (Trạng thái kết thúc): admitted / rejected -> bất kỳ đâu đều trả về false", () => {
     // admitted -> passed_cv
     expect(
-      canTransition(
-        APPLICATION_STATUS.ADMITTED,
-        APPLICATION_STATUS.PASSED_CV,
-      ),
+      canTransition(APPLICATION_STATUS.ADMITTED, APPLICATION_STATUS.PASSED_CV),
     ).toBe(false);
 
     // rejected -> draft

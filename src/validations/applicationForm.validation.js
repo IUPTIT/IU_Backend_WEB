@@ -30,11 +30,13 @@ const fieldSchema = Joi.object({
     .when("type", {
       is: Joi.valid("single_choice", "multi_choice"),
       then: Joi.array().min(1).required().messages({
-        "array.min": "Các trường dạng lựa chọn (single_choice/multi_choice) phải có ít nhất 1 option",
+        "array.min":
+          "Các trường dạng lựa chọn (single_choice/multi_choice) phải có ít nhất 1 option",
         "any.required": "options là bắt buộc đối với trường dạng lựa chọn",
       }),
       otherwise: Joi.forbidden().messages({
-        "any.unknown": "Chỉ các trường single_choice và multi_choice mới được cung cấp options",
+        "any.unknown":
+          "Chỉ các trường single_choice và multi_choice mới được cung cấp options",
       }),
     }),
 

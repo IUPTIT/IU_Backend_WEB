@@ -13,14 +13,11 @@ export const createCampaign = celebrate({
       "any.required": "Thời gian mở đợt tuyển (openAt) là bắt buộc",
     }),
 
-    closeAt: Joi.date()
-      .iso()
-      .greater(Joi.ref("openAt"))
-      .required()
-      .messages({
-        "date.greater": "Thời gian đóng (closeAt) phải lớn hơn thời gian mở (openAt)",
-        "any.required": "Thời gian đóng đợt tuyển (closeAt) là bắt buộc",
-      }),
+    closeAt: Joi.date().iso().greater(Joi.ref("openAt")).required().messages({
+      "date.greater":
+        "Thời gian đóng (closeAt) phải lớn hơn thời gian mở (openAt)",
+      "any.required": "Thời gian đóng đợt tuyển (closeAt) là bắt buộc",
+    }),
 
     quotas: Joi.array()
       .items(
@@ -39,7 +36,8 @@ export const createCampaign = celebrate({
       .required()
       .messages({
         "array.min": "Đợt tuyển phải có ít nhất 1 ban",
-        "array.unique": "Không được chứa 2 chỉ tiêu trùng ban trong cùng một đợt tuyển",
+        "array.unique":
+          "Không được chứa 2 chỉ tiêu trùng ban trong cùng một đợt tuyển",
         "any.required": "Danh sách quotas là bắt buộc",
       }),
   }),
@@ -61,9 +59,13 @@ export const updateCampaignAfterPublish = celebrate({
       .optional()
       .messages({
         "array.min": "Đợt tuyển phải có ít nhất 1 ban",
-        "array.unique": "Không được chứa 2 chỉ tiêu trùng ban trong cùng một đợt tuyển",
+        "array.unique":
+          "Không được chứa 2 chỉ tiêu trùng ban trong cùng một đợt tuyển",
       }),
-  }).min(1).messages({
-    "object.min": "Cần cung cấp ít nhất 1 trường (closeAt hoặc quotas) để cập nhật",
-  }),
+  })
+    .min(1)
+    .messages({
+      "object.min":
+        "Cần cung cấp ít nhất 1 trường (closeAt hoặc quotas) để cập nhật",
+    }),
 });

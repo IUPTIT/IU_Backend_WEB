@@ -19,7 +19,8 @@ const answerSchema = Joi.object({
 export const saveDraft = celebrate({
   [Segments.BODY]: Joi.object({
     campaignId: Joi.string().hex().length(24).required().messages({
-      "string.length": "ID đợt tuyển (campaignId) không đúng định dạng ObjectId",
+      "string.length":
+        "ID đợt tuyển (campaignId) không đúng định dạng ObjectId",
       "any.required": "campaignId là bắt buộc",
     }),
 
@@ -65,7 +66,8 @@ export const saveDraft = celebrate({
 export const submitApplication = celebrate({
   [Segments.BODY]: Joi.object({
     campaignId: Joi.string().hex().length(24).required().messages({
-      "string.length": "ID đợt tuyển (campaignId) không đúng định dạng ObjectId",
+      "string.length":
+        "ID đợt tuyển (campaignId) không đúng định dạng ObjectId",
       "any.required": "campaignId là bắt buộc",
     }),
 
@@ -98,14 +100,10 @@ export const submitApplication = celebrate({
         "any.required": "Số điện thoại là bắt buộc khi submit hồ sơ",
       }),
 
-    dateOfBirth: Joi.date()
-      .iso()
-      .max("now")
-      .required()
-      .messages({
-        "date.max": "Ngày sinh không được là ngày trong tương lai",
-        "any.required": "Ngày sinh là bắt buộc khi submit hồ sơ",
-      }),
+    dateOfBirth: Joi.date().iso().max("now").required().messages({
+      "date.max": "Ngày sinh không được là ngày trong tương lai",
+      "any.required": "Ngày sinh là bắt buộc khi submit hồ sơ",
+    }),
 
     avatarUrl: Joi.string().uri().required().messages({
       "string.uri": "Avatar URL phải là một đường dẫn URI hợp lệ",

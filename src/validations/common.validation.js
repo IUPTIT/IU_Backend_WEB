@@ -20,8 +20,14 @@ export const tokenParam = celebrate({
 
 export const codeParam = celebrate({
   [Segments.PARAMS]: Joi.object({
-    code: Joi.string().trim().uppercase().pattern(/^APP-\d{4}[FS]-\d{4}$/).required().messages({
-      "string.pattern.base": "Mã hồ sơ không đúng định dạng (VD: APP-2026F-0142)",
-    }),
+    code: Joi.string()
+      .trim()
+      .uppercase()
+      .pattern(/^APP-\d{4}[FS]-\d{4}$/)
+      .required()
+      .messages({
+        "string.pattern.base":
+          "Mã hồ sơ không đúng định dạng (VD: APP-2026F-0142)",
+      }),
   }),
 });

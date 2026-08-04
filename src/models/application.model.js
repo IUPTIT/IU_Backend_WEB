@@ -137,7 +137,8 @@ const applicationSchema = new mongoose.Schema(
           );
           return val <= minAgeDate;
         },
-        message: "Ngày sinh không được là ngày tương lai và ứng viên phải đủ tối thiểu 15 tuổi",
+        message:
+          "Ngày sinh không được là ngày tương lai và ứng viên phải đủ tối thiểu 15 tuổi",
       },
     },
 
@@ -164,7 +165,8 @@ const applicationSchema = new mongoose.Schema(
             const priorities = arr.map((p) => p.priority);
             return new Set(priorities).size === priorities.length;
           },
-          message: "Thứ tự ưu tiên (priority) các ban nguyện vọng không được trùng nhau",
+          message:
+            "Thứ tự ưu tiên (priority) các ban nguyện vọng không được trùng nhau",
         },
       ],
     },
@@ -196,10 +198,7 @@ const applicationSchema = new mongoose.Schema(
 
 // Indexes
 applicationSchema.index({ campaignId: 1, email: 1 });
-applicationSchema.index(
-  { applicationCode: 1 },
-  { unique: true, sparse: true },
-);
+applicationSchema.index({ applicationCode: 1 }, { unique: true, sparse: true });
 applicationSchema.index({ status: 1, campaignId: 1 });
 
 /**
@@ -228,7 +227,8 @@ applicationSchema.statics.hasActiveSubmittedApplication = async function (
 applicationSchema.methods.canEdit = function (campaignCloseAt = null) {
   if (this.status !== "pending_review") return false;
 
-  const closeAt = campaignCloseAt || (this.campaignId && this.campaignId.closeAt);
+  const closeAt =
+    campaignCloseAt || (this.campaignId && this.campaignId.closeAt);
   if (closeAt && new Date() > new Date(closeAt)) {
     return false;
   }

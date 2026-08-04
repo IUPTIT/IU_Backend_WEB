@@ -29,7 +29,9 @@ function validatePreferences(campaign, preferences = []) {
     .map((p) => p.department)
     .filter((d) => !departments.includes(d));
   if (unknown.length) {
-    throw ApiError.badRequest(`Ban không tồn tại trong đợt tuyển: ${unknown.join(", ")}`);
+    throw ApiError.badRequest(
+      `Ban không tồn tại trong đợt tuyển: ${unknown.join(", ")}`,
+    );
   }
 }
 
@@ -39,8 +41,16 @@ async function validateAnswers(campaign, answers = []) {
   if (!form) return;
   const byId = new Map(answers.map((a) => [a.fieldId, a.value]));
   const fixedIds = new Set([
-    "full_name", "student_id", "class_name", "faculty", "email",
-    "phone", "date_of_birth", "avatar", "cv", "department_preferences",
+    "full_name",
+    "student_id",
+    "class_name",
+    "faculty",
+    "email",
+    "phone",
+    "date_of_birth",
+    "avatar",
+    "cv",
+    "department_preferences",
   ]);
   for (const field of form.fields) {
     if (fixedIds.has(field.fieldId) || !field.required) continue;
@@ -115,7 +125,8 @@ export async function getDraftByToken(token) {
     draftTokenHash: hashToken(token),
     status: "draft",
   }).populate("campaignId", "name openAt closeAt status quotas");
-  if (!application) throw ApiError.notFound("Đơn nháp không tồn tại hoặc đã nộp");
+  if (!application)
+    throw ApiError.notFound("Đơn nháp không tồn tại hoặc đã nộp");
   if (application.draftExpiresAt && application.draftExpiresAt < new Date()) {
     throw ApiError.badRequest("Link đơn nháp đã hết hạn");
   }
@@ -153,7 +164,10 @@ export async function submitApplication(data, draftToken = null) {
   let application;
   if (draftToken) {
     application = await getDraftByToken(draftToken);
-    if (String(application.campaignId._id ?? application.campaignId) !== String(campaign._id)) {
+    if (
+      String(application.campaignId._id ?? application.campaignId) !==
+      String(campaign._id)
+    ) {
       throw ApiError.badRequest("Đơn nháp không thuộc đợt tuyển này");
     }
     const { campaignId: _campaignId, ...fields } = data;
@@ -226,8 +240,16 @@ export async function editApplication(code, email, data) {
 
   // Không cho đổi campaign/code/status/email qua endpoint này
   const allowed = [
-    "fullName", "studentId", "className", "faculty", "phone",
-    "dateOfBirth", "avatarUrl", "cvUrl", "departmentPreferences", "answers",
+    "fullName",
+    "studentId",
+    "className",
+    "faculty",
+    "phone",
+    "dateOfBirth",
+    "avatarUrl",
+    "cvUrl",
+    "departmentPreferences",
+    "answers",
   ];
   for (const key of allowed) {
     if (data[key] !== undefined) application[key] = data[key];

@@ -34,7 +34,9 @@ export const saveDraft = catchAsync(async (req, res) => {
 });
 
 export const getDraft = catchAsync(async (req, res) => {
-  const application = await applicationService.getDraftByToken(req.params.token);
+  const application = await applicationService.getDraftByToken(
+    req.params.token,
+  );
   sendSuccess(res, { message: "Đơn nháp", data: { application } });
 });
 

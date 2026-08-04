@@ -1,5 +1,8 @@
 import { celebrate, Joi, Segments } from "celebrate";
-import { SCORE_ROUNDS, ATTENDANCE_STATUS } from "../models/applicationScore.model.js";
+import {
+  SCORE_ROUNDS,
+  ATTENDANCE_STATUS,
+} from "../models/applicationScore.model.js";
 
 const criterionScoreSchema = Joi.object({
   criterion: Joi.string().trim().required().messages({
@@ -61,7 +64,8 @@ export const createScore = celebrate({
         .required()
         .messages({
           "any.only": `Điểm danh phải là một trong: ${ATTENDANCE_STATUS.join(", ")}`,
-          "any.required": "Điểm danh (attendance) là bắt buộc khi chấm điểm vòng phỏng vấn",
+          "any.required":
+            "Điểm danh (attendance) là bắt buộc khi chấm điểm vòng phỏng vấn",
         }),
       otherwise: Joi.valid(null).optional().messages({
         "any.only": "Không được nhập điểm danh (attendance) cho vòng đơn (cv)",

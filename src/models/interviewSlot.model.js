@@ -37,7 +37,10 @@ const interviewSlotSchema = new mongoose.Schema(
     startTime: {
       type: String,
       required: true,
-      match: [TIME_REGEX, "startTime phải có định dạng HH:mm (00:00 đến 23:59)"],
+      match: [
+        TIME_REGEX,
+        "startTime phải có định dạng HH:mm (00:00 đến 23:59)",
+      ],
     },
 
     // Giờ kết thúc (Định dạng HH:mm, phải lớn hơn startTime)
@@ -50,7 +53,8 @@ const interviewSlotSchema = new mongoose.Schema(
           if (!this.startTime || !val) return true;
           return timeToMinutes(val) > timeToMinutes(this.startTime);
         },
-        message: "Thời gian kết thúc (endTime) phải lớn hơn thời gian bắt đầu (startTime)",
+        message:
+          "Thời gian kết thúc (endTime) phải lớn hơn thời gian bắt đầu (startTime)",
       },
     },
 

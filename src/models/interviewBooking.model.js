@@ -59,9 +59,7 @@ interviewBookingSchema.index({ slotId: 1 });
  * @param {Date} newSlotStartDateTime Thời điểm bắt đầu của ca phỏng vấn mới
  * @returns {boolean} true nếu hợp lệ, false nếu không được phép đổi
  */
-interviewBookingSchema.methods.canChangeSlot = function (
-  newSlotStartDateTime,
-) {
+interviewBookingSchema.methods.canChangeSlot = function (newSlotStartDateTime) {
   if (this.changeCount >= 1) return false;
 
   if (!newSlotStartDateTime) return false;

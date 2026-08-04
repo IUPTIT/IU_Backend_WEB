@@ -8,7 +8,11 @@ const quotaSchema = new mongoose.Schema(
     department: { type: String, required: true, trim: true },
 
     // Số lượng chỉ tiêu tuyển tối thiểu 1
-    quota: { type: Number, required: true, min: [1, "Chỉ tiêu tối thiểu là 1"] },
+    quota: {
+      type: Number,
+      required: true,
+      min: [1, "Chỉ tiêu tối thiểu là 1"],
+    },
   },
   { _id: false },
 );
@@ -58,7 +62,8 @@ const recruitmentCampaignSchema = new mongoose.Schema(
             const departments = quotas.map((q) => q.department);
             return new Set(departments).size === departments.length;
           },
-          message: "Không được chứa 2 chỉ tiêu trùng ban (department) trong cùng một đợt tuyển",
+          message:
+            "Không được chứa 2 chỉ tiêu trùng ban (department) trong cùng một đợt tuyển",
         },
       ],
     },
