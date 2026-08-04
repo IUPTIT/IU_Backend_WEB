@@ -2,6 +2,8 @@ import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as campaignService from "../services/campaign.service.js";
 import * as applicationService from "../services/application.service.js";
+import * as screeningService from "../services/screening.service.js";
+import * as interviewService from "../services/interview.service.js";
 
 // ---- BCN: quản lý đợt tuyển (Phần 0) ----
 
@@ -70,4 +72,99 @@ export const listApplications = catchAsync(async (req, res) => {
     limit: req.query.limit,
   });
   sendSuccess(res, { message: "Danh sách hồ sơ", data: result });
+});
+
+// ---- Phần 2: chấm điểm & quyết định vòng đơn ----
+
+export const scoreApplication = catchAsync(async (req, res) => {
+  const result = await screeningService.scoreApplication({
+    applicationId: req.params.id,
+    round: req.body.round,
+    scoredBy: req.user.id,
+    criteriaScores: req.body.criteriaScores,
+    comment: req.body.comment,
+    attendance: req.body.attendance ?? null,
+  });
+  sendSuccess(res, { statusCode: 201, message: "Đã lưu điểm", data: result });
+});
+
+export const getScoreSummary = catchAsync(async (req, res) => {
+  const summary = await screeningService.getScoreSummary(
+    req.params.id,
+    req.query.round ?? "cv",
+  );
+  sendSuccess(res, { message: "Tổng hợp điểm", data: { summary } });
+});
+
+export const decideApplication = catchAsync(async (req, res) => {
+  const application = await screeningService.decideCv(req.params.id, req.body.status);
+  sendSuccess(res, { message: "Đã cập nhật kết quả vòng đơn", data: { application } });
+});
+
+// ---- Phần 3: ca phỏng vấn (BCN) ----
+
+export const createSlot = catchAsync(async (req, res) => {
+  const slot = await interviewService.createSlot(req.body);
+  sendSuccess(res, { statusCode: 201, message: "Đã tạo ca phỏng vấn", data: { slot } });
+});
+
+export const bulkGenerateSlots = catchAsync(async (req, res) => {
+  const slots = await interviewService.bulkGenerateSlots({
+    ...req.body,
+    campaignId: req.params.id,
+  });
+  sendSuccess(res, {
+    statusCode: 201,
+    message: `Đã tạo ${slots.length} ca phỏng vấn`,
+    data: { slots },
+  });
+});
+
+export const listSlots = catchAsync(async (req, res) => {
+  const result = await interviewService.listSlots(req.params.id);
+  sendSuccess(res, { message: "Danh sách ca phỏng vấn", data: result });
+});
+
+export const updateSlot = catchAsync(async (req, res) => {
+  const slot = await interviewService.updateSlot(req.params.id, req.body);
+  sendSuccess(res, { message: "Đã cập nhật ca phỏng vấn", data: { slot } });
+});
+
+export const assignSlot = catchAsync(async (req, res) => {
+  const booking = await interviewService.assignSlot(req.params.id, req.body.slotId);
+  sendSuccess(res, { message: "Đã gán lịch phỏng vấn", data: { booking } });
+});
+
+export const scoreBooking = catchAsync(async (req, res) => {
+  const result = await interviewService.scoreBooking(req.params.id, req.user.id, {
+    criteriaScores: req.body.criteriaScores,
+    comment: req.body.comment,
+    attendance: req.body.attendance,
+  });
+  sendSuccess(res, { statusCode: 201, message: "Đã lưu điểm phỏng vấn", data: result });
+});
+
+export const decideInterview = catchAsync(async (req, res) => {
+  const application = await screeningService.decideInterview(
+    req.params.id,
+    req.body.status,
+  );
+  sendSuccess(res, { message: "Đã cập nhật kết quả phỏng vấn", data: { application } });
+});
+
+export const listInterviewers = catchAsync(async (_req, res) => {
+  const interviewers = await interviewService.listInterviewers();
+  sendSuccess(res, { message: "Danh sách người phỏng vấn", data: { interviewers } });
+});
+
+// ---- Phần 4: kết quả cuối & bàn giao ----
+
+export const confirmFinal = catchAsync(async (req, res) => {
+  const application = await screeningService.confirmFinal(req.params.id, req.body.status);
+  sendSuccess(res, { message: "Đã xác nhận kết quả cuối", data: { application } });
+});
+
+export const listNewMembers = catchAsync(async (req, res) => {
+  const members = await screeningService.listNewMembers(req.params.id);
+  sendSuccess(res, { message: "Danh sách tân thành viên", data: { members } });
 });
