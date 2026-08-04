@@ -15,6 +15,14 @@ import {
   defineReleaseSlotHoldJob,
   JOB_RELEASE_SLOT_HOLD,
 } from "./releaseSlotHold.job.js";
+import {
+  defineDisableAccountJob,
+  JOB_DISABLE_ACCOUNT,
+} from "./disableAccount.job.js";
+import {
+  definePromoteToMemberJob,
+  JOB_PROMOTE_TO_MEMBER,
+} from "./promoteToMember.job.js";
 
 export async function initJobs() {
   // 1. Define job logic handlers
@@ -22,6 +30,8 @@ export async function initJobs() {
   defineSendInterviewReminderJob();
   defineExpireDraftApplicationsJob();
   defineReleaseSlotHoldJob();
+  defineDisableAccountJob();
+  definePromoteToMemberJob();
 
   // 2. Start Agenda job processing engine
   await agenda.start();
@@ -39,4 +49,7 @@ export {
   JOB_SEND_INTERVIEW_REMINDER,
   JOB_EXPIRE_DRAFT_APPLICATIONS,
   JOB_RELEASE_SLOT_HOLD,
+  JOB_DISABLE_ACCOUNT,
+  JOB_PROMOTE_TO_MEMBER,
 };
+
