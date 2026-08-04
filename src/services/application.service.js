@@ -132,6 +132,7 @@ export async function updateApplication(code, email, data) {
     "className",
     "faculty",
     "phone",
+    "nationalId",
     "dateOfBirth",
     "avatarUrl",
     "cvUrl",
