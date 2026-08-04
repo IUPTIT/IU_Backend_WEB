@@ -238,4 +238,10 @@ applicationSchema.methods.canEdit = function (campaignCloseAt = null) {
 
 const Application = mongoose.model("Application", applicationSchema);
 
+// Đồng bộ index với DB (xóa các index cũ không còn trong Schema như code_1)
+Application.syncIndexes().catch((err) => {
+  console.warn("[Application Model] Sync indexes warning:", err.message);
+});
+
 export default Application;
+
