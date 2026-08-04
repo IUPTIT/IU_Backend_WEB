@@ -1,61 +1,49 @@
 import { Router } from "express";
-import multer from "multer";
-import rateLimit from "express-rate-limit";
+import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
 import * as controller from "../controllers/recruitment.controller.js";
-import {
-  createCampaignValidator,
-  updateCampaignValidator,
-  campaignIdValidator,
-  submitApplicationValidator,
-  lookupValidator,
-  updateApplicationValidator,
-  withdrawValidator,
-} from "../validators/recruitment.validator.js";
+import * as campaignValidation from "../validations/recruitmentCampaign.validation.js";
+import * as formValidation from "../validations/applicationForm.validation.js";
+import { idParam } from "../validations/common.validation.js";
 
 const router = Router();
 
-// Upload file vào RAM rồi đẩy thẳng Cloudinary — giới hạn cứng 5MB tại multer
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+// Update chung: bản draft sửa được mọi trường; sau publish service tự giới hạn
+// còn closeAt/quotas/description (spec 2.3)
+const updateCampaignValidator = celebrate({
+  [Segments.BODY]: Joi.object({
+    name: Joi.string().trim().max(200),
+    description: Joi.string().allow(""),
+    openAt: Joi.date().iso(),
+    closeAt: Joi.date().iso(),
+    quotas: Joi.array()
+      .items(
+        Joi.object({
+          department: Joi.string().trim().required(),
+          quota: Joi.number().integer().min(1).required(),
+        }),
+      )
+      .min(1)
+      .unique("department"),
+  }).min(1),
 });
 
-// Endpoint công khai nên throttle để tránh spam upload
-const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many uploads. Please try again later." },
-});
-
-// ---- Public (Guest — không cần đăng nhập) ----
-router.get("/active", controller.getActiveCampaign);
-router.post("/uploads", uploadLimiter, upload.single("file"), controller.uploadFile);
-router.post("/applications", submitApplicationValidator, controller.submitApplication);
-router.get("/applications/lookup", lookupValidator, controller.lookupApplication);
-router.patch(
-  "/applications/:code",
-  updateApplicationValidator,
-  controller.updateApplication,
-);
-router.post(
-  "/applications/:code/withdraw",
-  withdrawValidator,
-  controller.withdrawApplication,
-);
-
-// ---- BCN: quản lý đợt tuyển ----
+// ---- BCN: quản lý đợt tuyển & form (Phần 0) ----
 router.use(authenticate, authorize("bcn"));
-router.post("/campaigns", createCampaignValidator, controller.createCampaign);
+
+router.post("/campaigns", campaignValidation.createCampaign, controller.createCampaign);
 router.get("/campaigns", controller.listCampaigns);
-router.get("/campaigns/:id", campaignIdValidator, controller.getCampaign);
-router.patch("/campaigns/:id", updateCampaignValidator, controller.updateCampaign);
-router.post("/campaigns/:id/publish", campaignIdValidator, controller.publishCampaign);
-router.post("/campaigns/:id/close", campaignIdValidator, controller.closeCampaign);
-router.delete("/campaigns/:id", campaignIdValidator, controller.deleteCampaign);
+router.get("/campaigns/:id", idParam, controller.getCampaign);
+router.patch("/campaigns/:id", idParam, updateCampaignValidator, controller.updateCampaign);
+router.post("/campaigns/:id/publish", idParam, controller.publishCampaign);
+router.post("/campaigns/:id/close", idParam, controller.closeCampaign);
+router.delete("/campaigns/:id", idParam, controller.deleteCampaign);
+
+router.get("/campaigns/:id/form", idParam, controller.getForm);
+router.put("/campaigns/:id/form", idParam, formValidation.updateForm, controller.updateForm);
+
+// ---- BCN: hồ sơ vòng đơn (Phần 2 — mới có list, chấm điểm làm ở PR sau) ----
 router.get("/applications", controller.listApplications);
 
 export default router;

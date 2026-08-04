@@ -38,24 +38,41 @@ export function sendVerificationEmail(to, otp) {
 // Email xác nhận đã nhận hồ sơ ứng tuyển (nghiệp vụ 1.4) — chưa kèm thông tin đăng nhập
 export function sendApplicationReceivedEmail(application) {
   const lookupUrl = `${config.clientUrl}/tra-cuu`;
+  const departments = (application.departmentPreferences ?? [])
+    .slice()
+    .sort((a, b) => a.priority - b.priority)
+    .map((p) => p.department);
   const summary = [
-    `Ma ho so: ${application.code}`,
+    `Ma ho so: ${application.applicationCode}`,
     `Ho ten: ${application.fullName}`,
     `MSSV: ${application.studentId}`,
-    `Ban nguyen vong: ${application.wishes.join(", ")}`,
+    `Ban nguyen vong: ${departments.join(", ")}`,
   ].join("\n");
   return send({
     to: application.email,
-    subject: `IU_CLUB da nhan don ung tuyen cua ban (${application.code})`,
+    subject: `IU_CLUB da nhan don ung tuyen cua ban (${application.applicationCode})`,
     text: `${summary}\n\nTheo doi ho so tai: ${lookupUrl}`,
     html: `<p>IU_CLUB đã nhận đơn ứng tuyển của bạn.</p>
 <ul>
-  <li>Mã hồ sơ: <b>${application.code}</b></li>
+  <li>Mã hồ sơ: <b>${application.applicationCode}</b></li>
   <li>Họ tên: ${application.fullName}</li>
   <li>MSSV: ${application.studentId}</li>
-  <li>Ban nguyện vọng: ${application.wishes.join(", ")}</li>
+  <li>Ban nguyện vọng: ${departments.join(", ")}</li>
 </ul>
 <p>Theo dõi hồ sơ tại: <a href="${lookupUrl}">${lookupUrl}</a></p>`,
+  });
+}
+
+// Email gửi link tiếp tục điền đơn nháp cho Guest (nghiệp vụ 1.2)
+export function sendDraftLinkEmail(application, draftToken) {
+  const url = `${config.clientUrl}/ung-tuyen/nhap?token=${draftToken}`;
+  return send({
+    to: application.email,
+    subject: "IU_CLUB - Link tiep tuc dien don ung tuyen cua ban",
+    text: `Don ung tuyen cua ban da duoc luu nhap. Tiep tuc dien tai: ${url}`,
+    html: `<p>Đơn ứng tuyển của bạn đã được lưu nháp.</p>
+<p>Tiếp tục điền tại: <a href="${url}">${url}</a></p>
+<p>Link có hiệu lực tới khi đợt tuyển đóng đơn. Không chia sẻ link này cho người khác.</p>`,
   });
 }
 

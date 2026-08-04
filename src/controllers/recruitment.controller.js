@@ -2,98 +2,69 @@ import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as campaignService from "../services/campaign.service.js";
 import * as applicationService from "../services/application.service.js";
-import * as uploadService from "../services/upload.service.js";
 
-// ---- BCN: quản lý đợt tuyển ----
+// ---- BCN: quản lý đợt tuyển (Phần 0) ----
 
 export const createCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.createCampaign(req.body, req.user.id);
   sendSuccess(res, {
     statusCode: 201,
-    message: "Campaign created (draft)",
+    message: "Đã tạo đợt tuyển (draft)",
     data: { campaign },
   });
 });
 
 export const listCampaigns = catchAsync(async (_req, res) => {
   const campaigns = await campaignService.listCampaigns();
-  sendSuccess(res, { message: "Campaigns", data: { campaigns } });
+  sendSuccess(res, { message: "Danh sách đợt tuyển", data: { campaigns } });
 });
 
 export const getCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.getCampaign(req.params.id);
-  sendSuccess(res, { message: "Campaign", data: { campaign } });
+  sendSuccess(res, { message: "Chi tiết đợt tuyển", data: { campaign } });
 });
 
 export const updateCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.updateCampaign(req.params.id, req.body);
-  sendSuccess(res, { message: "Campaign updated", data: { campaign } });
+  sendSuccess(res, { message: "Đã cập nhật đợt tuyển", data: { campaign } });
 });
 
 export const publishCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.publishCampaign(req.params.id);
-  sendSuccess(res, { message: "Campaign published", data: { campaign } });
-});
-
-export const deleteCampaign = catchAsync(async (req, res) => {
-  await campaignService.deleteCampaign(req.params.id);
-  sendSuccess(res, { message: "Campaign deleted" });
-});
-
-export const listApplications = catchAsync(async (req, res) => {
-  const applications = await applicationService.listApplications({
-    campaignId: req.query.campaign,
-    status: req.query.status,
-  });
-  sendSuccess(res, { message: "Applications", data: { applications } });
+  sendSuccess(res, { message: "Đã mở đợt tuyển", data: { campaign } });
 });
 
 export const closeCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.closeCampaign(req.params.id);
-  sendSuccess(res, { message: "Campaign closed", data: { campaign } });
+  sendSuccess(res, { message: "Đã đóng đợt tuyển", data: { campaign } });
 });
 
-// ---- Public: form ứng tuyển ----
-
-export const getActiveCampaign = catchAsync(async (_req, res) => {
-  const campaign = await campaignService.getActiveCampaign();
-  sendSuccess(res, { message: "Active campaign", data: { campaign } });
+export const deleteCampaign = catchAsync(async (req, res) => {
+  await campaignService.deleteCampaign(req.params.id);
+  sendSuccess(res, { message: "Đã xoá đợt tuyển" });
 });
 
-// Upload avatar/CV trước khi nộp đơn — trả về URL Cloudinary
-export const uploadFile = catchAsync(async (req, res) => {
-  const { url } = await uploadService.uploadBuffer(req.body.kind, req.file);
-  sendSuccess(res, { statusCode: 201, message: "Uploaded", data: { url } });
+// ---- BCN: form builder ----
+
+export const getForm = catchAsync(async (req, res) => {
+  const form = await campaignService.getForm(req.params.id);
+  sendSuccess(res, { message: "Cấu hình form", data: { form } });
 });
 
-export const submitApplication = catchAsync(async (req, res) => {
-  const application = await applicationService.submitApplication(req.body);
-  sendSuccess(res, {
-    statusCode: 201,
-    message: "Application submitted",
-    data: { application },
+export const updateForm = catchAsync(async (req, res) => {
+  const form = await campaignService.updateForm(req.params.id, req.body.fields);
+  sendSuccess(res, { message: "Đã cập nhật form", data: { form } });
+});
+
+// ---- BCN: hồ sơ vòng đơn ----
+
+export const listApplications = catchAsync(async (req, res) => {
+  const result = await applicationService.listApplications({
+    campaignId: req.query.campaignId,
+    department: req.query.department,
+    status: req.query.status,
+    page: req.query.page,
+    limit: req.query.limit,
   });
-});
-
-export const lookupApplication = catchAsync(async (req, res) => {
-  const application = await applicationService.lookupApplication(req.query.query);
-  sendSuccess(res, { message: "Application", data: { application } });
-});
-
-export const updateApplication = catchAsync(async (req, res) => {
-  const { email, ...data } = req.body;
-  const application = await applicationService.updateApplication(
-    req.params.code,
-    email,
-    data,
-  );
-  sendSuccess(res, { message: "Application updated", data: { application } });
-});
-
-export const withdrawApplication = catchAsync(async (req, res) => {
-  const application = await applicationService.withdrawApplication(
-    req.params.code,
-    req.body.email,
-  );
-  sendSuccess(res, { message: "Application withdrawn", data: { application } });
+  sendSuccess(res, { message: "Danh sách hồ sơ", data: result });
 });
