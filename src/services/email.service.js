@@ -76,6 +76,84 @@ export function sendDraftLinkEmail(application, draftToken) {
   });
 }
 
+// Pass vòng đơn — gửi kèm tài khoản candidate (mật khẩu mặc định là ngày sinh DDMMYYYY)
+export function sendCandidateAccountEmail(application, rawPassword) {
+  const loginUrl = `${config.clientUrl}/login`;
+  return send({
+    to: application.email,
+    subject: `Chuc mung ban da vuot qua vong don IU_CLUB (${application.applicationCode})`,
+    text: [
+      `Chuc mung ${application.fullName}! Ho so cua ban da DAT vong don.`,
+      `Tai khoan ung vien de dang ky lich phong van:`,
+      `  Email: ${application.email}`,
+      `  Mat khau: ${rawPassword}`,
+      `Dang nhap tai ${loginUrl} — he thong se yeu cau doi mat khau ngay lan dau.`,
+      `Sau khi dang nhap, vao muc "Lich phong van" de chon ca phong van.`,
+    ].join("\n"),
+    html: `<p>Chúc mừng <b>${application.fullName}</b>! Hồ sơ <b>${application.applicationCode}</b> của bạn đã <b>ĐẠT vòng đơn</b>.</p>
+<p>Tài khoản ứng viên để đăng ký lịch phỏng vấn:</p>
+<ul>
+  <li>Email: <b>${application.email}</b></li>
+  <li>Mật khẩu: <b>${rawPassword}</b></li>
+</ul>
+<p>Đăng nhập tại <a href="${loginUrl}">${loginUrl}</a> — hệ thống sẽ yêu cầu đổi mật khẩu ngay lần đầu.</p>
+<p>Sau khi đăng nhập, vào mục <b>Lịch phỏng vấn</b> để chọn ca phỏng vấn nhé!</p>`,
+  });
+}
+
+// Thông báo bị loại — round: "failed_cv" | "failed_interview" | "rejected"
+export function sendApplicationRejectedEmail(application, round) {
+  const roundLabel =
+    round === "failed_cv"
+      ? "vòng đơn"
+      : round === "failed_interview"
+        ? "vòng phỏng vấn"
+        : "vòng xét duyệt cuối";
+  const accountNote =
+    round === "failed_cv"
+      ? ""
+      : "<p>Tài khoản ứng viên của bạn đã được vô hiệu hoá.</p>";
+  return send({
+    to: application.email,
+    subject: `Ket qua ung tuyen IU_CLUB (${application.applicationCode})`,
+    text: `Cam on ${application.fullName} da ung tuyen. Rat tiec ho so cua ban chua phu hop o ${roundLabel}. Hen gap lai ban o dot tuyen sau!`,
+    html: `<p>Cảm ơn <b>${application.fullName}</b> đã ứng tuyển vào IU_CLUB.</p>
+<p>Rất tiếc hồ sơ <b>${application.applicationCode}</b> của bạn chưa phù hợp ở <b>${roundLabel}</b>.</p>
+${accountNote}
+<p>Hẹn gặp lại bạn ở đợt tuyển sau!</p>`,
+  });
+}
+
+// Trúng tuyển chính thức — tài khoản được nâng thành Member
+export function sendAdmittedEmail(application) {
+  const loginUrl = `${config.clientUrl}/login`;
+  return send({
+    to: application.email,
+    subject: `Chuc mung ban da TRUNG TUYEN IU_CLUB! (${application.applicationCode})`,
+    text: `Chuc mung ${application.fullName}! Ban da chinh thuc tro thanh thanh vien IU_CLUB. Tai khoan cua ban da duoc nang thanh Member — dang nhap tai ${loginUrl}.`,
+    html: `<p>Chúc mừng <b>${application.fullName}</b>! 🎉</p>
+<p>Bạn đã chính thức trở thành thành viên IU_CLUB. Tài khoản của bạn đã được nâng thành <b>Member</b>.</p>
+<p>Đăng nhập tại <a href="${loginUrl}">${loginUrl}</a> để bắt đầu hành trình mới.</p>`,
+  });
+}
+
+// Xác nhận đặt / đổi lịch phỏng vấn thành công
+export function sendBookingConfirmedEmail(application, slot) {
+  const date = new Date(slot.date).toLocaleDateString("vi-VN");
+  return send({
+    to: application.email,
+    subject: `Xac nhan lich phong van IU_CLUB (${application.applicationCode})`,
+    text: `Ban da dat lich phong van thanh cong: ${date} ${slot.startTime}-${slot.endTime} tai ${slot.location}.`,
+    html: `<p>Bạn đã đặt lịch phỏng vấn thành công:</p>
+<ul>
+  <li>Ngày: <b>${date}</b></li>
+  <li>Giờ: <b>${slot.startTime} - ${slot.endTime}</b></li>
+  <li>Địa điểm: <b>${slot.location}</b></li>
+</ul>
+<p>Vui lòng có mặt trước 10 phút. Chúc bạn phỏng vấn tốt!</p>`,
+  });
+}
+
 export function sendPasswordResetEmail(to, resetToken) {
   const url = `${config.clientUrl}/reset-password?token=${resetToken}`;
   return send({

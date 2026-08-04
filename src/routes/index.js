@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authRoutes from "./auth.routes.js";
 import recruitmentRoutes from "./recruitment.routes.js";
+import candidateRoutes from "./candidate.routes.js";
 import publicRoutes from "./public/index.js";
 import { publicLimiter } from "../middlewares/rateLimiter.js";
 
@@ -16,6 +17,7 @@ router.use("/public", publicLimiter, publicRoutes);
 // Private / Authenticated endpoints
 router.use("/auth", authRoutes);
 router.use("/recruitment", recruitmentRoutes);
-// Future slices: /candidate, /training, /content, ...
+router.use("/candidate", candidateRoutes);
+// Future slices: /training, /content, ...
 
 export default router;

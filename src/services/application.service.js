@@ -67,15 +67,21 @@ async function validateAnswers(campaign, answers = []) {
 }
 
 // Mã hồ sơ: APP-<năm><F|S>-<số thứ tự trong đợt> — VD APP-2026F-0142
+// Lấy max số thứ tự hiện có + 1 (KHÔNG đếm số hồ sơ: rút đơn xoá hồ sơ sẽ gây trùng mã)
 async function generateCode(campaign) {
   const open = new Date(campaign.openAt);
   const half = open.getMonth() + 1 >= 7 ? "F" : "S"; // Fall từ tháng 7, Spring trước đó
   const prefix = `APP-${open.getFullYear()}${half}`;
-  const count = await Application.countDocuments({
+  const latest = await Application.findOne({
     campaignId: campaign._id,
-    status: { $ne: "draft" },
-  });
-  return `${prefix}-${String(count + 1).padStart(4, "0")}`;
+    applicationCode: { $regex: `^${prefix}-` },
+  })
+    .sort({ applicationCode: -1 })
+    .select("applicationCode");
+  const lastSeq = latest
+    ? Number.parseInt(latest.applicationCode.split("-").pop(), 10)
+    : 0;
+  return `${prefix}-${String(lastSeq + 1).padStart(4, "0")}`;
 }
 
 // ---- Public: draft flow (nghiệp vụ 1.2) ----
