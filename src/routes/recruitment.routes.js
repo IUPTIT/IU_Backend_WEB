@@ -101,7 +101,8 @@ router.post(
   controller.bulkGenerateSlots,
 );
 router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
-router.patch("/slots/:id", bcnOnly, idParam, updateSlotBody, controller.updateSlot);
+// bcnOrLeader: leader được tự nhận / bổ sung mình vào ca phỏng vấn
+router.patch("/slots/:id", bcnOrLeader, idParam, updateSlotBody, controller.updateSlot);
 router.post("/applications/:id/assign-slot", bcnOnly, idParam, assignSlotBody, controller.assignSlot);
 router.post(
   "/bookings/:id/score",

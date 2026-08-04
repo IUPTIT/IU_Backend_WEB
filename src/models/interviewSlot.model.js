@@ -61,7 +61,8 @@ const interviewSlotSchema = new mongoose.Schema(
     // Địa điểm phỏng vấn (phòng học, địa chỉ trực tiếp hoặc link Google Meet/Zoom)
     location: { type: String, required: true, trim: true },
 
-    // Danh sách các người phỏng vấn (User IDs)
+    // Danh sách các người phỏng vấn (User IDs) — cho phép tạo ca trống rồi
+    // phân công / member tự nhận ca sau
     interviewerIds: {
       type: [
         {
@@ -69,15 +70,7 @@ const interviewSlotSchema = new mongoose.Schema(
           ref: "User",
         },
       ],
-      required: true,
-      validate: [
-        {
-          validator: function (arr) {
-            return Array.isArray(arr) && arr.length > 0;
-          },
-          message: "Phải phân công ít nhất 1 người phỏng vấn (interviewer)",
-        },
-      ],
+      default: [],
     },
 
     // Sức chứa tối đa của ca phỏng vấn (số lượng ứng viên tối đa có thể đặt)
