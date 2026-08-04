@@ -130,6 +130,26 @@ export const updateSlot = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Đã cập nhật ca phỏng vấn", data: { slot } });
 });
 
+export const deleteSlot = catchAsync(async (req, res) => {
+  await interviewService.deleteSlot(req.params.id);
+  sendSuccess(res, { message: "Đã xoá ca phỏng vấn" });
+});
+
+export const getSlotDetail = catchAsync(async (req, res) => {
+  const result = await interviewService.getSlotDetail(req.params.id);
+  sendSuccess(res, { message: "Chi tiết ca phỏng vấn", data: result });
+});
+
+export const getBookingDetail = catchAsync(async (req, res) => {
+  const result = await interviewService.getBookingDetail(req.params.id);
+  sendSuccess(res, { message: "Chi tiết lịch phỏng vấn", data: result });
+});
+
+export const listInterviewResults = catchAsync(async (req, res) => {
+  const results = await interviewService.listInterviewResults(req.params.id);
+  sendSuccess(res, { message: "Kết quả phỏng vấn toàn đợt", data: { results } });
+});
+
 export const assignSlot = catchAsync(async (req, res) => {
   const booking = await interviewService.assignSlot(req.params.id, req.body.slotId);
   sendSuccess(res, { message: "Đã gán lịch phỏng vấn", data: { booking } });

@@ -58,8 +58,8 @@ export async function login({ email, password }) {
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized("Invalid email or password");
   }
-  if (user.status === "disabled")
-    throw ApiError.forbidden("Account is disabled");
+  if (user.status === "disabled" || user.isActive === false)
+    throw ApiError.forbidden("Tài khoản đã bị vô hiệu hoá");
   if (!user.emailVerified) throw ApiError.forbidden("Email not verified");
 
   const tokens = await issueTokens(user);

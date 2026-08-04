@@ -5,11 +5,11 @@ export const BOOKING_STATUS = ["booked", "changed", "no_show", "completed"];
 const interviewBookingSchema = new mongoose.Schema(
   {
     // ID hồ sơ ứng tuyển (Unique: 1 hồ sơ chỉ được có 1 booking active)
+    // unique qua schema.index() bên dưới — không khai báo tại field để tránh trùng index
     applicationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Application",
       required: true,
-      unique: true,
     },
 
     // ID ca phỏng vấn được chọn
