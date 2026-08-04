@@ -136,6 +136,16 @@ router.post(
   statusBody("admitted", "rejected"),
   controller.confirmFinal,
 );
+router.post(
+  "/applications/notify-final",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.markResultNotified,
+);
 router.get("/campaigns/:id/new-members", bcnOrLeader, idParam, controller.listNewMembers);
 
 export default router;

@@ -2,6 +2,7 @@ import agenda from "../config/agenda.js";
 import Application from "../models/application.model.js";
 import User from "../models/user.model.js";
 import * as emailService from "../services/email.service.js";
+import * as trainingService from "../services/training.service.js";
 
 export const JOB_PROMOTE_TO_MEMBER = "promoteToMember";
 
@@ -28,6 +29,10 @@ export function definePromoteToMemberJob() {
       user.isActive = true;
       user.status = "active";
       await user.save();
+
+      // Fallback: trainee thường đã được tạo từ lúc đạt phỏng vấn (vòng training) —
+      // upsert lại đề phòng hồ sơ đi tắt
+      await trainingService.createTraineeFromApplication(application);
 
       await emailService.sendAdmittedEmail(application);
       console.log(`[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`);

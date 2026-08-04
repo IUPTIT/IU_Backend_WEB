@@ -39,6 +39,10 @@ const interviewBookingSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+
+    // Cờ đã gửi email nhắc lịch (job sendInterviewReminder quét định kỳ)
+    reminded24h: { type: Boolean, default: false },
+    reminded2h: { type: Boolean, default: false },
   },
   {
     timestamps: true,

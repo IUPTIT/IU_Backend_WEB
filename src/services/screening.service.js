@@ -91,7 +91,23 @@ export async function confirmFinal(applicationId, status) {
   if (!["admitted", "rejected"].includes(status)) {
     throw ApiError.badRequest("status phải là admitted hoặc rejected");
   }
-  return transition(applicationId, status);
+  const application = await transition(applicationId, status);
+  if (status === "admitted") {
+    await Application.updateOne(
+      { _id: applicationId },
+      { $set: { resultNotifyStatus: "converted" } },
+    );
+  }
+  return application;
+}
+
+// Đánh dấu đã gửi email kết quả (gọi sau khi FE gửi mail qua module email)
+export async function markResultNotified(applicationIds) {
+  const result = await Application.updateMany(
+    { _id: { $in: applicationIds }, resultNotifyStatus: { $ne: "converted" } },
+    { $set: { resultNotifyStatus: "email_sent" } },
+  );
+  return { notified: result.modifiedCount };
 }
 
 // Danh sách tân thành viên bàn giao cho Đào tạo (nghiệp vụ 4.2)

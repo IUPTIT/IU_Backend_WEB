@@ -186,6 +186,13 @@ const applicationSchema = new mongoose.Schema(
     // Cờ đánh dấu cần BCN xem xét thủ công (khi chênh lệch điểm 2 reviewer > 30%)
     needsManualReview: { type: Boolean, default: false },
 
+    // Trạng thái xử lý SAU kết quả cuối: chờ / đã gửi email KQ / đã chuyển Member
+    resultNotifyStatus: {
+      type: String,
+      enum: ["pending", "email_sent", "converted"],
+      default: "pending",
+    },
+
     // ID của tài khoản User được tạo sau khi ứng viên Pass vòng đơn
     userId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -184,6 +184,11 @@ export const confirmFinal = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Đã xác nhận kết quả cuối", data: { application } });
 });
 
+export const markResultNotified = catchAsync(async (req, res) => {
+  const result = await screeningService.markResultNotified(req.body.applicationIds);
+  sendSuccess(res, { message: "Đã cập nhật trạng thái gửi email", data: result });
+});
+
 export const listNewMembers = catchAsync(async (req, res) => {
   const members = await screeningService.listNewMembers(req.params.id);
   sendSuccess(res, { message: "Danh sách tân thành viên", data: { members } });

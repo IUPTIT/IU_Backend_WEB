@@ -113,19 +113,31 @@ async function handleSideEffects(application, _previousStatus, nextStatus) {
     await agenda.now(JOB_CREATE_CANDIDATE_ACCOUNT, { applicationId });
   }
 
-  // Case 2: Rớt (CV / Phỏng vấn / Rejected) -> Vô hiệu hóa tài khoản (nếu ứng viên đã có tài khoản user)
+  // Case 2: Rớt (CV / Phỏng vấn / Rejected) -> Khoá tài khoản (nếu có) + email báo loại.
+  // KHÔNG điều kiện theo userId: rớt vòng đơn chưa có tài khoản vẫn phải nhận email —
+  // job tự bỏ qua bước khoá khi application chưa gắn user.
   if (
     [
       APPLICATION_STATUS.FAILED_CV,
       APPLICATION_STATUS.FAILED_INTERVIEW,
       APPLICATION_STATUS.REJECTED,
-    ].includes(nextStatus) &&
-    application.userId
+    ].includes(nextStatus)
   ) {
     await agenda.now(JOB_DISABLE_ACCOUNT, { applicationId });
   }
 
-  // Case 3: Trúng tuyển chính thức -> Nâng vai trò candidate thành member chính thức
+  // Case 3: Đạt vòng phỏng vấn -> vào VÒNG TRAINING (vòng loại cuối):
+  // tạo trainee chờ chia team mentor + email chúc mừng
+  if (nextStatus === APPLICATION_STATUS.PASSED_INTERVIEW) {
+    const [emailService, trainingService] = await Promise.all([
+      import("./email.service.js"),
+      import("./training.service.js"),
+    ]);
+    await trainingService.createTraineeFromApplication(application);
+    await emailService.sendInterviewPassedEmail(application);
+  }
+
+  // Case 4: Trúng tuyển chính thức -> Nâng vai trò candidate thành member chính thức
   if (nextStatus === APPLICATION_STATUS.ADMITTED) {
     await agenda.now(JOB_PROMOTE_TO_MEMBER, { applicationId });
   }
