@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 import ApiError from "../utils/ApiError.js";
+// Import để đăng ký schema với mongoose — service tra model qua mongoose.model("...")
+import "../models/slotHold.model.js";
+import "../models/interviewSlot.model.js";
+import "../models/interviewBooking.model.js";
 
 // Đặt thời gian giữ chỗ tạm thời (2.5 phút = 150 giây)
 const HOLD_DURATION_MS = 150 * 1000;
