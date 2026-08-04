@@ -18,8 +18,11 @@ export default async function authenticate(req, _res, next) {
     }
 
     const user = await User.findById(payload.sub);
-    if (!user || user.status === "disabled") {
+    if (!user) {
       throw ApiError.unauthorized("User no longer active");
+    }
+    if (user.isActive === false || user.status === "disabled") {
+      throw ApiError.forbidden("Tài khoản đã bị vô hiệu hoá");
     }
 
     req.user = user;
