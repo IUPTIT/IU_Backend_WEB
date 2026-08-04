@@ -33,8 +33,9 @@ export async function updateCampaign(id, data) {
   const campaign = await getCampaign(id);
 
   if (campaign.status !== "draft") {
-    // Sau publish chỉ được sửa thời gian đóng đơn và chỉ tiêu (nghiệp vụ 0.3)
-    const allowed = ["closeAt", "quotas", "description"];
+    // Sau publish chỉ được sửa thời gian đóng đơn, chỉ tiêu, mô tả (nghiệp vụ 0.3).
+    // customQuestions cho phép ở đây nhưng bị chặn riêng bên dưới nếu đã có hồ sơ nộp.
+    const allowed = ["closeAt", "quotas", "description", "customQuestions"];
     const illegal = Object.keys(data).filter((k) => !allowed.includes(k));
     if (illegal.length) {
       throw ApiError.badRequest(
