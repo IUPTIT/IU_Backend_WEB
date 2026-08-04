@@ -19,14 +19,14 @@ export async function getCampaign(id) {
   return campaign;
 }
 
-// Đợt tuyển đang mở cho form công khai (openAt <= now, chưa hết hạn)
+// Đợt tuyển đã publish và chưa hết hạn — trả về cả khi CHƯA tới giờ mở đơn
+// (frontend hiển thị "mở đơn từ ...", còn nộp đơn thì service chặn theo openAt)
 export function getActiveCampaign() {
   const now = new Date();
   return Campaign.findOne({
     status: "open",
-    openAt: { $lte: now },
     closeAt: { $gt: now },
-  }).sort({ openAt: -1 });
+  }).sort({ openAt: 1 });
 }
 
 export async function updateCampaign(id, data) {
@@ -85,6 +85,15 @@ export async function publishCampaign(id) {
   campaign.status = "open";
   await campaign.save();
   return campaign;
+}
+
+export async function deleteCampaign(id) {
+  const campaign = await getCampaign(id);
+  const submitted = await Application.countDocuments({ campaign: id });
+  if (submitted > 0) {
+    throw ApiError.badRequest("Cannot delete a campaign that has applications");
+  }
+  await Campaign.deleteOne({ _id: campaign.id });
 }
 
 export async function closeCampaign(id) {

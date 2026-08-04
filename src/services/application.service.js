@@ -15,6 +15,9 @@ async function generateCode(campaign) {
 function assertCampaignAcceptsSubmissions(campaign) {
   if (!campaign) throw ApiError.notFound("No open recruitment campaign");
   const now = new Date();
+  if (campaign.openAt > now) {
+    throw ApiError.badRequest("Campaign has not started accepting applications yet");
+  }
   if (campaign.status !== "open" || campaign.closeAt <= now) {
     throw ApiError.badRequest("Campaign is no longer accepting applications");
   }
@@ -74,6 +77,16 @@ export async function submitApplication(data) {
 
   await emailService.sendApplicationReceivedEmail(application);
   return application;
+}
+
+// BCN: danh sách hồ sơ (lọc theo đợt tuyển / trạng thái)
+export function listApplications({ campaignId, status } = {}) {
+  const filter = {};
+  if (campaignId) filter.campaign = campaignId;
+  if (status) filter.status = status;
+  return Application.find(filter)
+    .sort({ createdAt: -1 })
+    .populate("campaign", "name closeAt status");
 }
 
 // Tra cứu bằng email hoặc mã hồ sơ — không cần đăng nhập (nghiệp vụ 1.5)

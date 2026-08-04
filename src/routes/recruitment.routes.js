@@ -37,5 +37,7 @@ router.get("/campaigns/:id", campaignIdValidator, controller.getCampaign);
 router.patch("/campaigns/:id", updateCampaignValidator, controller.updateCampaign);
 router.post("/campaigns/:id/publish", campaignIdValidator, controller.publishCampaign);
 router.post("/campaigns/:id/close", campaignIdValidator, controller.closeCampaign);
+router.delete("/campaigns/:id", campaignIdValidator, controller.deleteCampaign);
+router.get("/applications", controller.listApplications);
 
 export default router;
