@@ -35,6 +35,30 @@ export function sendVerificationEmail(to, otp) {
   });
 }
 
+// Email xác nhận đã nhận hồ sơ ứng tuyển (nghiệp vụ 1.4) — chưa kèm thông tin đăng nhập
+export function sendApplicationReceivedEmail(application) {
+  const lookupUrl = `${config.clientUrl}/tra-cuu`;
+  const summary = [
+    `Ma ho so: ${application.code}`,
+    `Ho ten: ${application.fullName}`,
+    `MSSV: ${application.studentId}`,
+    `Ban nguyen vong: ${application.wishes.join(", ")}`,
+  ].join("\n");
+  return send({
+    to: application.email,
+    subject: `IU_CLUB da nhan don ung tuyen cua ban (${application.code})`,
+    text: `${summary}\n\nTheo doi ho so tai: ${lookupUrl}`,
+    html: `<p>IU_CLUB đã nhận đơn ứng tuyển của bạn.</p>
+<ul>
+  <li>Mã hồ sơ: <b>${application.code}</b></li>
+  <li>Họ tên: ${application.fullName}</li>
+  <li>MSSV: ${application.studentId}</li>
+  <li>Ban nguyện vọng: ${application.wishes.join(", ")}</li>
+</ul>
+<p>Theo dõi hồ sơ tại: <a href="${lookupUrl}">${lookupUrl}</a></p>`,
+  });
+}
+
 export function sendPasswordResetEmail(to, resetToken) {
   const url = `${config.clientUrl}/reset-password?token=${resetToken}`;
   return send({
