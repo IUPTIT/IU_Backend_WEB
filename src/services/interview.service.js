@@ -118,8 +118,9 @@ export async function scoreBooking(bookingId, scoredBy, { criteriaScores, commen
 }
 
 // Danh sách người có thể phỏng vấn (BCN/Leader đang hoạt động)
+// $ne:false thay vì true — tài khoản cũ tạo trước khi có field isActive vẫn được tính
 export function listInterviewers() {
-  return User.find({ role: { $in: ["bcn", "leader"] }, isActive: true })
+  return User.find({ role: { $in: ["bcn", "leader"] }, isActive: { $ne: false } })
     .select("name email role")
     .sort({ name: 1 });
 }
