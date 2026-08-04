@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-export const ROLES = ["bcn", "leader", "member"];
+// candidate = Ứng viên (tự tạo khi Pass vòng đơn) — chỉ xem hồ sơ, đặt lịch PV
+export const ROLES = ["bcn", "leader", "member", "candidate"];
 export const USER_STATUS = ["pending", "active", "disabled"];
 
 const userSchema = new mongoose.Schema(
@@ -21,6 +22,9 @@ const userSchema = new mongoose.Schema(
     status: { type: String, enum: USER_STATUS, default: "pending" },
     emailVerified: { type: Boolean, default: false },
     avatar: { type: String, default: "" },
+    // Bắt buộc đổi mật khẩu ở lần đăng nhập đầu (tài khoản Ứng viên sinh tự động,
+    // password mặc định là ngày sinh DDMMYYYY) — không cho bỏ qua.
+    requirePasswordChange: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

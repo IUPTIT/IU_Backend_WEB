@@ -57,6 +57,11 @@ export async function revokeRefreshToken(token) {
   await Token.deleteOne({ token: hash(token), type: TOKEN_TYPES.REFRESH });
 }
 
+// Thu hồi toàn bộ refresh token của một user (đổi mật khẩu, vô hiệu hoá tài khoản...)
+export async function revokeAllRefreshTokens(userId) {
+  await Token.deleteMany({ user: userId, type: TOKEN_TYPES.REFRESH });
+}
+
 // Returns the RAW value to email; only the hash is persisted.
 export async function createOtp(
   user,

@@ -9,6 +9,7 @@ import {
   verifyEmailValidator,
   resendOtpValidator,
   loginValidator,
+  changePasswordValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
 } from "../validators/auth.validator.js";
@@ -38,6 +39,12 @@ router.post(
 );
 
 router.get("/me", authenticate, authController.me);
+router.post(
+  "/change-password",
+  authenticate,
+  changePasswordValidator,
+  authController.changePassword,
+);
 
 // Google SSO (only when configured).
 if (config.google.enabled) {

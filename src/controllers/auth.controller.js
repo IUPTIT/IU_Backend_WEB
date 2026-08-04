@@ -65,6 +65,18 @@ export const logout = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Logged out" });
 });
 
+export const changePassword = catchAsync(async (req, res) => {
+  const { user, accessToken, refreshToken } = await authService.changePassword(
+    req.user.id,
+    req.body,
+  );
+  setRefreshCookie(res, refreshToken);
+  sendSuccess(res, {
+    message: "Password changed",
+    data: { user, accessToken },
+  });
+});
+
 export const forgotPassword = catchAsync(async (req, res) => {
   await authService.forgotPassword(req.body);
   sendSuccess(res, {

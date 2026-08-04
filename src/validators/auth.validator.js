@@ -31,6 +31,13 @@ export const loginValidator = celebrate({
   }),
 });
 
+export const changePasswordValidator = celebrate({
+  [Segments.BODY]: Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: password,
+  }),
+});
+
 export const forgotPasswordValidator = celebrate({
   [Segments.BODY]: Joi.object({ email }),
 });
