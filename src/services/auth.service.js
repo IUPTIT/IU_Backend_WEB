@@ -111,6 +111,26 @@ export async function resetPassword({ email, token, password }) {
   await user.save();
 }
 
+export async function changePassword(userId, { currentPassword, newPassword }) {
+  const user = await User.findById(userId).select("+password");
+  if (!user) throw ApiError.unauthorized();
+
+  if (!(await user.comparePassword(currentPassword))) {
+    throw ApiError.badRequest("Current password is incorrect");
+  }
+  if (currentPassword === newPassword) {
+    throw ApiError.badRequest("New password must be different");
+  }
+
+  user.password = newPassword;
+  user.requirePasswordChange = false;
+  await user.save();
+
+  // Đổi mật khẩu → thu hồi mọi refresh token cũ, buộc các thiết bị khác đăng nhập lại
+  await tokenService.revokeAllRefreshTokens(user.id);
+  return issueTokens(user).then((tokens) => ({ user, ...tokens }));
+}
+
 export async function loginWithGoogle(profile) {
   const email = profile.emails?.[0]?.value?.toLowerCase();
   if (!email) throw ApiError.badRequest("Google account has no email");
