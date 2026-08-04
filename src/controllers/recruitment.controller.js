@@ -2,6 +2,7 @@ import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as campaignService from "../services/campaign.service.js";
 import * as applicationService from "../services/application.service.js";
+import * as uploadService from "../services/upload.service.js";
 
 // ---- BCN: quản lý đợt tuyển ----
 
@@ -34,6 +35,19 @@ export const publishCampaign = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Campaign published", data: { campaign } });
 });
 
+export const deleteCampaign = catchAsync(async (req, res) => {
+  await campaignService.deleteCampaign(req.params.id);
+  sendSuccess(res, { message: "Campaign deleted" });
+});
+
+export const listApplications = catchAsync(async (req, res) => {
+  const applications = await applicationService.listApplications({
+    campaignId: req.query.campaign,
+    status: req.query.status,
+  });
+  sendSuccess(res, { message: "Applications", data: { applications } });
+});
+
 export const closeCampaign = catchAsync(async (req, res) => {
   const campaign = await campaignService.closeCampaign(req.params.id);
   sendSuccess(res, { message: "Campaign closed", data: { campaign } });
@@ -44,6 +58,12 @@ export const closeCampaign = catchAsync(async (req, res) => {
 export const getActiveCampaign = catchAsync(async (_req, res) => {
   const campaign = await campaignService.getActiveCampaign();
   sendSuccess(res, { message: "Active campaign", data: { campaign } });
+});
+
+// Upload avatar/CV trước khi nộp đơn — trả về URL Cloudinary
+export const uploadFile = catchAsync(async (req, res) => {
+  const { url } = await uploadService.uploadBuffer(req.body.kind, req.file);
+  sendSuccess(res, { statusCode: 201, message: "Uploaded", data: { url } });
 });
 
 export const submitApplication = catchAsync(async (req, res) => {

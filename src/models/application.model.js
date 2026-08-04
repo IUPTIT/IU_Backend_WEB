@@ -29,6 +29,7 @@ const applicationSchema = new mongoose.Schema(
     faculty: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     phone: { type: String, required: true },
+    nationalId: { type: String, required: true, trim: true }, // CCCD 12 số
     dateOfBirth: { type: Date, required: true }, // dùng sinh password tài khoản Ứng viên
     // TODO: upload thật (multer/cloudinary) — hiện lưu URL/tên file
     avatarUrl: { type: String, default: "" },

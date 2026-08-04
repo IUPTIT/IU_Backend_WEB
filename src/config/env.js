@@ -24,6 +24,10 @@ const schema = Joi.object({
     .uri()
     .default("http://localhost:5000/api/v1/auth/google/callback"),
 
+  CLOUDINARY_CLOUD_NAME: Joi.string().allow("").default(""),
+  CLOUDINARY_API_KEY: Joi.string().allow("").default(""),
+  CLOUDINARY_API_SECRET: Joi.string().allow("").default(""),
+
   SMTP_HOST: Joi.string().allow("").default(""),
   SMTP_PORT: Joi.number().default(587),
   SMTP_USER: Joi.string().allow("").default(""),
@@ -62,6 +66,15 @@ const config = {
     callbackUrl: envVars.GOOGLE_CALLBACK_URL,
     get enabled() {
       return Boolean(this.clientId && this.clientSecret);
+    },
+  },
+
+  cloudinary: {
+    cloudName: envVars.CLOUDINARY_CLOUD_NAME,
+    apiKey: envVars.CLOUDINARY_API_KEY,
+    apiSecret: envVars.CLOUDINARY_API_SECRET,
+    get enabled() {
+      return Boolean(this.cloudName && this.apiKey && this.apiSecret);
     },
   },
 
