@@ -1,4 +1,6 @@
 import { Router } from "express";
+import multer from "multer";
+import rateLimit from "express-rate-limit";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
 import * as controller from "../controllers/recruitment.controller.js";
@@ -14,8 +16,24 @@ import {
 
 const router = Router();
 
+// Upload file vào RAM rồi đẩy thẳng Cloudinary — giới hạn cứng 5MB tại multer
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// Endpoint công khai nên throttle để tránh spam upload
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many uploads. Please try again later." },
+});
+
 // ---- Public (Guest — không cần đăng nhập) ----
 router.get("/active", controller.getActiveCampaign);
+router.post("/uploads", uploadLimiter, upload.single("file"), controller.uploadFile);
 router.post("/applications", submitApplicationValidator, controller.submitApplication);
 router.get("/applications/lookup", lookupValidator, controller.lookupApplication);
 router.patch(
