@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authRoutes from "./auth.routes.js";
+import recruitmentRoutes from "./recruitment.routes.js";
 
 const router = Router();
 
@@ -8,6 +9,7 @@ router.get("/health", (_req, res) => {
 });
 
 router.use("/auth", authRoutes);
-// Future slices: /recruitment, /training, /content, ...
+router.use("/recruitment", recruitmentRoutes);
+// Future slices: /training, /content, ...
 
 export default router;
