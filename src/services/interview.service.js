@@ -64,6 +64,19 @@ export async function updateSlot(slotId, data) {
   return slot;
 }
 
+// Xoá ca — chỉ khi chưa có ứng viên đặt lịch (bảo vệ booking của ứng viên)
+export async function deleteSlot(slotId) {
+  const slot = await InterviewSlot.findById(slotId);
+  if (!slot) throw ApiError.notFound("Không tìm thấy ca phỏng vấn");
+  const bookings = await InterviewBooking.countDocuments({ slotId });
+  if (bookings > 0) {
+    throw ApiError.badRequest(
+      "Ca đã có ứng viên đặt lịch — chuyển ứng viên sang ca khác trước khi xoá",
+    );
+  }
+  await InterviewSlot.deleteOne({ _id: slotId });
+}
+
 // BCN gán ca phỏng vấn thay ứng viên (nghiệp vụ 3.1) — có booking cũ thì chuyển ca
 export async function assignSlot(applicationId, slotId) {
   const application = await Application.findById(applicationId);

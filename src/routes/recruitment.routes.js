@@ -103,6 +103,7 @@ router.post(
 router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
 // bcnOrLeader: leader được tự nhận / bổ sung mình vào ca phỏng vấn
 router.patch("/slots/:id", bcnOrLeader, idParam, updateSlotBody, controller.updateSlot);
+router.delete("/slots/:id", bcnOnly, idParam, controller.deleteSlot);
 router.post("/applications/:id/assign-slot", bcnOnly, idParam, assignSlotBody, controller.assignSlot);
 router.post(
   "/bookings/:id/score",

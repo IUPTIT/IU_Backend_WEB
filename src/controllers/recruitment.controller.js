@@ -130,6 +130,11 @@ export const updateSlot = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Đã cập nhật ca phỏng vấn", data: { slot } });
 });
 
+export const deleteSlot = catchAsync(async (req, res) => {
+  await interviewService.deleteSlot(req.params.id);
+  sendSuccess(res, { message: "Đã xoá ca phỏng vấn" });
+});
+
 export const assignSlot = catchAsync(async (req, res) => {
   const booking = await interviewService.assignSlot(req.params.id, req.body.slotId);
   sendSuccess(res, { message: "Đã gán lịch phỏng vấn", data: { booking } });
