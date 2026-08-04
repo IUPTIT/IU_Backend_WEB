@@ -15,21 +15,24 @@ import {
 
 const router = Router();
 
-router.use(authLimiter);
-
-router.post("/register", registerValidator, authController.register);
-router.post("/verify-email", verifyEmailValidator, authController.verifyEmail);
-router.post("/resend-otp", resendOtpValidator, authController.resendOtp);
-router.post("/login", loginValidator, authController.login);
+// Chỉ throttle các endpoint nhập credential (chống brute-force).
+// refresh/logout/me là request nền của phiên hợp lệ — không giới hạn,
+// nếu không mỗi lần reload trang sẽ ăn dần quota và dính 429 oan.
+router.post("/register", authLimiter, registerValidator, authController.register);
+router.post("/verify-email", authLimiter, verifyEmailValidator, authController.verifyEmail);
+router.post("/resend-otp", authLimiter, resendOtpValidator, authController.resendOtp);
+router.post("/login", authLimiter, loginValidator, authController.login);
 router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 router.post(
   "/forgot-password",
+  authLimiter,
   forgotPasswordValidator,
   authController.forgotPassword,
 );
 router.post(
   "/reset-password",
+  authLimiter,
   resetPasswordValidator,
   authController.resetPassword,
 );
