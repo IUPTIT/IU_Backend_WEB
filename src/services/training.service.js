@@ -297,9 +297,31 @@ export async function getReviewSummary() {
   };
 }
 
-export async function updateEvalStatus(traineeId, evalStatus) {
+// Tân binh trong các team user đang dẫn (mentor xem team mình để đánh giá)
+export async function listMyTeamTrainees(userId) {
+  const groups = await TrainingGroup.find({ mentorId: userId }).select("_id");
+  return Trainee.find({
+    groupId: { $in: groups.map((g) => g._id) },
+    status: { $ne: "removed" },
+  })
+    .sort({ fullName: 1 })
+    .populate("groupId", "name");
+}
+
+export async function updateEvalStatus(traineeId, evalStatus, user) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
+
+  // Mentor chỉ đánh giá tân binh trong team mình dẫn; BCN/Leader không giới hạn
+  if (user && !["bcn", "leader"].includes(user.role)) {
+    const group = trainee.groupId
+      ? await TrainingGroup.findById(trainee.groupId).select("mentorId")
+      : null;
+    if (!group || String(group.mentorId) !== String(user.id)) {
+      throw ApiError.forbidden("Tân binh này không thuộc team của bạn");
+    }
+  }
+
   trainee.evalStatus = evalStatus;
   if (evalStatus === "certified") trainee.status = "completed";
   await trainee.save();

@@ -211,6 +211,9 @@ router.patch(
   taskController.reviewSubmission,
 );
 
+// Mentor xem tân binh các team mình dẫn (để đánh giá cuối vòng)
+router.get("/my-team", bcnLeaderOrMentor, controller.listMyTeamTrainees);
+
 router.get("/review-summary", bcnOrLeader, controller.getReviewSummary);
 // Mentor đánh giá tân binh trong team mình
 router.patch(

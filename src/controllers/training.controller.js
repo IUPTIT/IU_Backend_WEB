@@ -91,10 +91,16 @@ export const getReviewSummary = catchAsync(async (_req, res) => {
   sendSuccess(res, { message: "Tổng kết training", data: { summary } });
 });
 
+export const listMyTeamTrainees = catchAsync(async (req, res) => {
+  const trainees = await trainingService.listMyTeamTrainees(req.user.id);
+  sendSuccess(res, { message: "Tân binh team của bạn", data: { trainees } });
+});
+
 export const updateEvalStatus = catchAsync(async (req, res) => {
   const trainee = await trainingService.updateEvalStatus(
     req.params.id,
     req.body.evalStatus,
+    req.user,
   );
   sendSuccess(res, { message: "Đã cập nhật đánh giá", data: { trainee } });
 });
