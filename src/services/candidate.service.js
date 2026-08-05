@@ -22,10 +22,18 @@ async function getOwnApplication(sourceApplicationId) {
   return application;
 }
 
-async function assertBookableSlot(slotId) {
+async function assertBookableSlot(slotId, application) {
   const slot = await InterviewSlot.findById(slotId);
   if (!slot) throw ApiError.notFound("Ca phỏng vấn không tồn tại");
   assertSlotHasInterviewers(slot);
+  const appCampaign = String(
+    application.campaignId?._id ?? application.campaignId,
+  );
+  if (appCampaign && String(slot.campaignId) !== appCampaign) {
+    throw ApiError.badRequest(
+      "Ca phỏng vấn không thuộc cùng đợt tuyển với hồ sơ của bạn",
+    );
+  }
   return slot;
 }
 
@@ -74,14 +82,14 @@ export async function holdSlot(sourceApplicationId, slotId) {
       "Bạn đã có lịch phỏng vấn — dùng chức năng đổi ca",
     );
   }
-  await assertBookableSlot(slotId);
+  await assertBookableSlot(slotId, application);
   return slotHoldService.holdSlot(slotId, application._id);
 }
 
 // Xác nhận đặt lịch chính thức trong thời gian hold
 export async function confirmBooking(sourceApplicationId, slotId) {
   const application = await getOwnApplication(sourceApplicationId);
-  await assertBookableSlot(slotId);
+  await assertBookableSlot(slotId, application);
   const booking = await slotHoldService.confirmBooking(slotId, application._id);
   const slot = await InterviewSlot.findById(slotId);
   if (slot) {
@@ -116,7 +124,7 @@ export async function changeSlot(sourceApplicationId, newSlotId) {
     throw ApiError.badRequest("Ca mới trùng với ca hiện tại");
   }
 
-  const newSlot = await assertBookableSlot(newSlotId);
+  const newSlot = await assertBookableSlot(newSlotId, application);
 
   const newSlotStart = new Date(newSlot.date);
   const [h, m] = newSlot.startTime.split(":").map(Number);

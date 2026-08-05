@@ -37,15 +37,11 @@ export const createSlot = celebrate({
       "any.required": "Địa điểm / Link phỏng vấn (location) là bắt buộc",
     }),
 
-    // ≥1 người PV phụ trách ca (PO); không giới hạn số lượng trên
+    // Cho phép tạo ca trống — phân công người PV sau (AssignInterviewersModal).
+    // Book/gán ứng viên vẫn bắt buộc ≥1 interviewer ở service.
     interviewerIds: Joi.array()
       .items(Joi.string().hex().length(24))
-      .min(1)
-      .required()
-      .messages({
-        "array.min": "Ca phải có ít nhất 1 người phỏng vấn phụ trách",
-        "any.required": "interviewerIds là bắt buộc",
-      }),
+      .default([]),
 
     capacity: Joi.number().integer().min(1).required().messages({
       "number.min": "Sức chứa tối thiểu phải là 1",
@@ -111,11 +107,6 @@ export const bulkGenerateSlots = celebrate({
 
     interviewerIds: Joi.array()
       .items(Joi.string().hex().length(24))
-      .min(1)
-      .required()
-      .messages({
-        "array.min": "Ca phải có ít nhất 1 người phỏng vấn phụ trách",
-        "any.required": "interviewerIds là bắt buộc",
-      }),
+      .default([]),
   }),
 });

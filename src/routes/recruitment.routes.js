@@ -69,8 +69,8 @@ router.post(
   campaignValidation.createCampaign,
   controller.createCampaign,
 );
-router.get("/campaigns", bcnOrLeader, controller.listCampaigns);
-router.get("/campaigns/:id", bcnOrLeader, idParam, controller.getCampaign);
+router.get("/campaigns", bcnOnly, controller.listCampaigns);
+router.get("/campaigns/:id", bcnOnly, idParam, controller.getCampaign);
 router.patch(
   "/campaigns/:id",
   bcnOnly,
@@ -93,7 +93,7 @@ router.post(
 );
 router.delete("/campaigns/:id", bcnOnly, idParam, controller.deleteCampaign);
 
-router.get("/campaigns/:id/form", bcnOrLeader, idParam, controller.getForm);
+router.get("/campaigns/:id/form", bcnOnly, idParam, controller.getForm);
 router.put(
   "/campaigns/:id/form",
   bcnOnly,
@@ -102,18 +102,18 @@ router.put(
   controller.updateForm,
 );
 
-// ---- Phần 2: vòng đơn — danh sách, chấm điểm, quyết định ----
-router.get("/applications", bcnOrLeader, controller.listApplications);
+// ---- Phần 2: vòng đơn — chỉ BCN (Leader ◐ chỉ ca PV được phân công) ----
+router.get("/applications", bcnOnly, controller.listApplications);
 router.post(
   "/applications/:id/score",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   scoreValidation.createScore,
   controller.scoreApplication,
 );
 router.get(
   "/applications/:id/scores",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.getScoreSummary,
 );
@@ -149,7 +149,8 @@ router.post(
 );
 
 // ---- Phần 3: ca phỏng vấn ----
-router.get("/interviewers", bcnOrLeader, controller.listInterviewers);
+// Leader chỉ: slots/mine + slot/booking detail (đã assert panel) + score
+router.get("/interviewers", bcnOnly, controller.listInterviewers);
 router.get("/slots/mine", bcnOrLeader, controller.listMyInterviewSlots);
 router.post(
   "/slots",
@@ -164,8 +165,8 @@ router.post(
   slotValidation.bulkGenerateSlots,
   controller.bulkGenerateSlots,
 );
-router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
-// Chỉ BCN tạo/sửa/xoá ca & phân công panel (Leader chỉ xem ca của mình + chấm)
+router.get("/campaigns/:id/slots", bcnOnly, idParam, controller.listSlots);
+// Chỉ BCN tạo/sửa/xoá ca & phân công panel
 router.patch(
   "/slots/:id",
   bcnOnly,
@@ -178,7 +179,7 @@ router.get("/slots/:id", bcnOrLeader, idParam, controller.getSlotDetail);
 router.get("/bookings/:id", bcnOrLeader, idParam, controller.getBookingDetail);
 router.get(
   "/campaigns/:id/interview-results",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.listInterviewResults,
 );
@@ -191,7 +192,7 @@ router.post(
 );
 router.get(
   "/campaigns/:id/unbooked",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.listUnbookedApplications,
 );
@@ -257,7 +258,7 @@ router.post(
 );
 router.get(
   "/campaigns/:id/new-members",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.listNewMembers,
 );

@@ -334,8 +334,24 @@ export async function scoreBooking(
     attendance,
   });
 
-  // Chỉ đánh dấu điểm danh trên booking — Fail vòng PV do BCN decide-interview
-  booking.status = attendance === "absent" ? "no_show" : "completed";
+  // Booking chỉ completed/no_show khi ĐỦ panel đã chấm (tránh 1/N đóng sớm)
+  const panelIds = (slot.interviewerIds ?? []).map((id) => String(id));
+  const scoreDocs = await ApplicationScore.find({
+    applicationId: booking.applicationId,
+    round: "interview",
+  }).select("scoredBy attendance");
+  const byScorer = new Map(
+    scoreDocs.map((s) => [String(s.scoredBy), s.attendance]),
+  );
+  const allPanelScored =
+    panelIds.length > 0 && panelIds.every((id) => byScorer.has(id));
+
+  if (allPanelScored) {
+    const allAbsent = panelIds.every((id) => byScorer.get(id) === "absent");
+    booking.status = allAbsent ? "no_show" : "completed";
+  } else if (booking.status === "completed" || booking.status === "no_show") {
+    booking.status = booking.changeCount > 0 ? "changed" : "booked";
+  }
   await booking.save();
 
   return { ...result, booking };
