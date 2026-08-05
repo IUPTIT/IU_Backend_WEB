@@ -43,6 +43,8 @@ const trainingTaskSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     attachmentUrl: { type: String, default: "" },
     deadline: { type: Date, default: null },
+    /** Đã gửi nhắc deadline (sắp tới / quá hạn) — chống trùng job */
+    deadlineReminderSentAt: { type: Date, default: null },
     assignments: [assignmentSchema],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

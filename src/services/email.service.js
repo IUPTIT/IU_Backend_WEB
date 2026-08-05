@@ -306,3 +306,67 @@ export function sendPasswordResetEmail(to, resetToken) {
     }),
   });
 }
+
+/** Thông báo tân binh đã được chia nhóm training + mentor */
+export function sendTrainingGroupAssignedEmail(trainee, group, mentorName) {
+  const url = `${config.clientUrl}/member/training/roadmap`;
+  return send({
+    to: trainee.email,
+    subject: `IU CLUB — Bạn đã được chia nhóm training (${group.name})`,
+    text: `Ban da duoc chia nhom ${group.name}. Mentor: ${mentorName}. Xem tai ${url}`,
+    html: renderEmail({
+      title: "Bạn đã được chia nhóm training 🎓",
+      intro: `Chào <b style="color:${COLORS.text}">${trainee.fullName}</b>! Bạn thuộc nhóm <b style="color:${COLORS.accent}">${group.name}</b>. Mentor phụ trách: <b>${mentorName}</b>.`,
+      cta: { label: "Xem lộ trình training", url },
+      note: "Vào portal thành viên để xem lộ trình, task và trao đổi với mentor.",
+    }),
+  });
+}
+
+/** Nhắc lần cuối khi chưa hoàn thành training đúng hạn */
+export function sendTrainingIncompleteReminderEmail(trainee, reason) {
+  const url = `${config.clientUrl}/member/training/progress`;
+  return send({
+    to: trainee.email,
+    subject: "IU CLUB — Nhắc hoàn thành chương trình training",
+    text: `Ban chuwa hoan thanh training. Ly do: ${reason}. Xem tai ${url}`,
+    html: renderEmail({
+      title: "Nhắc hoàn thành training ⏰",
+      intro: `Chào <b style="color:${COLORS.text}">${trainee.fullName}</b>! Ban Chủ nhiệm nhắc bạn hoàn thành chương trình training. Lý do: ${reason}`,
+      cta: { label: "Xem tiến độ của tôi", url },
+      note: "Nếu không hoàn thành đúng hạn, bạn có thể bị loại khỏi CLB.",
+    }),
+  });
+}
+
+/** Nhắc deadline task training sắp tới / quá hạn */
+export function sendTaskDeadlineReminderEmail(trainee, task, timeLeftLabel) {
+  const url = `${config.clientUrl}/member/training/tasks`;
+  return send({
+    to: trainee.email,
+    subject: `IU CLUB — Nhắc task training: ${task.title}`,
+    text: `Task "${task.title}" ${timeLeftLabel}. Xem tai ${url}`,
+    html: renderEmail({
+      title: "Nhắc deadline task training",
+      intro: `Chào <b style="color:${COLORS.text}">${trainee.fullName}</b>! Task <b style="color:${COLORS.accent}">${task.title}</b> ${timeLeftLabel}.`,
+      cta: { label: "Xem & nộp bài", url },
+      note: "Nộp bài trước hạn để mentor kịp chấm điểm.",
+    }),
+  });
+}
+
+/** Nhắc ứng viên chưa đặt lịch phỏng vấn sau X ngày Pass vòng đơn */
+export function sendUnbookedReminderEmail(application) {
+  const loginUrl = `${config.clientUrl}/login`;
+  return send({
+    to: application.email,
+    subject: `IU CLUB — Nhắc đặt lịch phỏng vấn (${application.applicationCode})`,
+    text: `Ban da dat vong don nhung chua dat lich phong van. Dang nhap tai ${loginUrl} de chon ca.`,
+    html: renderEmail({
+      title: "Bạn chưa đặt lịch phỏng vấn ⏳",
+      intro: `Chào <b style="color:${COLORS.text}">${application.fullName}</b>! Hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> đã đạt vòng đơn nhưng bạn chưa chọn ca phỏng vấn.`,
+      cta: { label: "Đăng nhập & đặt lịch ngay", url: loginUrl },
+      note: "Nếu không đặt lịch kịp thời, Ban Chủ nhiệm có thể chủ động gán ca hoặc đánh dấu vắng không đặt lịch.",
+    }),
+  });
+}

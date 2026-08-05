@@ -83,7 +83,10 @@ export async function updateTask(taskId, data, user) {
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
   if (attachmentUrl !== undefined) task.attachmentUrl = attachmentUrl;
-  if (deadline !== undefined) task.deadline = deadline;
+  if (deadline !== undefined) {
+    task.deadline = deadline;
+    task.deadlineReminderSentAt = null;
+  }
   await task.save();
   return task;
 }

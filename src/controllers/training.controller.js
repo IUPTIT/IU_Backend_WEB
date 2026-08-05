@@ -71,6 +71,15 @@ export const createProgram = catchAsync(async (req, res) => {
   });
 });
 
+export const updateProgram = catchAsync(async (req, res) => {
+  const program = await trainingService.updateProgram(
+    req.params.id,
+    req.body,
+    req.user,
+  );
+  sendSuccess(res, { message: "Đã cập nhật lộ trình", data: { program } });
+});
+
 export const deleteProgram = catchAsync(async (req, res) => {
   await trainingService.deleteProgram(req.params.id, req.user);
   sendSuccess(res, { message: "Đã xóa lộ trình" });
@@ -87,6 +96,79 @@ export const createGroup = catchAsync(async (req, res) => {
     statusCode: 201,
     message: "Đã tạo team",
     data: { group },
+  });
+});
+
+export const updateGroup = catchAsync(async (req, res) => {
+  const group = await trainingService.updateGroup(
+    req.params.id,
+    req.body,
+    req.user,
+  );
+  sendSuccess(res, { message: "Đã cập nhật nhóm training", data: { group } });
+});
+
+export const resendGroupNotifications = catchAsync(async (req, res) => {
+  const result = await trainingService.resendGroupNotifications(
+    req.body.groupIds,
+  );
+  sendSuccess(res, {
+    message: `Đã gửi ${result.sent} thông báo phân nhóm`,
+    data: result,
+  });
+});
+
+export const getMyProgress = catchAsync(async (req, res) => {
+  const progress = await trainingService.getMyProgress(req.user.id);
+  sendSuccess(res, { message: "Tiến độ training", data: { progress } });
+});
+
+export const handleIncomplete = catchAsync(async (req, res) => {
+  const result = await trainingService.handleIncompleteTrainee(
+    req.params.id,
+    req.body,
+    req.user,
+  );
+  sendSuccess(res, {
+    message:
+      req.body.action === "remove_from_club"
+        ? "Đã loại thành viên khỏi CLB"
+        : "Đã gửi nhắc nhở lần cuối",
+    data: result,
+  });
+});
+
+export const confirmCompletion = catchAsync(async (req, res) => {
+  const trainee = await trainingService.confirmTrainingCompletion(
+    req.params.id,
+    req.body.note,
+    req.user,
+  );
+  sendSuccess(res, {
+    message: "Đã xác nhận hoàn thành training (gửi BCN)",
+    data: { trainee },
+  });
+});
+
+export const listGroupMessages = catchAsync(async (req, res) => {
+  const messages = await trainingService.listGroupMessages(
+    req.params.id,
+    req.user,
+    { limit: req.query.limit },
+  );
+  sendSuccess(res, { message: "Tin nhắn nhóm", data: { messages } });
+});
+
+export const postGroupMessage = catchAsync(async (req, res) => {
+  const message = await trainingService.postGroupMessage(
+    req.params.id,
+    req.body.content,
+    req.user,
+  );
+  sendSuccess(res, {
+    statusCode: 201,
+    message: "Đã gửi tin nhắn",
+    data: { message },
   });
 });
 

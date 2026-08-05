@@ -13,12 +13,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:demo": "node src/scripts/seedDemoUsers.js",
+    "seed:members": "node src/scripts/seedDemoUsers.js",
+    "test:training-flow": "node src/scripts/smokeTrainingFlow.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
-    "seed:members": "node src/scripts/seedMembers.js"
+    "prepare": "husky"
   },
   "keywords": [
     "iu-club",

@@ -124,20 +124,48 @@ async function handleSideEffects(application, _previousStatus, nextStatus) {
     ].includes(nextStatus)
   ) {
     await agenda.now(JOB_DISABLE_ACCOUNT, { applicationId });
+    if (application.userId) {
+      const notificationService = await import("./notification.service.js");
+      const title =
+        nextStatus === APPLICATION_STATUS.FAILED_INTERVIEW
+          ? "Không đạt vòng phỏng vấn"
+          : nextStatus === APPLICATION_STATUS.REJECTED
+            ? "Không trúng tuyển"
+            : "Không đạt vòng đơn";
+      await notificationService.createNotification({
+        userId: application.userId,
+        title,
+        body: "Cảm ơn bạn đã ứng tuyển IU Club. Kết quả chi tiết đã được gửi qua email.",
+        type:
+          nextStatus === APPLICATION_STATUS.FAILED_CV
+            ? "cv_result"
+            : nextStatus === APPLICATION_STATUS.FAILED_INTERVIEW
+              ? "interview_result"
+              : "final_result",
+        link: "/candidate/profile",
+      });
+    }
   }
 
-  // Case 3: Đạt vòng phỏng vấn -> vào VÒNG TRAINING (vòng loại cuối):
-  // tạo trainee chờ chia team mentor + email chúc mừng
+  // Case 3: Đạt vòng phỏng vấn -> chờ BCN tổng hợp kết quả cuối (email + in-app)
   if (nextStatus === APPLICATION_STATUS.PASSED_INTERVIEW) {
-    const [emailService, trainingService] = await Promise.all([
+    const [emailService, notificationService] = await Promise.all([
       import("./email.service.js"),
-      import("./training.service.js"),
+      import("./notification.service.js"),
     ]);
-    await trainingService.createTraineeFromApplication(application);
     await emailService.sendInterviewPassedEmail(application);
+    if (application.userId) {
+      await notificationService.createNotification({
+        userId: application.userId,
+        title: "Đạt vòng phỏng vấn",
+        body: "Bạn đã vượt qua vòng phỏng vấn. Ban Chủ nhiệm đang tổng hợp kết quả cuối.",
+        type: "interview_result",
+        link: "/candidate/profile",
+      });
+    }
   }
 
-  // Case 4: Trúng tuyển chính thức -> Nâng vai trò candidate thành member chính thức
+  // Case 4: Trúng tuyển -> nâng role Member + bàn giao sang luồng Đào tạo (trainee)
   if (nextStatus === APPLICATION_STATUS.ADMITTED) {
     await agenda.now(JOB_PROMOTE_TO_MEMBER, { applicationId });
   }

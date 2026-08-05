@@ -119,6 +119,13 @@ router.post(
   createProgramBody,
   controller.createProgram,
 );
+router.patch(
+  "/programs/:id",
+  bcnLeaderOrMentor,
+  idParam,
+  createProgramBody,
+  controller.updateProgram,
+);
 // Mentor xóa lộ trình của mình (BCN/Leader xóa được tất cả — check trong service)
 router.delete(
   "/programs/:id",
@@ -129,6 +136,46 @@ router.delete(
 
 router.get("/groups", bcnLeaderOrMentor, controller.listGroups);
 router.post("/groups", bcnOnly, createGroupBody, controller.createGroup);
+router.post(
+  "/groups/notify",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      groupIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.resendGroupNotifications,
+);
+router.patch(
+  "/groups/:id",
+  bcnOrLeader,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      name: Joi.string().trim().max(200),
+      programId: objectId.allow(null, ""),
+      department: Joi.string().trim(),
+      specialtyLabel: Joi.string().allow(""),
+      mentorId: objectId.allow(null, ""),
+      memberIds: Joi.array().items(objectId).min(1),
+    }).min(1),
+  }),
+  controller.updateGroup,
+);
+
+// Tiến độ cá nhân + chat nhóm
+router.get("/me/progress", controller.getMyProgress);
+router.get("/groups/:id/messages", idParam, controller.listGroupMessages);
+router.post(
+  "/groups/:id/messages",
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      content: Joi.string().trim().max(4000).required(),
+    }),
+  }),
+  controller.postGroupMessage,
+);
 
 // ---- Task: mentor giao task cho team, trainee nộp bài, mentor chấm ----
 
@@ -240,6 +287,31 @@ router.patch(
   idParam,
   evalStatusBody,
   controller.updateEvalStatus,
+);
+router.post(
+  "/trainees/:id/incomplete-action",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      action: Joi.string()
+        .valid("final_reminder", "remove_from_club")
+        .required(),
+      reason: Joi.string().trim().max(1000).required(),
+    }),
+  }),
+  controller.handleIncomplete,
+);
+router.post(
+  "/trainees/:id/confirm-completion",
+  bcnLeaderOrMentor,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      note: Joi.string().allow(""),
+    }),
+  }),
+  controller.confirmCompletion,
 );
 router.post(
   "/certificates",

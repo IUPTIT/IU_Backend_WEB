@@ -33,6 +33,20 @@ export async function scoreApplication({
     );
   }
 
+  // Vòng đơn: nếu đã phân công reviewer thì chỉ người được gán (hoặc BCN) mới được chấm
+  if (round === "cv" && application.reviewerIds?.length) {
+    const allowed = application.reviewerIds.map(String);
+    if (!allowed.includes(String(scoredBy))) {
+      const User = (await import("../models/user.model.js")).default;
+      const scorer = await User.findById(scoredBy).select("role");
+      if (scorer?.role !== "bcn") {
+        throw ApiError.forbidden(
+          "Bạn không được phân công chấm hồ sơ này — liên hệ BCN để được gán",
+        );
+      }
+    }
+  }
+
   let score = await ApplicationScore.findOne({
     applicationId,
     round,
@@ -78,12 +92,107 @@ export async function getScoreSummary(applicationId, round) {
   return ApplicationScore.getAverageAndVariance(applicationId, round);
 }
 
+/** Phân công 1–n người chấm vòng đơn */
+export async function assignReviewers(applicationId, reviewerIds) {
+  const application = await getApplication(applicationId);
+  if (application.status !== "pending_review") {
+    throw ApiError.badRequest(
+      "Chỉ phân công người chấm khi hồ sơ còn ở trạng thái Chờ xét duyệt",
+    );
+  }
+  const ids = [...new Set((reviewerIds ?? []).map(String))];
+  if (!ids.length) {
+    throw ApiError.badRequest("Cần chọn ít nhất 1 người chấm");
+  }
+  application.reviewerIds = ids;
+  await application.save();
+  return application.populate("reviewerIds", "name email role");
+}
+
 // Quyết định Pass/Fail vòng đơn — side-effect (tạo tài khoản candidate...) chạy qua state machine
 export async function decideCv(applicationId, status) {
   if (!["passed_cv", "failed_cv"].includes(status)) {
     throw ApiError.badRequest("status phải là passed_cv hoặc failed_cv");
   }
   return transition(applicationId, status);
+}
+
+/**
+ * Duyệt hàng loạt vòng đơn theo ngưỡng điểm trung bình (thang 0–100).
+ * Chỉ áp dụng hồ sơ pending_review đã có ≥1 điểm CV.
+ * Điểm ≥ threshold → passed_cv; còn lại → failed_cv (nếu failBelow=true).
+ */
+export async function bulkDecideCvByThreshold({
+  campaignId,
+  threshold,
+  failBelow = true,
+}) {
+  if (threshold == null || Number.isNaN(Number(threshold))) {
+    throw ApiError.badRequest("threshold là bắt buộc");
+  }
+  const minScore = Number(threshold);
+  const apps = await Application.find({
+    campaignId,
+    status: "pending_review",
+  }).select("_id");
+  const ids = apps.map((a) => a._id);
+  if (!ids.length) return { passed: 0, failed: 0, skipped: 0 };
+
+  const averages = await ApplicationScore.aggregate([
+    { $match: { applicationId: { $in: ids }, round: "cv" } },
+    {
+      $group: {
+        _id: "$applicationId",
+        avg: { $avg: "$totalScore" },
+      },
+    },
+  ]);
+  const avgMap = new Map(averages.map((r) => [String(r._id), r.avg]));
+
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+  for (const app of apps) {
+    const avg = avgMap.get(String(app._id));
+    if (avg == null) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      if (avg >= minScore) {
+        await transition(app._id, "passed_cv");
+        passed += 1;
+      } else if (failBelow) {
+        await transition(app._id, "failed_cv");
+        failed += 1;
+      } else {
+        skipped += 1;
+      }
+    } catch {
+      skipped += 1;
+    }
+  }
+  return { passed, failed, skipped };
+}
+
+/** BCN đổi ban chính thức sang NV2/NV3 trước khi xác nhận trúng tuyển */
+export async function assignOfficialDepartment(applicationId, department) {
+  const application = await getApplication(applicationId);
+  if (application.status !== "passed_interview") {
+    throw ApiError.badRequest(
+      "Chỉ đổi ban khi hồ sơ đang ở trạng thái Đạt phỏng vấn (chờ kết quả cuối)",
+    );
+  }
+  const prefs = application.departmentPreferences ?? [];
+  const allowed = prefs.map((p) => p.department);
+  if (!allowed.includes(department)) {
+    throw ApiError.badRequest(
+      `Ban "${department}" không nằm trong nguyện vọng của ứng viên`,
+    );
+  }
+  application.assignedDepartment = department;
+  await application.save();
+  return application;
 }
 
 export async function decideInterview(applicationId, status) {
@@ -99,6 +208,18 @@ export async function decideInterview(applicationId, status) {
 export async function confirmFinal(applicationId, status) {
   if (!["admitted", "rejected"].includes(status)) {
     throw ApiError.badRequest("status phải là admitted hoặc rejected");
+  }
+  if (status === "admitted") {
+    const app = await getApplication(applicationId);
+    if (!app.assignedDepartment) {
+      const nv1 = [...(app.departmentPreferences ?? [])].sort(
+        (a, b) => a.priority - b.priority,
+      )[0]?.department;
+      if (nv1) {
+        app.assignedDepartment = nv1;
+        await app.save();
+      }
+    }
   }
   const application = await transition(applicationId, status);
   if (status === "admitted") {

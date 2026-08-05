@@ -112,6 +112,17 @@ export async function closeCampaign(id) {
   return campaign;
 }
 
+/** Đóng vòng đời đợt: Closed → Completed (sau khi đã chốt kết quả cuối) */
+export async function completeCampaign(id) {
+  const campaign = await getCampaign(id);
+  if (campaign.status !== "closed") {
+    throw ApiError.badRequest("Chỉ đợt tuyển đã đóng mới được đánh dấu hoàn tất");
+  }
+  campaign.status = "completed";
+  await campaign.save();
+  return campaign;
+}
+
 export async function deleteCampaign(id) {
   const campaign = await getCampaign(id);
   const submitted = await Application.countDocuments({

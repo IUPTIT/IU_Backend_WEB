@@ -238,11 +238,21 @@ function assertOwner(application, email) {
   }
 }
 
-function assertEditable(application) {
+async function assertEditable(application) {
   const closeAt = application.campaignId?.closeAt;
   if (!application.canEdit(closeAt)) {
     throw ApiError.badRequest(
-      "Hồ sơ không còn được chỉnh sửa (đã chấm hoặc đợt tuyển đã đóng)",
+      "Hồ sơ không còn được chỉnh sửa (đã qua vòng xét duyệt hoặc đợt tuyển đã đóng)",
+    );
+  }
+  // Nghiệp vụ 1.5: không sửa/rút khi BCN đã bắt đầu chấm điểm
+  const scored = await ApplicationScore.exists({
+    applicationId: application._id,
+    round: "cv",
+  });
+  if (scored) {
+    throw ApiError.badRequest(
+      "Hồ sơ đã được BCN bắt đầu chấm điểm — không thể sửa hoặc rút đơn",
     );
   }
 }
@@ -311,7 +321,8 @@ export async function listApplications({
       .sort({ createdAt: -1 })
       .skip((numericPage - 1) * numericLimit)
       .limit(numericLimit)
-      .populate("campaignId", "name closeAt status"),
+      .populate("campaignId", "name closeAt status")
+      .populate("reviewerIds", "name email"),
     Application.countDocuments(filter),
   ]);
 

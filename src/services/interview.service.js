@@ -151,6 +151,18 @@ export async function scoreBooking(
 
   booking.status = attendance === "absent" ? "no_show" : "completed";
   await booking.save();
+
+  // Vắng mặt không lý do → tự động Fail vòng phỏng vấn (nghiệp vụ 3.4)
+  if (attendance === "absent") {
+    const application = await Application.findById(booking.applicationId);
+    if (application?.status === "passed_cv") {
+      await screeningService.decideInterview(
+        booking.applicationId,
+        "failed_interview",
+      );
+    }
+  }
+
   return { ...result, booking };
 }
 
@@ -254,7 +266,7 @@ export async function listInterviewResults(campaignId) {
   });
 }
 
-// Danh sách người có thể phỏng vấn (BCN/Leader đang hoạt động)
+// Danh sách người có thể phỏng vấn / chấm hồ sơ (BCN/Leader đang hoạt động)
 // $ne:false thay vì true — tài khoản cũ tạo trước khi có field isActive vẫn được tính
 export function listInterviewers() {
   return User.find({
@@ -263,4 +275,36 @@ export function listInterviewers() {
   })
     .select("name email role")
     .sort({ name: 1 });
+}
+
+/** Ứng viên đã Pass CV nhưng chưa đặt lịch phỏng vấn */
+export async function listUnbookedApplications(campaignId) {
+  await campaignService.getCampaign(campaignId);
+  const bookedAppIds = await InterviewBooking.distinct("applicationId", {});
+  return Application.find({
+    campaignId,
+    status: "passed_cv",
+    _id: { $nin: bookedAppIds },
+  })
+    .sort({ updatedAt: 1 })
+    .select(
+      "fullName email phone applicationCode departmentPreferences status userId bookingReminderSentAt createdAt updatedAt",
+    );
+}
+
+/**
+ * Đánh dấu "Vắng, không đặt lịch" — Fail vòng phỏng vấn khi ứng viên không đặt lịch
+ * (nghiệp vụ 3.2)
+ */
+export async function markUnbookedNoShow(applicationId) {
+  const application = await Application.findById(applicationId);
+  if (!application) throw ApiError.notFound("Không tìm thấy hồ sơ");
+  if (application.status !== "passed_cv") {
+    throw ApiError.badRequest("Chỉ áp dụng cho hồ sơ Đạt vòng đơn chưa có kết quả PV");
+  }
+  const existing = await InterviewBooking.findOne({ applicationId });
+  if (existing) {
+    throw ApiError.badRequest("Ứng viên đã có lịch phỏng vấn — dùng điểm danh vắng trên ca");
+  }
+  return screeningService.decideInterview(applicationId, "failed_interview");
 }

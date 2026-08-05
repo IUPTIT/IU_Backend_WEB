@@ -44,6 +44,11 @@ export const closeCampaign = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Đã đóng đợt tuyển", data: { campaign } });
 });
 
+export const completeCampaign = catchAsync(async (req, res) => {
+  const campaign = await campaignService.completeCampaign(req.params.id);
+  sendSuccess(res, { message: "Đã hoàn tất đợt tuyển", data: { campaign } });
+});
+
 export const deleteCampaign = catchAsync(async (req, res) => {
   await campaignService.deleteCampaign(req.params.id);
   sendSuccess(res, { message: "Đã xoá đợt tuyển" });
@@ -103,6 +108,58 @@ export const decideApplication = catchAsync(async (req, res) => {
   );
   sendSuccess(res, {
     message: "Đã cập nhật kết quả vòng đơn",
+    data: { application },
+  });
+});
+
+export const bulkDecideCv = catchAsync(async (req, res) => {
+  const result = await screeningService.bulkDecideCvByThreshold({
+    campaignId: req.body.campaignId,
+    threshold: req.body.threshold,
+    failBelow: req.body.failBelow ?? true,
+  });
+  sendSuccess(res, {
+    message: "Đã duyệt hàng loạt vòng đơn theo ngưỡng điểm",
+    data: result,
+  });
+});
+
+export const assignOfficialDepartment = catchAsync(async (req, res) => {
+  const application = await screeningService.assignOfficialDepartment(
+    req.params.id,
+    req.body.department,
+  );
+  sendSuccess(res, {
+    message: "Đã cập nhật ban chính thức",
+    data: { application },
+  });
+});
+
+export const assignReviewers = catchAsync(async (req, res) => {
+  const application = await screeningService.assignReviewers(
+    req.params.id,
+    req.body.reviewerIds,
+  );
+  sendSuccess(res, {
+    message: "Đã phân công người chấm",
+    data: { application },
+  });
+});
+
+export const listUnbookedApplications = catchAsync(async (req, res) => {
+  const applications = await interviewService.listUnbookedApplications(
+    req.params.id,
+  );
+  sendSuccess(res, {
+    message: "Danh sách chưa đặt lịch phỏng vấn",
+    data: { applications },
+  });
+});
+
+export const markUnbookedNoShow = catchAsync(async (req, res) => {
+  const application = await interviewService.markUnbookedNoShow(req.params.id);
+  sendSuccess(res, {
+    message: "Đã đánh dấu vắng không đặt lịch",
     data: { application },
   });
 });

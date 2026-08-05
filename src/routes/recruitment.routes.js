@@ -83,6 +83,12 @@ router.post(
   controller.publishCampaign,
 );
 router.post("/campaigns/:id/close", bcnOnly, idParam, controller.closeCampaign);
+router.post(
+  "/campaigns/:id/complete",
+  bcnOnly,
+  idParam,
+  controller.completeCampaign,
+);
 router.delete("/campaigns/:id", bcnOnly, idParam, controller.deleteCampaign);
 
 router.get("/campaigns/:id/form", bcnOrLeader, idParam, controller.getForm);
@@ -115,6 +121,29 @@ router.post(
   idParam,
   statusBody("passed_cv", "failed_cv"),
   controller.decideApplication,
+);
+router.post(
+  "/applications/bulk-decide-cv",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      campaignId: objectId.required(),
+      threshold: Joi.number().min(0).max(100).required(),
+      failBelow: Joi.boolean().default(true),
+    }),
+  }),
+  controller.bulkDecideCv,
+);
+router.post(
+  "/applications/:id/assign-reviewers",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      reviewerIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.assignReviewers,
 );
 
 // ---- Phần 3: ca phỏng vấn ----
@@ -157,6 +186,18 @@ router.post(
   assignSlotBody,
   controller.assignSlot,
 );
+router.get(
+  "/campaigns/:id/unbooked",
+  bcnOrLeader,
+  idParam,
+  controller.listUnbookedApplications,
+);
+router.post(
+  "/applications/:id/mark-unbooked-no-show",
+  bcnOnly,
+  idParam,
+  controller.markUnbookedNoShow,
+);
 router.post(
   "/bookings/:id/score",
   bcnOrLeader,
@@ -173,6 +214,17 @@ router.post(
 );
 
 // ---- Phần 4: kết quả cuối & bàn giao ----
+router.patch(
+  "/applications/:id/assigned-department",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      department: Joi.string().trim().required(),
+    }),
+  }),
+  controller.assignOfficialDepartment,
+);
 router.post(
   "/applications/:id/confirm-final",
   bcnOnly,

@@ -24,22 +24,28 @@ export function definePromoteToMemberJob() {
 
       const user = await User.findById(application.userId);
       if (!user) return;
-      // Idempotent: đã là member thì bỏ qua (không gửi mail đúp)
-      if (user.role === "member") return;
 
-      user.role = "member";
-      user.isActive = true;
-      user.status = "active";
-      await user.save();
+      const alreadyMember = user.role === "member";
+      if (!alreadyMember) {
+        user.role = "member";
+        user.isActive = true;
+        user.status = "active";
+        await user.save();
+      }
 
-      // Fallback: trainee thường đã được tạo từ lúc đạt phỏng vấn (vòng training) —
-      // upsert lại đề phòng hồ sơ đi tắt
+      // Luôn upsert trainee — kể cả khi user đã là member (tránh miss bàn giao training)
       await trainingService.createTraineeFromApplication(application);
 
-      await emailService.sendAdmittedEmail(application);
-      console.log(
-        `[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`,
-      );
+      if (!alreadyMember) {
+        await emailService.sendAdmittedEmail(application);
+        console.log(
+          `[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`,
+        );
+      } else {
+        console.log(
+          `[job:${JOB_PROMOTE_TO_MEMBER}] Already member — ensured trainee for ${user.email}`,
+        );
+      }
     } catch (err) {
       console.error(
         `[job:${JOB_PROMOTE_TO_MEMBER}] Error promoting candidate for applicationId ${applicationId}:`,
