@@ -50,9 +50,16 @@ export async function getMyTraining(userId) {
         "name email",
       )
     : null;
-  const program = group?.programId
+  // Fallback: team chưa gắn lộ trình thì lấy lộ trình mới nhất của mentor —
+  // mentor thêm/sửa/xóa lộ trình là mentee thấy bản mới ngay
+  let program = group?.programId
     ? await TrainingProgram.findById(group.programId)
     : null;
+  if (!program && group?.mentorId) {
+    program = await TrainingProgram.findOne({
+      createdBy: group.mentorId._id ?? group.mentorId,
+    }).sort({ createdAt: -1 });
+  }
   return { trainee, group, program };
 }
 
@@ -186,8 +193,15 @@ export async function getProgram(id) {
   return program;
 }
 
-export function createProgram(data, createdBy) {
-  return TrainingProgram.create({ ...data, createdBy });
+export async function createProgram(data, createdBy) {
+  const program = await TrainingProgram.create({ ...data, createdBy });
+  // Lộ trình mới nhất của mentor tự áp cho các team mentor đang dẫn —
+  // mentee thấy update ngay, không phải chờ chia đội lại
+  await TrainingGroup.updateMany(
+    { mentorId: createdBy },
+    { $set: { programId: program._id } },
+  );
+  return program;
 }
 
 // Xóa lộ trình: mentor chỉ xóa lộ trình của mình, BCN/Leader xóa được tất cả.
@@ -203,6 +217,21 @@ export async function deleteProgram(id, user) {
     { $set: { programId: null } },
   );
   await program.deleteOne();
+
+  // Team vừa mất lộ trình rơi về lộ trình mới nhất còn lại của mentor đó (nếu có)
+  const orphans = await TrainingGroup.find({
+    programId: null,
+    mentorId: { $ne: null },
+  });
+  for (const group of orphans) {
+    const latest = await TrainingProgram.findOne({
+      createdBy: group.mentorId,
+    }).sort({ createdAt: -1 });
+    if (latest) {
+      group.programId = latest._id;
+      await group.save();
+    }
+  }
 }
 
 // ---- Groups (chia team) ----
