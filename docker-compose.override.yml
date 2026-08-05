@@ -1,0 +1,10 @@
+services:
+  api:
+    build:
+      context: .
+      target: dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app
+    command: npm run dev -- --legacy-watch
