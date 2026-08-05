@@ -227,6 +227,8 @@ router.patch(
     [Segments.BODY]: Joi.object({
       score: Joi.number().min(0).max(10).allow(null),
       note: Joi.string().allow(""),
+      // true = gửi kết quả lên BCN, false/bỏ trống = lưu nháp
+      submit: Joi.boolean(),
     }).min(1),
   }),
   controller.saveMentorReview,

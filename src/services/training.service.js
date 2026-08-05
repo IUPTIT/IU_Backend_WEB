@@ -324,7 +324,7 @@ export async function listMyTeamTrainees(userId) {
 
 // Mentor lưu đánh giá QUÁ TRÌNH (note + điểm) cho tân binh team mình —
 // không đụng evalStatus (Đạt/Trượt là quyết định của BCN)
-export async function saveMentorReview(traineeId, { score, note }, user) {
+export async function saveMentorReview(traineeId, { score, note, submit }, user) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
@@ -339,6 +339,11 @@ export async function saveMentorReview(traineeId, { score, note }, user) {
 
   if (score !== undefined) trainee.mentorScore = score;
   if (note !== undefined) trainee.mentorNote = note;
+  // submit=true → gửi kết quả lên BCN; không thì vẫn là nháp của mentor
+  if (submit) {
+    trainee.mentorReviewStatus = "submitted";
+    trainee.mentorReviewSubmittedAt = new Date();
+  }
   await trainee.save();
   return trainee;
 }
