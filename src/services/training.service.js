@@ -38,6 +38,24 @@ export async function createTraineeFromApplication(application) {
 
 // ---- Trainees ----
 
+// Trainee xem vòng training của CHÍNH MÌNH: team, mentor, lộ trình
+export async function getMyTraining(userId) {
+  const trainee = await Trainee.findOne({ userId });
+  if (!trainee) {
+    throw ApiError.notFound("Bạn chưa ở vòng training");
+  }
+  const group = trainee.groupId
+    ? await TrainingGroup.findById(trainee.groupId).populate(
+        "mentorId",
+        "name email",
+      )
+    : null;
+  const program = group?.programId
+    ? await TrainingProgram.findById(group.programId)
+    : null;
+  return { trainee, group, program };
+}
+
 export function listTrainees(department) {
   const filter = { status: { $ne: "removed" } };
   if (department) filter.department = department;

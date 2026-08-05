@@ -2,6 +2,11 @@ import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as trainingService from "../services/training.service.js";
 
+export const getMyTraining = catchAsync(async (req, res) => {
+  const result = await trainingService.getMyTraining(req.user.id);
+  sendSuccess(res, { message: "Vòng training của bạn", data: result });
+});
+
 export const listTrainees = catchAsync(async (req, res) => {
   const trainees = await trainingService.listTrainees(req.query.department);
   sendSuccess(res, { message: "Danh sách trainee", data: { trainees } });

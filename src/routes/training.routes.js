@@ -82,6 +82,9 @@ const bcnLeaderOrMentor = (req, _res, next) => {
   return next(ApiError.forbidden("Chỉ BCN/Leader/Mentor mới truy cập được"));
 };
 
+// Trainee tự xem vòng training của mình — không giới hạn role, service xác minh
+router.get("/me", controller.getMyTraining);
+
 router.get("/trainees", bcnOrLeader, controller.listTrainees);
 router.get("/mentors", bcnOrLeader, controller.listMentors);
 router.get("/mentor-candidates", bcnOrLeader, controller.listMentorCandidates);
