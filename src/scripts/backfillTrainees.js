@@ -1,5 +1,7 @@
 import { connectDatabase, disconnectDatabase } from "../config/database.js";
 import Application from "../models/application.model.js";
+import Trainee from "../models/trainee.model.js";
+import TrainingGroup from "../models/trainingGroup.model.js";
 import { createTraineeFromApplication } from "../services/training.service.js";
 
 // Backfill trainee cho hồ sơ đã passed_interview nhưng chưa có bản ghi trainee
@@ -14,6 +16,20 @@ async function main() {
       `[backfill] ${app.fullName}: ${trainee ? "trainee ok" : "bỏ qua (chưa có userId)"}`,
     );
   }
+  // Team cũ chưa gắn đợt tuyển → suy từ campaignId của thành viên trong team
+  const groups = await TrainingGroup.find({ campaignId: null });
+  for (const group of groups) {
+    const member = await Trainee.findOne({
+      groupId: group._id,
+      campaignId: { $ne: null },
+    });
+    if (member) {
+      group.campaignId = member.campaignId;
+      await group.save();
+      console.log(`[backfill] ${group.name}: gắn đợt tuyển ${member.campaignId}`);
+    }
+  }
+
   await disconnectDatabase();
 }
 

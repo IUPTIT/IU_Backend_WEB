@@ -102,7 +102,10 @@ router.post(
   bcnOnly,
   celebrate({
     // programId là fallback — mentor có lộ trình riêng sẽ dùng lộ trình của mình
-    [Segments.BODY]: Joi.object({ programId: objectId.allow(null, "") }),
+    [Segments.BODY]: Joi.object({
+      programId: objectId.allow(null, ""),
+      campaignId: objectId.allow(null, ""),
+    }),
   }),
   controller.autoAssignGroups,
 );

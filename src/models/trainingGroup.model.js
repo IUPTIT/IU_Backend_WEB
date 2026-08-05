@@ -10,6 +10,12 @@ const trainingGroupSchema = new mongoose.Schema(
       ref: "TrainingProgram",
       default: null,
     },
+    // Đợt tuyển nguồn — chia đội theo đợt, lọc danh sách team theo đợt
+    campaignId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RecruitmentCampaign",
+      default: null,
+    },
     department: { type: String, required: true, trim: true },
     specialtyLabel: { type: String, default: "" },
     mentorId: {

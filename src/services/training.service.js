@@ -63,9 +63,10 @@ export async function getMyTraining(userId) {
   return { trainee, group, program };
 }
 
-export function listTrainees(department) {
+export function listTrainees(department, campaignId) {
   const filter = { status: { $ne: "removed" } };
   if (department) filter.department = department;
+  if (campaignId) filter.campaignId = campaignId;
   return Trainee.find(filter)
     .sort({ createdAt: -1 })
     .populate({
@@ -111,7 +112,7 @@ export async function setMentor(userId, isMentor) {
 // Chia team TỰ ĐỘNG: random trộn tân binh chưa có team rồi chia đều cho các mentor.
 // Mỗi team dùng LỘ TRÌNH RIÊNG của mentor đó (mentor tự tạo cách train của mình);
 // mentor chưa có lộ trình thì dùng lộ trình fallback được chọn.
-export async function autoAssignGroups(fallbackProgramId, createdBy) {
+export async function autoAssignGroups(fallbackProgramId, createdBy, campaignId) {
   const fallbackProgram = fallbackProgramId
     ? await getProgram(fallbackProgramId)
     : null;
@@ -121,10 +122,10 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
       "Chưa có mentor nào — đẩy quyền mentor cho member trước",
     );
   }
-  const trainees = await Trainee.find({
-    groupId: null,
-    status: { $ne: "removed" },
-  });
+  // Chia đội theo ĐỢT TUYỂN: chỉ trộn tân binh của đợt được chọn
+  const traineeFilter = { groupId: null, status: { $ne: "removed" } };
+  if (campaignId) traineeFilter.campaignId = campaignId;
+  const trainees = await Trainee.find(traineeFilter);
   if (!trainees.length) {
     throw ApiError.badRequest("Không có tân binh nào chưa được chia team");
   }
@@ -161,9 +162,14 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
       [...deptCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
       "Tổng hợp";
 
+    // Đợt tuyển của team = đợt của các thành viên (campaignId truyền vào ưu tiên)
+    const groupCampaignId =
+      campaignId ?? members.find((t) => t.campaignId)?.campaignId ?? null;
+
     const group = await TrainingGroup.create({
       name: `Team ${mentor.name}`,
       programId: program?._id ?? null,
+      campaignId: groupCampaignId,
       department,
       specialtyLabel: department,
       mentorId: mentor._id,
@@ -236,8 +242,10 @@ export async function deleteProgram(id, user) {
 
 // ---- Groups (chia team) ----
 
-export function listGroups() {
-  return TrainingGroup.find()
+export function listGroups(campaignId) {
+  const filter = {};
+  if (campaignId) filter.campaignId = campaignId;
+  return TrainingGroup.find(filter)
     .sort({ createdAt: -1 })
     .populate("mentorId", "name email role");
 }
@@ -279,16 +287,18 @@ export async function createGroup(data, createdBy) {
 
 // ---- Đánh giá tổng kết ----
 
-export async function getReviewSummary() {
+export async function getReviewSummary(campaignId) {
+  const base = campaignId ? { campaignId } : {};
   const [total, done, needs] = await Promise.all([
-    Trainee.countDocuments({ status: { $ne: "removed" } }),
+    Trainee.countDocuments({ ...base, status: { $ne: "removed" } }),
     Trainee.countDocuments({
+      ...base,
       $or: [
         { evalStatus: { $in: ["qualified", "certified"] } },
         { status: "completed" },
       ],
     }),
-    Trainee.countDocuments({ evalStatus: "failed" }),
+    Trainee.countDocuments({ ...base, evalStatus: "failed" }),
   ]);
   return {
     totalTrainees: total,

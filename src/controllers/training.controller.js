@@ -8,7 +8,10 @@ export const getMyTraining = catchAsync(async (req, res) => {
 });
 
 export const listTrainees = catchAsync(async (req, res) => {
-  const trainees = await trainingService.listTrainees(req.query.department);
+  const trainees = await trainingService.listTrainees(
+    req.query.department,
+    req.query.campaignId,
+  );
   sendSuccess(res, { message: "Danh sách trainee", data: { trainees } });
 });
 
@@ -40,6 +43,7 @@ export const autoAssignGroups = catchAsync(async (req, res) => {
   const result = await trainingService.autoAssignGroups(
     req.body.programId,
     req.user.id,
+    req.body.campaignId,
   );
   sendSuccess(res, {
     statusCode: 201,
@@ -72,8 +76,8 @@ export const deleteProgram = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Đã xóa lộ trình" });
 });
 
-export const listGroups = catchAsync(async (_req, res) => {
-  const groups = await trainingService.listGroups();
+export const listGroups = catchAsync(async (req, res) => {
+  const groups = await trainingService.listGroups(req.query.campaignId);
   sendSuccess(res, { message: "Danh sách team", data: { groups } });
 });
 
@@ -86,8 +90,8 @@ export const createGroup = catchAsync(async (req, res) => {
   });
 });
 
-export const getReviewSummary = catchAsync(async (_req, res) => {
-  const summary = await trainingService.getReviewSummary();
+export const getReviewSummary = catchAsync(async (req, res) => {
+  const summary = await trainingService.getReviewSummary(req.query.campaignId);
   sendSuccess(res, { message: "Tổng kết training", data: { summary } });
 });
 
