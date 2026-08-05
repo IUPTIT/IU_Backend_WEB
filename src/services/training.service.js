@@ -112,7 +112,11 @@ export async function setMentor(userId, isMentor) {
 // Chia team TỰ ĐỘNG: random trộn tân binh chưa có team rồi chia đều cho các mentor.
 // Mỗi team dùng LỘ TRÌNH RIÊNG của mentor đó (mentor tự tạo cách train của mình);
 // mentor chưa có lộ trình thì dùng lộ trình fallback được chọn.
-export async function autoAssignGroups(fallbackProgramId, createdBy, campaignId) {
+export async function autoAssignGroups(
+  fallbackProgramId,
+  createdBy,
+  campaignId,
+) {
   const fallbackProgram = fallbackProgramId
     ? await getProgram(fallbackProgramId)
     : null;

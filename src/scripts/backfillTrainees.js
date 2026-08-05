@@ -26,7 +26,9 @@ async function main() {
     if (member) {
       group.campaignId = member.campaignId;
       await group.save();
-      console.log(`[backfill] ${group.name}: gắn đợt tuyển ${member.campaignId}`);
+      console.log(
+        `[backfill] ${group.name}: gắn đợt tuyển ${member.campaignId}`,
+      );
     }
   }
 
