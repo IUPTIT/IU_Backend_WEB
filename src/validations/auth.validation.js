@@ -1,5 +1,4 @@
-import celebratePkg from "celebrate";
-const { celebrate, Joi, Segments } = celebratePkg;
+import { celebrate, Joi, Segments } from "celebrate";
 
 const email = Joi.string().email().lowercase().required();
 const password = Joi.string().min(8).max(128).required();

@@ -12,7 +12,7 @@ import {
   changePasswordValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
-} from "../validators/auth.validator.js";
+} from "../validations/auth.validation.js";
 
 const router = Router();
 
