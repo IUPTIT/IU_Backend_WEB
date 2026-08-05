@@ -124,12 +124,8 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
     }).sort({
       createdAt: -1,
     });
+    // Không có lộ trình nào cũng vẫn chia đội được — mentor gán lộ trình sau
     const program = mentorProgram ?? fallbackProgram;
-    if (!program) {
-      throw ApiError.badRequest(
-        `Mentor ${mentor.name} chưa có lộ trình riêng — chọn lộ trình fallback hoặc để mentor tạo lộ trình trước`,
-      );
-    }
 
     // Ban của team = ban phổ biến nhất trong nhóm
     const deptCount = new Map();
@@ -142,7 +138,7 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
 
     const group = await TrainingGroup.create({
       name: `Team ${mentor.name}`,
-      programId: program._id,
+      programId: program?._id ?? null,
       department,
       specialtyLabel: department,
       mentorId: mentor._id,
