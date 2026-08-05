@@ -16,12 +16,14 @@ async function main() {
     applicationId: { $ne: null },
   });
   for (const trainee of trainees) {
-    const application = await Application.findById(trainee.applicationId).select(
-      "status",
-    );
+    const application = await Application.findById(
+      trainee.applicationId,
+    ).select("status");
     if (application?.status === "passed_interview") {
       await transition(trainee.applicationId, "admitted");
-      console.log(`[promote] ${trainee.fullName}: admitted → job promote enqueued`);
+      console.log(
+        `[promote] ${trainee.fullName}: admitted → job promote enqueued`,
+      );
     } else {
       console.log(
         `[promote] ${trainee.fullName}: bỏ qua (hồ sơ ${application?.status ?? "?"})`,
