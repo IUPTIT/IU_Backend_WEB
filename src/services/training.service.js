@@ -190,6 +190,21 @@ export function createProgram(data, createdBy) {
   return TrainingProgram.create({ ...data, createdBy });
 }
 
+// Xóa lộ trình: mentor chỉ xóa lộ trình của mình, BCN/Leader xóa được tất cả.
+// Team đang dùng lộ trình này được gỡ về null (không chặn xóa) — mentor gán lại sau
+export async function deleteProgram(id, user) {
+  const program = await getProgram(id);
+  const isManager = ["bcn", "leader"].includes(user.role);
+  if (!isManager && String(program.createdBy) !== String(user.id)) {
+    throw ApiError.forbidden("Bạn chỉ xóa được lộ trình do mình tạo");
+  }
+  await TrainingGroup.updateMany(
+    { programId: program._id },
+    { $set: { programId: null } },
+  );
+  await program.deleteOne();
+}
+
 // ---- Groups (chia team) ----
 
 export function listGroups() {

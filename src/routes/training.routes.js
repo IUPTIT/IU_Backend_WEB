@@ -116,6 +116,13 @@ router.post(
   createProgramBody,
   controller.createProgram,
 );
+// Mentor xóa lộ trình của mình (BCN/Leader xóa được tất cả — check trong service)
+router.delete(
+  "/programs/:id",
+  bcnLeaderOrMentor,
+  idParam,
+  controller.deleteProgram,
+);
 
 router.get("/groups", bcnLeaderOrMentor, controller.listGroups);
 router.post("/groups", bcnOnly, createGroupBody, controller.createGroup);

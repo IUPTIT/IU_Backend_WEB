@@ -67,6 +67,11 @@ export const createProgram = catchAsync(async (req, res) => {
   });
 });
 
+export const deleteProgram = catchAsync(async (req, res) => {
+  await trainingService.deleteProgram(req.params.id, req.user);
+  sendSuccess(res, { message: "Đã xóa lộ trình" });
+});
+
 export const listGroups = catchAsync(async (_req, res) => {
   const groups = await trainingService.listGroups();
   sendSuccess(res, { message: "Danh sách team", data: { groups } });
