@@ -100,11 +100,19 @@ export const listMyTeamTrainees = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Tân binh team của bạn", data: { trainees } });
 });
 
+export const saveMentorReview = catchAsync(async (req, res) => {
+  const trainee = await trainingService.saveMentorReview(
+    req.params.id,
+    req.body,
+    req.user,
+  );
+  sendSuccess(res, { message: "Đã lưu đánh giá quá trình", data: { trainee } });
+});
+
 export const updateEvalStatus = catchAsync(async (req, res) => {
   const trainee = await trainingService.updateEvalStatus(
     req.params.id,
     req.body.evalStatus,
-    req.user,
   );
   sendSuccess(res, { message: "Đã cập nhật đánh giá", data: { trainee } });
 });

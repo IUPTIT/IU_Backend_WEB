@@ -322,12 +322,13 @@ export async function listMyTeamTrainees(userId) {
     .populate("groupId", "name");
 }
 
-export async function updateEvalStatus(traineeId, evalStatus, user) {
+// Mentor lưu đánh giá QUÁ TRÌNH (note + điểm) cho tân binh team mình —
+// không đụng evalStatus (Đạt/Trượt là quyết định của BCN)
+export async function saveMentorReview(traineeId, { score, note }, user) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
-  // Mentor chỉ đánh giá tân binh trong team mình dẫn; BCN/Leader không giới hạn
-  if (user && !["bcn", "leader"].includes(user.role)) {
+  if (!["bcn", "leader"].includes(user.role)) {
     const group = trainee.groupId
       ? await TrainingGroup.findById(trainee.groupId).select("mentorId")
       : null;
@@ -335,6 +336,17 @@ export async function updateEvalStatus(traineeId, evalStatus, user) {
       throw ApiError.forbidden("Tân binh này không thuộc team của bạn");
     }
   }
+
+  if (score !== undefined) trainee.mentorScore = score;
+  if (note !== undefined) trainee.mentorNote = note;
+  await trainee.save();
+  return trainee;
+}
+
+// Chốt Đạt/Trượt cuối vòng — CHỈ BCN/Leader (route đã giới hạn)
+export async function updateEvalStatus(traineeId, evalStatus) {
+  const trainee = await Trainee.findById(traineeId);
+  if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
   trainee.evalStatus = evalStatus;
   if (evalStatus === "certified") trainee.status = "completed";

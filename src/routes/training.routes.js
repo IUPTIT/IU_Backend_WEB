@@ -218,10 +218,23 @@ router.patch(
 router.get("/my-team", bcnLeaderOrMentor, controller.listMyTeamTrainees);
 
 router.get("/review-summary", bcnOrLeader, controller.getReviewSummary);
-// Mentor đánh giá tân binh trong team mình
+// Mentor lưu note quá trình + điểm cho tân binh team mình (không chốt Đạt/Trượt)
+router.patch(
+  "/trainees/:id/mentor-review",
+  bcnLeaderOrMentor,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      score: Joi.number().min(0).max(10).allow(null),
+      note: Joi.string().allow(""),
+    }).min(1),
+  }),
+  controller.saveMentorReview,
+);
+// Chốt Đạt/Trượt cuối vòng training — CHỈ BCN/Leader
 router.patch(
   "/trainees/:id/eval",
-  bcnLeaderOrMentor,
+  bcnOrLeader,
   idParam,
   evalStatusBody,
   controller.updateEvalStatus,
