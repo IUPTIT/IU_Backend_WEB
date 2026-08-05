@@ -30,8 +30,12 @@ export function definePromoteToMemberJob() {
         user.role = "member";
         user.isActive = true;
         user.status = "active";
-        await user.save();
       }
+      // Ch.2.4: Member mới = Đang training (giữ official nếu đã chứng nhận trước đó)
+      if (user.memberStatus !== "official") {
+        user.memberStatus = "training";
+      }
+      await user.save();
 
       // Luôn upsert trainee — kể cả khi user đã là member (tránh miss bàn giao training)
       await trainingService.createTraineeFromApplication(application);

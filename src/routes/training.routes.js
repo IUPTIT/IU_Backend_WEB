@@ -16,6 +16,7 @@ const createProgramBody = celebrate({
   [Segments.BODY]: Joi.object({
     name: Joi.string().trim().max(200).required(),
     department: Joi.string().trim().required(),
+    passThresholdPercent: Joi.number().integer().min(0).max(100).default(80),
     stages: Joi.array()
       .items(
         Joi.object({
@@ -297,7 +298,7 @@ router.post(
   celebrate({
     [Segments.BODY]: Joi.object({
       action: Joi.string()
-        .valid("final_reminder", "remove_from_club")
+        .valid("final_reminder", "extend_once", "remove_from_club")
         .required(),
       reason: Joi.string().trim().max(1000).required(),
     }),

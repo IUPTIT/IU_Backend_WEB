@@ -36,6 +36,11 @@ export async function createTraineeFromApplication(application) {
     },
     { upsert: true },
   );
+  // Đồng bộ member_status = Đang training (Ch.2.4)
+  await User.updateOne(
+    { _id: application.userId, role: "member" },
+    { $set: { memberStatus: "training" } },
+  );
   return Trainee.findOne({ userId: application.userId });
 }
 
@@ -226,7 +231,7 @@ export async function updateProgram(id, data, user) {
   if (!isManager && String(program.createdBy) !== String(user.id)) {
     throw ApiError.forbidden("Bạn chỉ sửa được lộ trình do mình tạo");
   }
-  const fields = ["name", "department", "stages", "lessons"];
+  const fields = ["name", "department", "stages", "lessons", "passThresholdPercent"];
   for (const key of fields) {
     if (data[key] !== undefined) program[key] = data[key];
   }
@@ -462,8 +467,8 @@ export async function getMyProgress(userId) {
 }
 
 /**
- * UC 42: nhắc lần cuối hoặc loại khỏi CLB khi không hoàn thành training
- * action: final_reminder | remove_from_club
+ * UC 42: nhắc lần cuối / gia hạn 1 lần / loại khỏi CLB
+ * action: final_reminder | extend_once | remove_from_club
  */
 export async function handleIncompleteTrainee(
   traineeId,
@@ -494,6 +499,51 @@ export async function handleIncompleteTrainee(
       });
     }
     return { action, trainee };
+  }
+
+  if (action === "extend_once") {
+    if (trainee.extendedOnce) {
+      throw ApiError.badRequest(
+        "Tân binh này đã được gia hạn 1 lần — không gia hạn thêm",
+      );
+    }
+    const TrainingTask = (await import("../models/trainingTask.model.js"))
+      .default;
+    const EXTEND_DAYS = 7;
+    const tasks = await TrainingTask.find({
+      "assignments.traineeId": trainee._id,
+    });
+    const base = Date.now();
+    for (const task of tasks) {
+      if (!task.deadline) continue;
+      const current = new Date(task.deadline).getTime();
+      task.deadline = new Date(Math.max(current, base) + EXTEND_DAYS * 86400000);
+      task.deadlineReminderSentAt = null;
+      await task.save();
+    }
+    trainee.extendedOnce = true;
+    trainee.extendedAt = new Date();
+    if (trainee.evalStatus === "failed") trainee.evalStatus = "studying";
+    await trainee.save();
+
+    if (trainee.userId) {
+      await notificationService.createNotification({
+        userId: trainee.userId,
+        title: "Đã gia hạn deadline training",
+        body: `${reason.trim()} (thêm ${EXTEND_DAYS} ngày — chỉ 1 lần)`,
+        type: "general",
+        link: "/member/training/progress",
+      });
+      try {
+        await emailService.sendTrainingIncompleteReminderEmail(
+          trainee,
+          `Đã gia hạn thêm ${EXTEND_DAYS} ngày. ${reason.trim()}`,
+        );
+      } catch (err) {
+        console.warn("[training] extend email failed:", err.message);
+      }
+    }
+    return { action, trainee, extendedDays: EXTEND_DAYS };
   }
 
   if (action === "remove_from_club") {
@@ -700,26 +750,114 @@ export async function saveMentorReview(
   return trainee;
 }
 
-// Chốt Đạt/Trượt vòng đào tạo thành viên mới — CHỈ BCN/Leader.
+// Chốt Đạt/Trượt vòng đào tạo thành viên mới — chỉ BCN.
 // Trúng tuyển (admitted) đã xảy ra trước khi vào training; không admit lại từ đây.
 export async function updateEvalStatus(traineeId, evalStatus) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
+  if (evalStatus === "qualified") {
+    const { percent, threshold } =
+      await getTraineePassProgress(trainee);
+    if (percent < threshold) {
+      throw ApiError.badRequest(
+        `Chưa đạt ngưỡng hoàn thành ${threshold}% task (hiện ${percent}%)`,
+      );
+    }
+  }
+
   trainee.evalStatus = evalStatus;
-  if (evalStatus === "certified") trainee.status = "completed";
+  if (evalStatus === "certified") {
+    trainee.status = "completed";
+    if (!trainee.certificateCode) {
+      trainee.certificateCode = buildCertificateCode(trainee._id);
+      trainee.certificateIssuedAt = new Date();
+    }
+    if (trainee.userId) {
+      await User.updateOne(
+        { _id: trainee.userId },
+        { $set: { memberStatus: "official" } },
+      );
+    }
+  }
   await trainee.save();
   return trainee;
 }
 
+function buildCertificateCode(traineeId) {
+  const year = new Date().getFullYear();
+  const suffix = String(traineeId).slice(-6).toUpperCase();
+  return `IU-CERT-${year}-${suffix}`;
+}
+
+/** % task approved + ngưỡng từ lộ trình nhóm (mặc định 80) */
+async function getTraineePassProgress(trainee) {
+  const TrainingTask = (await import("../models/trainingTask.model.js"))
+    .default;
+  const tasks = await TrainingTask.find({
+    "assignments.traineeId": trainee._id,
+  });
+  const total = tasks.length;
+  const approved = tasks.filter((task) => {
+    const mine = task.assignments.find(
+      (a) => String(a.traineeId) === String(trainee._id),
+    );
+    return mine?.status === "approved";
+  }).length;
+  const percent = total ? Math.round((approved / total) * 100) : 0;
+
+  let threshold = 80;
+  if (trainee.groupId) {
+    const group = await TrainingGroup.findById(trainee.groupId).select(
+      "programId",
+    );
+    if (group?.programId) {
+      const program = await TrainingProgram.findById(group.programId).select(
+        "passThresholdPercent",
+      );
+      if (program?.passThresholdPercent != null) {
+        threshold = program.passThresholdPercent;
+      }
+    }
+  }
+  return { percent, threshold, approved, total };
+}
+
 // Cấp chứng nhận hàng loạt — chỉ trainee đã "qualified"
 export async function issueCertificates(traineeIds) {
-  const result = await Trainee.updateMany(
-    {
-      _id: { $in: traineeIds },
-      evalStatus: { $in: ["qualified", "certified"] },
-    },
-    { $set: { evalStatus: "certified", status: "completed" } },
-  );
-  return { issued: result.modifiedCount };
+  const trainees = await Trainee.find({
+    _id: { $in: traineeIds },
+    evalStatus: { $in: ["qualified", "certified"] },
+  });
+  let issued = 0;
+  const notificationService = await import("./notification.service.js");
+  for (const trainee of trainees) {
+    const code =
+      trainee.certificateCode || buildCertificateCode(trainee._id);
+    trainee.evalStatus = "certified";
+    trainee.status = "completed";
+    trainee.certificateCode = code;
+    trainee.certificateIssuedAt = trainee.certificateIssuedAt || new Date();
+    await trainee.save();
+
+    if (trainee.userId) {
+      await User.updateOne(
+        { _id: trainee.userId },
+        { $set: { memberStatus: "official" } },
+      );
+      try {
+        await notificationService.createNotification({
+          userId: trainee.userId,
+          title: "Đã cấp chứng nhận training",
+          body: `Mã chứng nhận: ${code}. Bạn đã là thành viên chính thức.`,
+          type: "general",
+          link: "/member/training/progress",
+        });
+      } catch (err) {
+        console.warn("[training] cert notify failed:", err.message);
+      }
+    }
+    issued += 1;
+  }
+  return { issued };
 }
