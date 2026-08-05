@@ -4,6 +4,11 @@ import InterviewSlot from "../models/interviewSlot.model.js";
 import InterviewBooking from "../models/interviewBooking.model.js";
 import * as slotHoldService from "./slotHold.service.js";
 import * as emailService from "./email.service.js";
+import * as notificationService from "./notification.service.js";
+import {
+  assertSlotHasInterviewers,
+  notifyInterviewersNewBooking,
+} from "./interview.service.js";
 
 async function getOwnApplication(sourceApplicationId) {
   if (!sourceApplicationId) {
@@ -17,6 +22,13 @@ async function getOwnApplication(sourceApplicationId) {
   return application;
 }
 
+async function assertBookableSlot(slotId) {
+  const slot = await InterviewSlot.findById(slotId);
+  if (!slot) throw ApiError.notFound("Ca phỏng vấn không tồn tại");
+  assertSlotHasInterviewers(slot);
+  return slot;
+}
+
 // Hồ sơ + lịch phỏng vấn hiện tại của ứng viên
 export async function getMe(sourceApplicationId) {
   const application = await getOwnApplication(sourceApplicationId);
@@ -26,7 +38,7 @@ export async function getMe(sourceApplicationId) {
   return { application, booking };
 }
 
-// Các ca còn chỗ của đợt tuyển mình ứng tuyển — ẩn danh sách người phỏng vấn
+// Các ca còn chỗ của đợt — chỉ ca đã có ≥1 người PV; ẩn danh sách interviewer
 export async function listAvailableSlots(sourceApplicationId) {
   const application = await getOwnApplication(sourceApplicationId);
   if (application.status !== "passed_cv") {
@@ -39,6 +51,7 @@ export async function listAvailableSlots(sourceApplicationId) {
     campaignId,
     $expr: { $lt: ["$bookedCount", "$capacity"] },
     date: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+    "interviewerIds.0": { $exists: true },
   })
     .sort({ date: 1, startTime: 1 })
     .select("-interviewerIds");
@@ -61,15 +74,34 @@ export async function holdSlot(sourceApplicationId, slotId) {
       "Bạn đã có lịch phỏng vấn — dùng chức năng đổi ca",
     );
   }
+  await assertBookableSlot(slotId);
   return slotHoldService.holdSlot(slotId, application._id);
 }
 
 // Xác nhận đặt lịch chính thức trong thời gian hold
 export async function confirmBooking(sourceApplicationId, slotId) {
   const application = await getOwnApplication(sourceApplicationId);
+  await assertBookableSlot(slotId);
   const booking = await slotHoldService.confirmBooking(slotId, application._id);
   const slot = await InterviewSlot.findById(slotId);
-  if (slot) await emailService.sendBookingConfirmedEmail(application, slot);
+  if (slot) {
+    try {
+      await emailService.sendBookingConfirmedEmail(application, slot);
+      if (application.userId) {
+        const dateLabel = new Date(slot.date).toLocaleDateString("vi-VN");
+        await notificationService.createNotification({
+          userId: application.userId,
+          title: "Đã xác nhận lịch phỏng vấn",
+          body: `${dateLabel} · ${slot.startTime}–${slot.endTime} · ${slot.location}`,
+          type: "booking_confirmed",
+          link: "/candidate/interview",
+        });
+      }
+      await notifyInterviewersNewBooking(slot, application);
+    } catch (err) {
+      console.warn("[candidate] confirmBooking notify failed:", err.message);
+    }
+  }
   return booking;
 }
 
@@ -84,8 +116,7 @@ export async function changeSlot(sourceApplicationId, newSlotId) {
     throw ApiError.badRequest("Ca mới trùng với ca hiện tại");
   }
 
-  const newSlot = await InterviewSlot.findById(newSlotId);
-  if (!newSlot) throw ApiError.notFound("Ca phỏng vấn mới không tồn tại");
+  const newSlot = await assertBookableSlot(newSlotId);
 
   const newSlotStart = new Date(newSlot.date);
   const [h, m] = newSlot.startTime.split(":").map(Number);
@@ -115,6 +146,21 @@ export async function changeSlot(sourceApplicationId, newSlotId) {
   booking.bookedAt = new Date();
   await booking.save();
 
-  await emailService.sendBookingConfirmedEmail(application, updated);
+  try {
+    await emailService.sendBookingConfirmedEmail(application, updated);
+    if (application.userId) {
+      const dateLabel = new Date(updated.date).toLocaleDateString("vi-VN");
+      await notificationService.createNotification({
+        userId: application.userId,
+        title: "Đã đổi lịch phỏng vấn",
+        body: `${dateLabel} · ${updated.startTime}–${updated.endTime} · ${updated.location}`,
+        type: "booking_confirmed",
+        link: "/candidate/interview",
+      });
+    }
+    await notifyInterviewersNewBooking(updated, application);
+  } catch (err) {
+    console.warn("[candidate] changeSlot notify failed:", err.message);
+  }
   return booking;
 }

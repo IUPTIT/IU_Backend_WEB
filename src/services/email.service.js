@@ -274,7 +274,16 @@ export function sendBookingConfirmedEmail(application, slot) {
 /** Thông báo Leader/BCN được phân công phụ trách một ca phỏng vấn */
 export function sendInterviewerAssignedEmail(user, slot) {
   const date = new Date(slot.date).toLocaleDateString("vi-VN");
-  const url = `${config.clientUrl}/leader/recruitment/interviews/slots/${slot._id ?? slot.id}`;
+  const slotId = slot._id ?? slot.id;
+  const path =
+    user.role === "bcn"
+      ? `/admin/recruitment/interviews/slots/${slotId}`
+      : `/leader/recruitment/interviews/slots/${slotId}`;
+  const url = `${config.clientUrl}${path}`;
+  const portalHint =
+    user.role === "bcn"
+      ? "Vào Admin › Tuyển dụng › Phỏng vấn để xem ứng viên và chấm điểm."
+      : "Vào Leader Portal › Tuyển dụng › Ca của tôi để xem danh sách ứng viên và chấm điểm.";
   return send({
     to: user.email,
     subject: `IU CLUB — Bạn được phân công phỏng vấn (${date} ${slot.startTime})`,
@@ -291,8 +300,8 @@ export function sendInterviewerAssignedEmail(user, slot) {
           value: `${slot.bookedCount ?? 0}/${slot.capacity ?? "—"} ứng viên`,
         },
       ],
-      cta: { label: "Xem ca của tôi", url },
-      note: "Vào Leader Portal › Tuyển dụng › Ca của tôi để xem danh sách ứng viên và chấm điểm.",
+      cta: { label: "Xem ca phỏng vấn", url },
+      note: portalHint,
     }),
   });
 }

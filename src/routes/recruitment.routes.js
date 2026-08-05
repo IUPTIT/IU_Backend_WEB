@@ -163,10 +163,10 @@ router.post(
   controller.bulkGenerateSlots,
 );
 router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
-// bcnOrLeader: leader được tự nhận / bổ sung mình vào ca phỏng vấn
+// Chỉ BCN tạo/sửa/xoá ca & phân công panel (Leader chỉ xem ca của mình + chấm)
 router.patch(
   "/slots/:id",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   updateSlotBody,
   controller.updateSlot,

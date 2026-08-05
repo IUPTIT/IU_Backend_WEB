@@ -1,5 +1,6 @@
 import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
+import ApiError from "../utils/ApiError.js";
 import * as campaignService from "../services/campaign.service.js";
 import * as applicationService from "../services/application.service.js";
 import * as screeningService from "../services/screening.service.js";
@@ -82,6 +83,12 @@ export const listApplications = catchAsync(async (req, res) => {
 // ---- Phần 2: chấm điểm & quyết định vòng đơn ----
 
 export const scoreApplication = catchAsync(async (req, res) => {
+  // Vòng PV chỉ chấm qua booking (siết panel); endpoint này giữ cho vòng đơn
+  if (req.body.round === "interview") {
+    throw ApiError.badRequest(
+      "Chấm điểm phỏng vấn phải qua ca/booking đã phân công (POST /bookings/:id/score)",
+    );
+  }
   const result = await screeningService.scoreApplication({
     applicationId: req.params.id,
     round: req.body.round,
@@ -211,12 +218,18 @@ export const deleteSlot = catchAsync(async (req, res) => {
 });
 
 export const getSlotDetail = catchAsync(async (req, res) => {
-  const result = await interviewService.getSlotDetail(req.params.id);
+  const result = await interviewService.getSlotDetail(req.params.id, {
+    id: req.user.id,
+    role: req.user.role,
+  });
   sendSuccess(res, { message: "Chi tiết ca phỏng vấn", data: result });
 });
 
 export const getBookingDetail = catchAsync(async (req, res) => {
-  const result = await interviewService.getBookingDetail(req.params.id);
+  const result = await interviewService.getBookingDetail(req.params.id, {
+    id: req.user.id,
+    role: req.user.role,
+  });
   sendSuccess(res, { message: "Chi tiết lịch phỏng vấn", data: result });
 });
 
