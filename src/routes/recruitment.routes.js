@@ -148,6 +148,7 @@ router.post(
 
 // ---- Phần 3: ca phỏng vấn ----
 router.get("/interviewers", bcnOrLeader, controller.listInterviewers);
+router.get("/slots/mine", bcnOrLeader, controller.listMyInterviewSlots);
 router.post(
   "/slots",
   bcnOnly,

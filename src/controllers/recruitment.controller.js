@@ -192,6 +192,14 @@ export const listSlots = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Danh sách ca phỏng vấn", data: result });
 });
 
+export const listMyInterviewSlots = catchAsync(async (req, res) => {
+  const result = await interviewService.listMyInterviewSlots(req.user.id);
+  sendSuccess(res, {
+    message: "Ca phỏng vấn bạn phụ trách",
+    data: result,
+  });
+});
+
 export const updateSlot = catchAsync(async (req, res) => {
   const slot = await interviewService.updateSlot(req.params.id, req.body);
   sendSuccess(res, { message: "Đã cập nhật ca phỏng vấn", data: { slot } });

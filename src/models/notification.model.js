@@ -18,6 +18,7 @@ const notificationSchema = new mongoose.Schema(
         "cv_result",
         "final_result",
         "booking_confirmed",
+        "interview_assignment",
         "general",
       ],
       default: "general",

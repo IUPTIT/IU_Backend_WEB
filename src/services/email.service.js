@@ -271,6 +271,32 @@ export function sendBookingConfirmedEmail(application, slot) {
   });
 }
 
+/** Thông báo Leader/BCN được phân công phụ trách một ca phỏng vấn */
+export function sendInterviewerAssignedEmail(user, slot) {
+  const date = new Date(slot.date).toLocaleDateString("vi-VN");
+  const url = `${config.clientUrl}/leader/recruitment/interviews/slots/${slot._id ?? slot.id}`;
+  return send({
+    to: user.email,
+    subject: `IU CLUB — Bạn được phân công phỏng vấn (${date} ${slot.startTime})`,
+    text: `Ban duoc phan cong phong van luc ${slot.startTime}-${slot.endTime} ngay ${date} tai ${slot.location}. Xem: ${url}`,
+    html: renderEmail({
+      title: "Bạn được phân công phỏng vấn",
+      intro: `Chào <b style="color:${COLORS.text}">${user.name}</b>! Ban Chủ nhiệm vừa phân bạn phụ trách ca phỏng vấn sau:`,
+      rows: [
+        { label: "Ngày", value: date },
+        { label: "Giờ", value: `${slot.startTime} - ${slot.endTime}` },
+        { label: "Địa điểm", value: slot.location },
+        {
+          label: "Sức chứa",
+          value: `${slot.bookedCount ?? 0}/${slot.capacity ?? "—"} ứng viên`,
+        },
+      ],
+      cta: { label: "Xem ca của tôi", url },
+      note: "Vào Leader Portal › Tuyển dụng › Ca của tôi để xem danh sách ứng viên và chấm điểm.",
+    }),
+  });
+}
+
 // Nhắc lịch phỏng vấn sắp diễn ra (job quét, trước 24h và 2h)
 export function sendInterviewReminderEmail(application, slot, timeLeftLabel) {
   const date = new Date(slot.date).toLocaleDateString("vi-VN");

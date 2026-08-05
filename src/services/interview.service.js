@@ -6,12 +6,46 @@ import ApplicationScore from "../models/applicationScore.model.js";
 import User from "../models/user.model.js";
 import * as campaignService from "./campaign.service.js";
 import * as screeningService from "./screening.service.js";
+import * as notificationService from "./notification.service.js";
+import * as emailService from "./email.service.js";
 
 // ---- BCN: quản lý ca phỏng vấn ----
 
+/** Thông báo in-app + email cho interviewer vừa được thêm vào ca */
+async function notifyInterviewersAssigned(slot, addedUserIds) {
+  if (!addedUserIds?.length) return;
+  const users = await User.find({
+    _id: { $in: addedUserIds },
+    isActive: { $ne: false },
+  }).select("name email role");
+  const dateLabel = new Date(slot.date).toLocaleDateString("vi-VN");
+  const link = `/leader/recruitment/interviews/slots/${slot._id}`;
+  for (const u of users) {
+    try {
+      await notificationService.createNotification({
+        userId: u._id,
+        title: "Bạn được phân công phỏng vấn",
+        body: `Ca ${slot.startTime}–${slot.endTime} ngày ${dateLabel} · ${slot.location}`,
+        type: "interview_assignment",
+        link: u.role === "bcn" ? `/admin/recruitment/interviews/slots/${slot._id}` : link,
+      });
+      if (u.email) {
+        await emailService.sendInterviewerAssignedEmail(u, slot);
+      }
+    } catch (err) {
+      console.warn("[interview] notify interviewer failed:", err.message);
+    }
+  }
+}
+
 export async function createSlot(data) {
   await campaignService.getCampaign(data.campaignId);
-  return InterviewSlot.create(data);
+  const slot = await InterviewSlot.create(data);
+  const ids = (data.interviewerIds ?? []).map(String).filter(Boolean);
+  if (ids.length) {
+    await notifyInterviewersAssigned(slot, ids);
+  }
+  return slot.populate("interviewerIds", "name email");
 }
 
 export async function bulkGenerateSlots(data) {
@@ -22,7 +56,14 @@ export async function bulkGenerateSlots(data) {
       "Khung giờ không sinh được ca nào — kiểm tra lại startHour/endHour/durationMinutes",
     );
   }
-  return InterviewSlot.insertMany(slots);
+  const created = await InterviewSlot.insertMany(slots);
+  const ids = (data.interviewerIds ?? []).map(String).filter(Boolean);
+  if (ids.length) {
+    for (const slot of created) {
+      await notifyInterviewersAssigned(slot, ids);
+    }
+  }
+  return created;
 }
 
 // Danh sách slot của đợt + booking kèm hồ sơ ứng viên (cho bảng lịch PV của BCN)
@@ -30,6 +71,21 @@ export async function listSlots(campaignId) {
   const slots = await InterviewSlot.find({ campaignId })
     .sort({ date: 1, startTime: 1 })
     .populate("interviewerIds", "name email");
+  const bookings = await InterviewBooking.find({
+    slotId: { $in: slots.map((s) => s._id) },
+  }).populate(
+    "applicationId",
+    "fullName email departmentPreferences status applicationCode",
+  );
+  return { slots, bookings };
+}
+
+/** Ca mà user đang phụ trách (Leader / BCN panel) */
+export async function listMyInterviewSlots(userId) {
+  const slots = await InterviewSlot.find({ interviewerIds: userId })
+    .sort({ date: 1, startTime: 1 })
+    .populate("interviewerIds", "name email")
+    .populate("campaignId", "name");
   const bookings = await InterviewBooking.find({
     slotId: { $in: slots.map((s) => s._id) },
   }).populate(
@@ -52,6 +108,10 @@ function minutesToTime(total) {
 export async function updateSlot(slotId, data) {
   const slot = await InterviewSlot.findById(slotId);
   if (!slot) throw ApiError.notFound("Không tìm thấy ca phỏng vấn");
+
+  const prevInterviewers = new Set(
+    (slot.interviewerIds ?? []).map((id) => String(id)),
+  );
 
   // Đổi startTime mà không gửi endTime → dời endTime giữ nguyên thời lượng ca
   if (data.startTime !== undefined && data.endTime === undefined) {
@@ -78,7 +138,17 @@ export async function updateSlot(slotId, data) {
     throw ApiError.badRequest("Sức chứa mới nhỏ hơn số ứng viên đã đặt");
   }
   await slot.save();
-  return slot;
+
+  if (data.interviewerIds !== undefined) {
+    const added = (slot.interviewerIds ?? [])
+      .map((id) => String(id))
+      .filter((id) => !prevInterviewers.has(id));
+    if (added.length) {
+      await notifyInterviewersAssigned(slot, added);
+    }
+  }
+
+  return slot.populate("interviewerIds", "name email");
 }
 
 // Xoá ca — chỉ khi chưa có ứng viên đặt lịch (bảo vệ booking của ứng viên)
@@ -116,6 +186,7 @@ export async function assignSlot(applicationId, slotId) {
   if (!target)
     throw ApiError.badRequest("Ca phỏng vấn không tồn tại hoặc đã hết chỗ");
 
+  let booking;
   if (existing) {
     await InterviewSlot.updateOne(
       { _id: existing.slotId, bookedCount: { $gt: 0 } },
@@ -125,10 +196,32 @@ export async function assignSlot(applicationId, slotId) {
     existing.status = "changed";
     existing.bookedAt = new Date();
     await existing.save();
-    return existing;
+    booking = existing;
+  } else {
+    booking = await InterviewBooking.create({
+      applicationId,
+      slotId,
+      status: "booked",
+    });
   }
 
-  return InterviewBooking.create({ applicationId, slotId, status: "booked" });
+  try {
+    await emailService.sendBookingConfirmedEmail(application, target);
+    if (application.userId) {
+      const dateLabel = new Date(target.date).toLocaleDateString("vi-VN");
+      await notificationService.createNotification({
+        userId: application.userId,
+        title: "Đã gán lịch phỏng vấn",
+        body: `${dateLabel} · ${target.startTime}–${target.endTime} · ${target.location}`,
+        type: "booking_confirmed",
+        link: "/candidate/interview",
+      });
+    }
+  } catch (err) {
+    console.warn("[interview] assignSlot notify failed:", err.message);
+  }
+
+  return booking;
 }
 
 // Chấm điểm + điểm danh phỏng vấn theo booking (nghiệp vụ 3.1)
