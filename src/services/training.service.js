@@ -572,17 +572,65 @@ export async function postGroupMessage(groupId, content, user) {
   const TrainingMessage = (
     await import("../models/trainingMessage.model.js")
   ).default;
-  await assertGroupChatAccess(groupId, user);
+  const group = await assertGroupChatAccess(groupId, user);
   const text = String(content || "").trim();
   if (!text) throw ApiError.badRequest("Nội dung tin nhắn không được trống");
   if (text.length > 4000) {
     throw ApiError.badRequest("Tin nhắn tối đa 4000 ký tự");
   }
+  const senderId = user._id ?? user.id;
   const msg = await TrainingMessage.create({
     groupId,
-    senderId: user.id,
+    senderId,
     content: text,
   });
+
+  // In-app notify các thành viên khác trong nhóm (không gửi cho người gửi)
+  try {
+    const notificationService = await import("./notification.service.js");
+    const User = (await import("../models/user.model.js")).default;
+    const mentorUid = group.mentorId
+      ? String(group.mentorId._id ?? group.mentorId)
+      : null;
+    const recipientIds = new Set();
+    if (mentorUid) recipientIds.add(mentorUid);
+    const trainees = await Trainee.find({
+      _id: { $in: group.memberIds },
+      status: { $ne: "removed" },
+    }).select("userId");
+    for (const t of trainees) {
+      if (t.userId) recipientIds.add(String(t.userId));
+    }
+    recipientIds.delete(String(senderId));
+
+    const users = await User.find({
+      _id: { $in: [...recipientIds] },
+    }).select("role isMentor");
+    const byId = new Map(users.map((u) => [String(u._id), u]));
+
+    const preview = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+    const senderName = user.name || "Thành viên";
+    for (const uid of recipientIds) {
+      const u = byId.get(uid);
+      let link = "/member/training/progress";
+      if (mentorUid && uid === mentorUid) {
+        if (u?.role === "leader") link = "/leader/training/groups";
+        else link = "/member/mentor/tasks";
+      } else if (u?.role === "leader") {
+        link = "/leader/training/groups";
+      }
+      await notificationService.createNotification({
+        userId: uid,
+        title: `Tin nhắn mới — ${group.name}`,
+        body: `${senderName}: ${preview}`,
+        type: "training_chat",
+        link,
+      });
+    }
+  } catch (err) {
+    console.warn("[training] chat notify failed:", err.message);
+  }
+
   return msg.populate("senderId", "name role");
 }
 
