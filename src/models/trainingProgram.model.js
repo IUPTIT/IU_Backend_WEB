@@ -42,5 +42,8 @@ const trainingProgramSchema = new mongoose.Schema(
 
 trainingProgramSchema.index({ department: 1 });
 
-const TrainingProgram = mongoose.model("TrainingProgram", trainingProgramSchema);
+const TrainingProgram = mongoose.model(
+  "TrainingProgram",
+  trainingProgramSchema,
+);
 export default TrainingProgram;

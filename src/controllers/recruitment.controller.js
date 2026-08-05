@@ -97,15 +97,25 @@ export const getScoreSummary = catchAsync(async (req, res) => {
 });
 
 export const decideApplication = catchAsync(async (req, res) => {
-  const application = await screeningService.decideCv(req.params.id, req.body.status);
-  sendSuccess(res, { message: "Đã cập nhật kết quả vòng đơn", data: { application } });
+  const application = await screeningService.decideCv(
+    req.params.id,
+    req.body.status,
+  );
+  sendSuccess(res, {
+    message: "Đã cập nhật kết quả vòng đơn",
+    data: { application },
+  });
 });
 
 // ---- Phần 3: ca phỏng vấn (BCN) ----
 
 export const createSlot = catchAsync(async (req, res) => {
   const slot = await interviewService.createSlot(req.body);
-  sendSuccess(res, { statusCode: 201, message: "Đã tạo ca phỏng vấn", data: { slot } });
+  sendSuccess(res, {
+    statusCode: 201,
+    message: "Đã tạo ca phỏng vấn",
+    data: { slot },
+  });
 });
 
 export const bulkGenerateSlots = catchAsync(async (req, res) => {
@@ -147,21 +157,35 @@ export const getBookingDetail = catchAsync(async (req, res) => {
 
 export const listInterviewResults = catchAsync(async (req, res) => {
   const results = await interviewService.listInterviewResults(req.params.id);
-  sendSuccess(res, { message: "Kết quả phỏng vấn toàn đợt", data: { results } });
+  sendSuccess(res, {
+    message: "Kết quả phỏng vấn toàn đợt",
+    data: { results },
+  });
 });
 
 export const assignSlot = catchAsync(async (req, res) => {
-  const booking = await interviewService.assignSlot(req.params.id, req.body.slotId);
+  const booking = await interviewService.assignSlot(
+    req.params.id,
+    req.body.slotId,
+  );
   sendSuccess(res, { message: "Đã gán lịch phỏng vấn", data: { booking } });
 });
 
 export const scoreBooking = catchAsync(async (req, res) => {
-  const result = await interviewService.scoreBooking(req.params.id, req.user.id, {
-    criteriaScores: req.body.criteriaScores,
-    comment: req.body.comment,
-    attendance: req.body.attendance,
+  const result = await interviewService.scoreBooking(
+    req.params.id,
+    req.user.id,
+    {
+      criteriaScores: req.body.criteriaScores,
+      comment: req.body.comment,
+      attendance: req.body.attendance,
+    },
+  );
+  sendSuccess(res, {
+    statusCode: 201,
+    message: "Đã lưu điểm phỏng vấn",
+    data: result,
   });
-  sendSuccess(res, { statusCode: 201, message: "Đã lưu điểm phỏng vấn", data: result });
 });
 
 export const decideInterview = catchAsync(async (req, res) => {
@@ -169,24 +193,41 @@ export const decideInterview = catchAsync(async (req, res) => {
     req.params.id,
     req.body.status,
   );
-  sendSuccess(res, { message: "Đã cập nhật kết quả phỏng vấn", data: { application } });
+  sendSuccess(res, {
+    message: "Đã cập nhật kết quả phỏng vấn",
+    data: { application },
+  });
 });
 
 export const listInterviewers = catchAsync(async (_req, res) => {
   const interviewers = await interviewService.listInterviewers();
-  sendSuccess(res, { message: "Danh sách người phỏng vấn", data: { interviewers } });
+  sendSuccess(res, {
+    message: "Danh sách người phỏng vấn",
+    data: { interviewers },
+  });
 });
 
 // ---- Phần 4: kết quả cuối & bàn giao ----
 
 export const confirmFinal = catchAsync(async (req, res) => {
-  const application = await screeningService.confirmFinal(req.params.id, req.body.status);
-  sendSuccess(res, { message: "Đã xác nhận kết quả cuối", data: { application } });
+  const application = await screeningService.confirmFinal(
+    req.params.id,
+    req.body.status,
+  );
+  sendSuccess(res, {
+    message: "Đã xác nhận kết quả cuối",
+    data: { application },
+  });
 });
 
 export const markResultNotified = catchAsync(async (req, res) => {
-  const result = await screeningService.markResultNotified(req.body.applicationIds);
-  sendSuccess(res, { message: "Đã cập nhật trạng thái gửi email", data: result });
+  const result = await screeningService.markResultNotified(
+    req.body.applicationIds,
+  );
+  sendSuccess(res, {
+    message: "Đã cập nhật trạng thái gửi email",
+    data: result,
+  });
 });
 
 export const listNewMembers = catchAsync(async (req, res) => {

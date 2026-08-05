@@ -1,7 +1,17 @@
 import mongoose from "mongoose";
 
-export const TRAINEE_STATUS = ["pending", "in_progress", "completed", "removed"];
-export const TRAINEE_EVAL_STATUS = ["studying", "qualified", "failed", "certified"];
+export const TRAINEE_STATUS = [
+  "pending",
+  "in_progress",
+  "completed",
+  "removed",
+];
+export const TRAINEE_EVAL_STATUS = [
+  "studying",
+  "qualified",
+  "failed",
+  "certified",
+];
 
 // Tân thành viên trong vòng training — tự tạo khi ứng viên TRÚNG TUYỂN (admitted)
 const traineeSchema = new mongoose.Schema(
@@ -27,7 +37,11 @@ const traineeSchema = new mongoose.Schema(
     // Ban chính thức (mặc định = nguyện vọng 1 của hồ sơ)
     department: { type: String, required: true, trim: true },
     status: { type: String, enum: TRAINEE_STATUS, default: "pending" },
-    evalStatus: { type: String, enum: TRAINEE_EVAL_STATUS, default: "studying" },
+    evalStatus: {
+      type: String,
+      enum: TRAINEE_EVAL_STATUS,
+      default: "studying",
+    },
     groupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TrainingGroup",

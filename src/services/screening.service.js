@@ -33,7 +33,11 @@ export async function scoreApplication({
     );
   }
 
-  let score = await ApplicationScore.findOne({ applicationId, round, scoredBy });
+  let score = await ApplicationScore.findOne({
+    applicationId,
+    round,
+    scoredBy,
+  });
   if (score) {
     score.criteriaScores = criteriaScores;
     score.comment = comment;
@@ -51,7 +55,10 @@ export async function scoreApplication({
   }
 
   // Chênh lệch điểm 2 reviewer > ngưỡng → cần BCN xem xét thủ công
-  const summary = await ApplicationScore.getAverageAndVariance(applicationId, round);
+  const summary = await ApplicationScore.getAverageAndVariance(
+    applicationId,
+    round,
+  );
   if (
     round === "cv" &&
     summary.count >= 2 &&
@@ -81,7 +88,9 @@ export async function decideCv(applicationId, status) {
 
 export async function decideInterview(applicationId, status) {
   if (!["passed_interview", "failed_interview"].includes(status)) {
-    throw ApiError.badRequest("status phải là passed_interview hoặc failed_interview");
+    throw ApiError.badRequest(
+      "status phải là passed_interview hoặc failed_interview",
+    );
   }
   return transition(applicationId, status);
 }

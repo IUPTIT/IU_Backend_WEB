@@ -317,9 +317,15 @@ export async function listApplications({
     const cv = scoreMap.get(`${doc._id}:cv`);
     const interview = scoreMap.get(`${doc._id}:interview`);
     obj.cvScore = cv != null ? Number(cv.toFixed(2)) : null;
-    obj.interviewScore = interview != null ? Number(interview.toFixed(2)) : null;
+    obj.interviewScore =
+      interview != null ? Number(interview.toFixed(2)) : null;
     return obj;
   });
 
-  return { applications: enriched, total, page: numericPage, limit: numericLimit };
+  return {
+    applications: enriched,
+    total,
+    page: numericPage,
+    limit: numericLimit,
+  };
 }

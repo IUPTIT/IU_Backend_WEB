@@ -16,7 +16,9 @@ export function definePromoteToMemberJob() {
     try {
       const application = await Application.findById(applicationId);
       if (!application?.userId) {
-        console.warn(`[job:${JOB_PROMOTE_TO_MEMBER}] Application/user not found`);
+        console.warn(
+          `[job:${JOB_PROMOTE_TO_MEMBER}] Application/user not found`,
+        );
         return;
       }
 
@@ -35,7 +37,9 @@ export function definePromoteToMemberJob() {
       await trainingService.createTraineeFromApplication(application);
 
       await emailService.sendAdmittedEmail(application);
-      console.log(`[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`);
+      console.log(
+        `[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`,
+      );
     } catch (err) {
       console.error(
         `[job:${JOB_PROMOTE_TO_MEMBER}] Error promoting candidate for applicationId ${applicationId}:`,

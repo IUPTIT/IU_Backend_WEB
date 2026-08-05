@@ -30,7 +30,9 @@ export async function getMe(sourceApplicationId) {
 export async function listAvailableSlots(sourceApplicationId) {
   const application = await getOwnApplication(sourceApplicationId);
   if (application.status !== "passed_cv") {
-    throw ApiError.badRequest("Chỉ ứng viên đã đạt vòng đơn mới được đặt lịch phỏng vấn");
+    throw ApiError.badRequest(
+      "Chỉ ứng viên đã đạt vòng đơn mới được đặt lịch phỏng vấn",
+    );
   }
   const campaignId = application.campaignId?._id ?? application.campaignId;
   const slots = await InterviewSlot.find({
@@ -47,11 +49,17 @@ export async function listAvailableSlots(sourceApplicationId) {
 export async function holdSlot(sourceApplicationId, slotId) {
   const application = await getOwnApplication(sourceApplicationId);
   if (application.status !== "passed_cv") {
-    throw ApiError.badRequest("Chỉ ứng viên đã đạt vòng đơn mới được đặt lịch phỏng vấn");
+    throw ApiError.badRequest(
+      "Chỉ ứng viên đã đạt vòng đơn mới được đặt lịch phỏng vấn",
+    );
   }
-  const existing = await InterviewBooking.findOne({ applicationId: application._id });
+  const existing = await InterviewBooking.findOne({
+    applicationId: application._id,
+  });
   if (existing) {
-    throw ApiError.badRequest("Bạn đã có lịch phỏng vấn — dùng chức năng đổi ca");
+    throw ApiError.badRequest(
+      "Bạn đã có lịch phỏng vấn — dùng chức năng đổi ca",
+    );
   }
   return slotHoldService.holdSlot(slotId, application._id);
 }
@@ -68,7 +76,9 @@ export async function confirmBooking(sourceApplicationId, slotId) {
 // Đổi ca — tối đa 1 lần, ca mới phải cách hiện tại >= 24h (booking.canChangeSlot)
 export async function changeSlot(sourceApplicationId, newSlotId) {
   const application = await getOwnApplication(sourceApplicationId);
-  const booking = await InterviewBooking.findOne({ applicationId: application._id });
+  const booking = await InterviewBooking.findOne({
+    applicationId: application._id,
+  });
   if (!booking) throw ApiError.notFound("Bạn chưa có lịch phỏng vấn để đổi");
   if (String(booking.slotId) === String(newSlotId)) {
     throw ApiError.badRequest("Ca mới trùng với ca hiện tại");

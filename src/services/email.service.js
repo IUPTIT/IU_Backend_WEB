@@ -169,7 +169,8 @@ export function sendDraftLinkEmail(application, draftToken) {
     text: `Don ung tuyen cua ban da duoc luu nhap. Tiep tuc dien tai: ${url}`,
     html: renderEmail({
       title: "Đơn ứng tuyển đã được lưu nháp 📝",
-      intro: "Bạn có thể tiếp tục điền đơn bất cứ lúc nào bằng nút bên dưới — thông tin đã nhập được giữ nguyên.",
+      intro:
+        "Bạn có thể tiếp tục điền đơn bất cứ lúc nào bằng nút bên dưới — thông tin đã nhập được giữ nguyên.",
       cta: { label: "Tiếp tục điền đơn", url },
       note: "Link có hiệu lực tới khi đợt tuyển đóng đơn. Không chia sẻ link này cho người khác.",
     }),
@@ -298,7 +299,8 @@ export function sendPasswordResetEmail(to, resetToken) {
     text: `Dat lai mat khau tai: ${url} (hieu luc 30 phut).`,
     html: renderEmail({
       title: "Đặt lại mật khẩu",
-      intro: "Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản IU CLUB này.",
+      intro:
+        "Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản IU CLUB này.",
       cta: { label: "Đặt lại mật khẩu", url },
       note: "Link có hiệu lực trong 30 phút. Nếu không phải bạn yêu cầu, hãy bỏ qua email này.",
     }),

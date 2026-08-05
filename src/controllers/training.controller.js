@@ -14,11 +14,17 @@ export const listMentors = catchAsync(async (_req, res) => {
 
 export const listMentorCandidates = catchAsync(async (_req, res) => {
   const candidates = await trainingService.listMentorCandidates();
-  sendSuccess(res, { message: "Danh sách member/leader", data: { candidates } });
+  sendSuccess(res, {
+    message: "Danh sách member/leader",
+    data: { candidates },
+  });
 });
 
 export const setMentor = catchAsync(async (req, res) => {
-  const user = await trainingService.setMentor(req.params.id, req.body.isMentor);
+  const user = await trainingService.setMentor(
+    req.params.id,
+    req.body.isMentor,
+  );
   sendSuccess(res, {
     message: req.body.isMentor ? "Đã đẩy quyền mentor" : "Đã gỡ quyền mentor",
     data: { user },
@@ -26,7 +32,10 @@ export const setMentor = catchAsync(async (req, res) => {
 });
 
 export const autoAssignGroups = catchAsync(async (req, res) => {
-  const result = await trainingService.autoAssignGroups(req.body.programId, req.user.id);
+  const result = await trainingService.autoAssignGroups(
+    req.body.programId,
+    req.user.id,
+  );
   sendSuccess(res, {
     statusCode: 201,
     message: `Đã chia ${result.assigned} tân binh vào ${result.groups.length} team`,
@@ -46,7 +55,11 @@ export const getProgram = catchAsync(async (req, res) => {
 
 export const createProgram = catchAsync(async (req, res) => {
   const program = await trainingService.createProgram(req.body, req.user.id);
-  sendSuccess(res, { statusCode: 201, message: "Đã tạo lộ trình", data: { program } });
+  sendSuccess(res, {
+    statusCode: 201,
+    message: "Đã tạo lộ trình",
+    data: { program },
+  });
 });
 
 export const listGroups = catchAsync(async (_req, res) => {
@@ -56,7 +69,11 @@ export const listGroups = catchAsync(async (_req, res) => {
 
 export const createGroup = catchAsync(async (req, res) => {
   const group = await trainingService.createGroup(req.body, req.user.id);
-  sendSuccess(res, { statusCode: 201, message: "Đã tạo team", data: { group } });
+  sendSuccess(res, {
+    statusCode: 201,
+    message: "Đã tạo team",
+    data: { group },
+  });
 });
 
 export const getReviewSummary = catchAsync(async (_req, res) => {
@@ -65,11 +82,17 @@ export const getReviewSummary = catchAsync(async (_req, res) => {
 });
 
 export const updateEvalStatus = catchAsync(async (req, res) => {
-  const trainee = await trainingService.updateEvalStatus(req.params.id, req.body.evalStatus);
+  const trainee = await trainingService.updateEvalStatus(
+    req.params.id,
+    req.body.evalStatus,
+  );
   sendSuccess(res, { message: "Đã cập nhật đánh giá", data: { trainee } });
 });
 
 export const issueCertificates = catchAsync(async (req, res) => {
   const result = await trainingService.issueCertificates(req.body.traineeIds);
-  sendSuccess(res, { message: `Đã cấp ${result.issued} chứng nhận`, data: result });
+  sendSuccess(res, {
+    message: `Đã cấp ${result.issued} chứng nhận`,
+    data: result,
+  });
 });

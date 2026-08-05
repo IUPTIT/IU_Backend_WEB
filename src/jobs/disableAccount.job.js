@@ -26,11 +26,16 @@ export function defineDisableAccountJob() {
           user.isActive = false;
           user.status = "disabled";
           await user.save();
-          console.log(`[job:${JOB_DISABLE_ACCOUNT}] Disabled account ${user.email}`);
+          console.log(
+            `[job:${JOB_DISABLE_ACCOUNT}] Disabled account ${user.email}`,
+          );
         }
       }
 
-      await emailService.sendApplicationRejectedEmail(application, application.status);
+      await emailService.sendApplicationRejectedEmail(
+        application,
+        application.status,
+      );
     } catch (err) {
       console.error(
         `[job:${JOB_DISABLE_ACCOUNT}] Error disabling account for applicationId ${applicationId}:`,

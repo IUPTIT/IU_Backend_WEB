@@ -106,14 +106,30 @@ router.post(
 router.get("/programs", bcnLeaderOrMentor, controller.listPrograms);
 router.get("/programs/:id", bcnLeaderOrMentor, idParam, controller.getProgram);
 // Mentor tự tạo lộ trình training của riêng mình
-router.post("/programs", bcnLeaderOrMentor, createProgramBody, controller.createProgram);
+router.post(
+  "/programs",
+  bcnLeaderOrMentor,
+  createProgramBody,
+  controller.createProgram,
+);
 
 router.get("/groups", bcnLeaderOrMentor, controller.listGroups);
 router.post("/groups", bcnOnly, createGroupBody, controller.createGroup);
 
 router.get("/review-summary", bcnOrLeader, controller.getReviewSummary);
 // Mentor đánh giá tân binh trong team mình
-router.patch("/trainees/:id/eval", bcnLeaderOrMentor, idParam, evalStatusBody, controller.updateEvalStatus);
-router.post("/certificates", bcnOnly, certificatesBody, controller.issueCertificates);
+router.patch(
+  "/trainees/:id/eval",
+  bcnLeaderOrMentor,
+  idParam,
+  evalStatusBody,
+  controller.updateEvalStatus,
+);
+router.post(
+  "/certificates",
+  bcnOnly,
+  certificatesBody,
+  controller.issueCertificates,
+);
 
 export default router;

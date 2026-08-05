@@ -11,7 +11,11 @@ const trainingGroupSchema = new mongoose.Schema(
     },
     department: { type: String, required: true, trim: true },
     specialtyLabel: { type: String, default: "" },
-    mentorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    mentorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     memberIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trainee" }],
     mentorAccepted: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

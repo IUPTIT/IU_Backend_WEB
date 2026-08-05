@@ -43,7 +43,11 @@ export function listTrainees(department) {
   if (department) filter.department = department;
   return Trainee.find(filter)
     .sort({ createdAt: -1 })
-    .populate({ path: "groupId", select: "name mentorId", populate: { path: "mentorId", select: "name" } });
+    .populate({
+      path: "groupId",
+      select: "name mentorId",
+      populate: { path: "mentorId", select: "name" },
+    });
 }
 
 // Mentor thực thụ: member đã được đẩy quyền (isMentor) hoặc leader
@@ -59,7 +63,10 @@ export function listMentors() {
 
 // Ứng viên mentor: mọi member/leader đang hoạt động kèm cờ isMentor để BCN bật/tắt
 export function listMentorCandidates() {
-  return User.find({ role: { $in: ["leader", "member"] }, isActive: { $ne: false } })
+  return User.find({
+    role: { $in: ["leader", "member"] },
+    isActive: { $ne: false },
+  })
     .select("name email role isMentor")
     .sort({ name: 1 });
 }
@@ -80,10 +87,14 @@ export async function setMentor(userId, isMentor) {
 // Mỗi team dùng LỘ TRÌNH RIÊNG của mentor đó (mentor tự tạo cách train của mình);
 // mentor chưa có lộ trình thì dùng lộ trình fallback được chọn.
 export async function autoAssignGroups(fallbackProgramId, createdBy) {
-  const fallbackProgram = fallbackProgramId ? await getProgram(fallbackProgramId) : null;
+  const fallbackProgram = fallbackProgramId
+    ? await getProgram(fallbackProgramId)
+    : null;
   const mentors = await listMentors();
   if (!mentors.length) {
-    throw ApiError.badRequest("Chưa có mentor nào — đẩy quyền mentor cho member trước");
+    throw ApiError.badRequest(
+      "Chưa có mentor nào — đẩy quyền mentor cho member trước",
+    );
   }
   const trainees = await Trainee.find({
     groupId: null,
@@ -108,7 +119,9 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
     if (!members.length) continue;
 
     // Lộ trình của chính mentor (mới nhất) — không có thì dùng fallback
-    const mentorProgram = await TrainingProgram.findOne({ createdBy: mentor._id }).sort({
+    const mentorProgram = await TrainingProgram.findOne({
+      createdBy: mentor._id,
+    }).sort({
       createdAt: -1,
     });
     const program = mentorProgram ?? fallbackProgram;
@@ -124,7 +137,8 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
       deptCount.set(t.department, (deptCount.get(t.department) ?? 0) + 1);
     }
     const department =
-      [...deptCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Tổng hợp";
+      [...deptCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
+      "Tổng hợp";
 
     const group = await TrainingGroup.create({
       name: `Team ${mentor.name}`,
@@ -211,7 +225,10 @@ export async function getReviewSummary() {
   const [total, done, needs] = await Promise.all([
     Trainee.countDocuments({ status: { $ne: "removed" } }),
     Trainee.countDocuments({
-      $or: [{ evalStatus: { $in: ["qualified", "certified"] } }, { status: "completed" }],
+      $or: [
+        { evalStatus: { $in: ["qualified", "certified"] } },
+        { status: "completed" },
+      ],
     }),
     Trainee.countDocuments({ evalStatus: "failed" }),
   ]);
@@ -234,7 +251,10 @@ export async function updateEvalStatus(traineeId, evalStatus) {
 // Cấp chứng nhận hàng loạt — chỉ trainee đã "qualified"
 export async function issueCertificates(traineeIds) {
   const result = await Trainee.updateMany(
-    { _id: { $in: traineeIds }, evalStatus: { $in: ["qualified", "certified"] } },
+    {
+      _id: { $in: traineeIds },
+      evalStatus: { $in: ["qualified", "certified"] },
+    },
     { $set: { evalStatus: "certified", status: "completed" } },
   );
   return { issued: result.modifiedCount };

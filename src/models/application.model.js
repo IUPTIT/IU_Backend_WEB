@@ -251,4 +251,3 @@ Application.syncIndexes().catch((err) => {
 });
 
 export default Application;
-
