@@ -8,7 +8,8 @@ const MANUAL_REVIEW_DIFF_PERCENT = 30;
 
 const ROUND_ALLOWED_STATUS = {
   cv: ["pending_review"],
-  interview: ["passed_cv"],
+  // Cho phép BCN/interviewer cập nhật điểm cả sau khi đã chốt Đạt/Trượt
+  interview: ["passed_cv", "passed_interview", "failed_interview"],
 };
 
 async function getApplication(id) {
@@ -236,6 +237,15 @@ export async function markResultNotified(applicationIds) {
   const result = await Application.updateMany(
     { _id: { $in: applicationIds }, resultNotifyStatus: { $ne: "converted" } },
     { $set: { resultNotifyStatus: "email_sent" } },
+  );
+  return { notified: result.modifiedCount };
+}
+
+/** Đánh dấu đã gửi email kết quả vòng phỏng vấn */
+export async function markInterviewResultNotified(applicationIds) {
+  const result = await Application.updateMany(
+    { _id: { $in: applicationIds } },
+    { $set: { interviewResultNotifiedAt: new Date() } },
   );
   return { notified: result.modifiedCount };
 }

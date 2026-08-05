@@ -242,6 +242,16 @@ router.post(
   }),
   controller.markResultNotified,
 );
+router.post(
+  "/applications/notify-interview",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.markInterviewResultNotified,
+);
 router.get(
   "/campaigns/:id/new-members",
   bcnOrLeader,

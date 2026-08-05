@@ -132,18 +132,28 @@ export async function assignSlot(applicationId, slotId) {
 }
 
 // Chấm điểm + điểm danh phỏng vấn theo booking (nghiệp vụ 3.1)
+// BCN có thể truyền asUserId để ghi/sửa điểm hộ một interviewer
 export async function scoreBooking(
   bookingId,
   scoredBy,
-  { criteriaScores, comment, attendance },
+  { criteriaScores, comment, attendance, asUserId },
+  actorRole,
 ) {
   const booking = await InterviewBooking.findById(bookingId);
   if (!booking) throw ApiError.notFound("Không tìm thấy lịch phỏng vấn");
 
+  let effectiveScorer = scoredBy;
+  if (asUserId) {
+    if (actorRole !== "bcn") {
+      throw ApiError.forbidden("Chỉ Ban Chủ nhiệm được sửa điểm hộ người khác");
+    }
+    effectiveScorer = asUserId;
+  }
+
   const result = await screeningService.scoreApplication({
     applicationId: booking.applicationId,
     round: "interview",
-    scoredBy,
+    scoredBy: effectiveScorer,
     criteriaScores,
     comment,
     attendance,
@@ -166,7 +176,7 @@ export async function scoreBooking(
   return { ...result, booking };
 }
 
-// Chi tiết 1 ca + danh sách ứng viên đã đặt kèm điểm PV trung bình
+// Chi tiết 1 ca + danh sách ứng viên đã đặt kèm điểm từng reviewer
 export async function getSlotDetail(slotId) {
   const slot = await InterviewSlot.findById(slotId).populate(
     "interviewerIds",
@@ -179,25 +189,37 @@ export async function getSlotDetail(slotId) {
   );
 
   const appIds = bookings.map((b) => b.applicationId?._id).filter(Boolean);
-  const averages = await ApplicationScore.aggregate([
-    { $match: { applicationId: { $in: appIds }, round: "interview" } },
-    {
-      $group: {
-        _id: "$applicationId",
-        avg: { $avg: "$totalScore" },
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-  const scoreMap = new Map(averages.map((s) => [String(s._id), s]));
+  const scoreDocs = await ApplicationScore.find({
+    applicationId: { $in: appIds },
+    round: "interview",
+  }).populate("scoredBy", "name");
+
+  const scoresByApp = new Map();
+  for (const s of scoreDocs) {
+    const key = String(s.applicationId);
+    const list = scoresByApp.get(key) ?? [];
+    list.push({
+      scoredBy: s.scoredBy?._id ? String(s.scoredBy._id) : String(s.scoredBy),
+      name: s.scoredBy?.name ?? "Reviewer",
+      totalScore: s.totalScore,
+      comment: s.comment ?? "",
+      attendance: s.attendance ?? null,
+    });
+    scoresByApp.set(key, list);
+  }
 
   return {
     slot,
     bookings: bookings.map((b) => {
       const obj = b.toObject();
-      const s = scoreMap.get(String(b.applicationId?._id));
-      obj.interviewScore = s ? Number(s.avg.toFixed(2)) : null;
-      obj.scoreCount = s?.count ?? 0;
+      const scores = scoresByApp.get(String(b.applicationId?._id)) ?? [];
+      const avg =
+        scores.length > 0
+          ? scores.reduce((a, x) => a + x.totalScore, 0) / scores.length
+          : null;
+      obj.interviewScore = avg != null ? Number(avg.toFixed(2)) : null;
+      obj.scoreCount = scores.length;
+      obj.scores = scores;
       return obj;
     }),
   };

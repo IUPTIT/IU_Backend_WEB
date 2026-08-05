@@ -236,7 +236,9 @@ export const scoreBooking = catchAsync(async (req, res) => {
       criteriaScores: req.body.criteriaScores,
       comment: req.body.comment,
       attendance: req.body.attendance,
+      asUserId: req.body.asUserId,
     },
+    req.user.role,
   );
   sendSuccess(res, {
     statusCode: 201,
@@ -283,6 +285,16 @@ export const markResultNotified = catchAsync(async (req, res) => {
   );
   sendSuccess(res, {
     message: "Đã cập nhật trạng thái gửi email",
+    data: result,
+  });
+});
+
+export const markInterviewResultNotified = catchAsync(async (req, res) => {
+  const result = await screeningService.markInterviewResultNotified(
+    req.body.applicationIds,
+  );
+  sendSuccess(res, {
+    message: "Đã ghi nhận gửi email kết quả phỏng vấn",
     data: result,
   });
 });

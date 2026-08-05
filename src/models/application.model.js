@@ -212,6 +212,12 @@ const applicationSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Đã gửi email thông báo kết quả vòng phỏng vấn
+    interviewResultNotifiedAt: {
+      type: Date,
+      default: null,
+    },
+
     // ID của tài khoản User được tạo sau khi ứng viên Pass vòng đơn
     userId: {
       type: mongoose.Schema.Types.ObjectId,
