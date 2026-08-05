@@ -42,6 +42,17 @@ const traineeSchema = new mongoose.Schema(
       enum: TRAINEE_EVAL_STATUS,
       default: "studying",
     },
+    // Đánh giá QUÁ TRÌNH của mentor (note + điểm) — quyết định Đạt/Trượt cuối
+    // cùng là của BCN (evalStatus), mentor không chốt
+    mentorScore: { type: Number, min: 0, max: 10, default: null },
+    mentorNote: { type: String, default: "" },
+    // draft = mentor lưu nháp (BCN chưa nhận); submitted = đã gửi kết quả lên BCN
+    mentorReviewStatus: {
+      type: String,
+      enum: ["draft", "submitted"],
+      default: "draft",
+    },
+    mentorReviewSubmittedAt: { type: Date, default: null },
     groupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TrainingGroup",

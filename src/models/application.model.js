@@ -205,7 +205,15 @@ const applicationSchema = new mongoose.Schema(
 
 // Indexes
 applicationSchema.index({ campaignId: 1, email: 1 });
-applicationSchema.index({ applicationCode: 1 }, { unique: true, sparse: true });
+// Partial thay vì sparse: sparse vẫn index giá trị null (draft nào cũng null → E11000),
+// partial chỉ index khi applicationCode là string thật sự
+applicationSchema.index(
+  { applicationCode: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { applicationCode: { $type: "string" } },
+  },
+);
 applicationSchema.index({ status: 1, campaignId: 1 });
 
 /**
