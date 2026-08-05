@@ -8,7 +8,9 @@ export const getMe = catchAsync(async (req, res) => {
 });
 
 export const listSlots = catchAsync(async (req, res) => {
-  const slots = await candidateService.listAvailableSlots(req.user.sourceApplicationId);
+  const slots = await candidateService.listAvailableSlots(
+    req.user.sourceApplicationId,
+  );
   sendSuccess(res, { message: "Ca phỏng vấn còn chỗ", data: { slots } });
 });
 

@@ -33,6 +33,8 @@ const userSchema = new mongoose.Schema(
     },
     // Vô hiệu hoá thay vì xoá (rớt phỏng vấn / không trúng tuyển)
     isActive: { type: Boolean, default: true },
+    // Member được đẩy quyền làm mentor dẫn team vòng training
+    isMentor: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

@@ -26,13 +26,17 @@ export function defineCreateCandidateAccountJob() {
       try {
         const application = await Application.findById(applicationId);
         if (!application) {
-          console.warn(`[job:${JOB_CREATE_CANDIDATE_ACCOUNT}] Application not found`);
+          console.warn(
+            `[job:${JOB_CREATE_CANDIDATE_ACCOUNT}] Application not found`,
+          );
           return;
         }
         // Idempotent: đã có tài khoản gắn với hồ sơ thì bỏ qua (không gửi mail đúp)
         if (application.userId) return;
         if (!application.dateOfBirth) {
-          throw new Error("Application missing dateOfBirth — cannot generate password");
+          throw new Error(
+            "Application missing dateOfBirth — cannot generate password",
+          );
         }
 
         const rawPassword = passwordFromDob(application.dateOfBirth);

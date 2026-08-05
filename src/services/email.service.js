@@ -169,7 +169,8 @@ export function sendDraftLinkEmail(application, draftToken) {
     text: `Don ung tuyen cua ban da duoc luu nhap. Tiep tuc dien tai: ${url}`,
     html: renderEmail({
       title: "Đơn ứng tuyển đã được lưu nháp 📝",
-      intro: "Bạn có thể tiếp tục điền đơn bất cứ lúc nào bằng nút bên dưới — thông tin đã nhập được giữ nguyên.",
+      intro:
+        "Bạn có thể tiếp tục điền đơn bất cứ lúc nào bằng nút bên dưới — thông tin đã nhập được giữ nguyên.",
       cta: { label: "Tiếp tục điền đơn", url },
       note: "Link có hiệu lực tới khi đợt tuyển đóng đơn. Không chia sẻ link này cho người khác.",
     }),
@@ -220,6 +221,20 @@ export function sendApplicationRejectedEmail(application, round) {
   });
 }
 
+// Đạt vòng phỏng vấn — chúc mừng, chờ kết quả xét duyệt cuối
+export function sendInterviewPassedEmail(application) {
+  return send({
+    to: application.email,
+    subject: `Chúc mừng bạn đã vượt qua vòng phỏng vấn IU CLUB! (${application.applicationCode})`,
+    text: `Chuc mung ${application.fullName}! Ban da DAT vong phong van. Ket qua trung tuyen chinh thuc se duoc thong bao qua email sau khi BCN xet duyet cuoi.`,
+    html: renderEmail({
+      title: "Bạn đã vượt qua vòng phỏng vấn! 🎉",
+      intro: `Chúc mừng <b style="color:${COLORS.text}">${application.fullName}</b>! Hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> đã <b style="color:${COLORS.text}">ĐẠT vòng phỏng vấn</b>.`,
+      note: "Ban Chủ nhiệm đang tổng hợp kết quả — thông báo trúng tuyển chính thức sẽ được gửi qua email trong thời gian sớm nhất. Cảm ơn bạn đã đồng hành!",
+    }),
+  });
+}
+
 // Trúng tuyển chính thức — tài khoản được nâng thành Member
 export function sendAdmittedEmail(application) {
   const loginUrl = `${config.clientUrl}/login`;
@@ -256,6 +271,26 @@ export function sendBookingConfirmedEmail(application, slot) {
   });
 }
 
+// Nhắc lịch phỏng vấn sắp diễn ra (job quét, trước 24h và 2h)
+export function sendInterviewReminderEmail(application, slot, timeLeftLabel) {
+  const date = new Date(slot.date).toLocaleDateString("vi-VN");
+  return send({
+    to: application.email,
+    subject: `IU CLUB — Nhắc lịch phỏng vấn còn ${timeLeftLabel} (${application.applicationCode})`,
+    text: `Nhac lich: ban co lich phong van luc ${slot.startTime} ngay ${date} tai ${slot.location} (con ${timeLeftLabel}).`,
+    html: renderEmail({
+      title: `Phỏng vấn của bạn còn ${timeLeftLabel} nữa ⏰`,
+      intro: `Nhắc bạn lịch phỏng vấn IU CLUB sắp diễn ra — đừng quên nhé!`,
+      rows: [
+        { label: "Ngày", value: date },
+        { label: "Giờ", value: `${slot.startTime} - ${slot.endTime}` },
+        { label: "Địa điểm", value: slot.location },
+      ],
+      note: "Vui lòng có mặt trước 10 phút. Chúc bạn tự tin và may mắn!",
+    }),
+  });
+}
+
 export function sendPasswordResetEmail(to, resetToken) {
   const url = `${config.clientUrl}/reset-password?token=${resetToken}`;
   return send({
@@ -264,7 +299,8 @@ export function sendPasswordResetEmail(to, resetToken) {
     text: `Dat lai mat khau tai: ${url} (hieu luc 30 phut).`,
     html: renderEmail({
       title: "Đặt lại mật khẩu",
-      intro: "Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản IU CLUB này.",
+      intro:
+        "Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản IU CLUB này.",
       cta: { label: "Đặt lại mật khẩu", url },
       note: "Link có hiệu lực trong 30 phút. Nếu không phải bạn yêu cầu, hãy bỏ qua email này.",
     }),

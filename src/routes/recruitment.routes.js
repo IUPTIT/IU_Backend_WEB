@@ -61,16 +61,38 @@ const bcnOnly = authorize("bcn");
 const bcnOrLeader = authorize("bcn", "leader");
 
 // ---- Phần 0: BCN quản lý đợt tuyển & form ----
-router.post("/campaigns", bcnOnly, campaignValidation.createCampaign, controller.createCampaign);
+router.post(
+  "/campaigns",
+  bcnOnly,
+  campaignValidation.createCampaign,
+  controller.createCampaign,
+);
 router.get("/campaigns", bcnOrLeader, controller.listCampaigns);
 router.get("/campaigns/:id", bcnOrLeader, idParam, controller.getCampaign);
-router.patch("/campaigns/:id", bcnOnly, idParam, updateCampaignValidator, controller.updateCampaign);
-router.post("/campaigns/:id/publish", bcnOnly, idParam, controller.publishCampaign);
+router.patch(
+  "/campaigns/:id",
+  bcnOnly,
+  idParam,
+  updateCampaignValidator,
+  controller.updateCampaign,
+);
+router.post(
+  "/campaigns/:id/publish",
+  bcnOnly,
+  idParam,
+  controller.publishCampaign,
+);
 router.post("/campaigns/:id/close", bcnOnly, idParam, controller.closeCampaign);
 router.delete("/campaigns/:id", bcnOnly, idParam, controller.deleteCampaign);
 
 router.get("/campaigns/:id/form", bcnOrLeader, idParam, controller.getForm);
-router.put("/campaigns/:id/form", bcnOnly, idParam, formValidation.updateForm, controller.updateForm);
+router.put(
+  "/campaigns/:id/form",
+  bcnOnly,
+  idParam,
+  formValidation.updateForm,
+  controller.updateForm,
+);
 
 // ---- Phần 2: vòng đơn — danh sách, chấm điểm, quyết định ----
 router.get("/applications", bcnOrLeader, controller.listApplications);
@@ -81,7 +103,12 @@ router.post(
   scoreValidation.createScore,
   controller.scoreApplication,
 );
-router.get("/applications/:id/scores", bcnOrLeader, idParam, controller.getScoreSummary);
+router.get(
+  "/applications/:id/scores",
+  bcnOrLeader,
+  idParam,
+  controller.getScoreSummary,
+);
 router.post(
   "/applications/:id/decide",
   bcnOnly,
@@ -92,7 +119,12 @@ router.post(
 
 // ---- Phần 3: ca phỏng vấn ----
 router.get("/interviewers", bcnOrLeader, controller.listInterviewers);
-router.post("/slots", bcnOnly, slotValidation.createSlot, controller.createSlot);
+router.post(
+  "/slots",
+  bcnOnly,
+  slotValidation.createSlot,
+  controller.createSlot,
+);
 router.post(
   "/campaigns/:id/slots/bulk-generate",
   bcnOnly,
@@ -102,7 +134,13 @@ router.post(
 );
 router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
 // bcnOrLeader: leader được tự nhận / bổ sung mình vào ca phỏng vấn
-router.patch("/slots/:id", bcnOrLeader, idParam, updateSlotBody, controller.updateSlot);
+router.patch(
+  "/slots/:id",
+  bcnOrLeader,
+  idParam,
+  updateSlotBody,
+  controller.updateSlot,
+);
 router.delete("/slots/:id", bcnOnly, idParam, controller.deleteSlot);
 router.get("/slots/:id", bcnOrLeader, idParam, controller.getSlotDetail);
 router.get("/bookings/:id", bcnOrLeader, idParam, controller.getBookingDetail);
@@ -112,7 +150,13 @@ router.get(
   idParam,
   controller.listInterviewResults,
 );
-router.post("/applications/:id/assign-slot", bcnOnly, idParam, assignSlotBody, controller.assignSlot);
+router.post(
+  "/applications/:id/assign-slot",
+  bcnOnly,
+  idParam,
+  assignSlotBody,
+  controller.assignSlot,
+);
 router.post(
   "/bookings/:id/score",
   bcnOrLeader,
@@ -136,6 +180,21 @@ router.post(
   statusBody("admitted", "rejected"),
   controller.confirmFinal,
 );
-router.get("/campaigns/:id/new-members", bcnOrLeader, idParam, controller.listNewMembers);
+router.post(
+  "/applications/notify-final",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.markResultNotified,
+);
+router.get(
+  "/campaigns/:id/new-members",
+  bcnOrLeader,
+  idParam,
+  controller.listNewMembers,
+);
 
 export default router;

@@ -38,7 +38,9 @@ export const createSlot = celebrate({
     }),
 
     // Cho phép tạo ca trống — phân công người phỏng vấn sau
-    interviewerIds: Joi.array().items(Joi.string().hex().length(24)).default([]),
+    interviewerIds: Joi.array()
+      .items(Joi.string().hex().length(24))
+      .default([]),
 
     capacity: Joi.number().integer().min(1).required().messages({
       "number.min": "Sức chứa tối thiểu phải là 1",

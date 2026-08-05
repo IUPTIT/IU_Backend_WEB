@@ -18,7 +18,9 @@ export async function bulkGenerateSlots(data) {
   await campaignService.getCampaign(data.campaignId);
   const slots = InterviewSlot.bulkGenerate(data);
   if (!slots.length) {
-    throw ApiError.badRequest("Khung giờ không sinh được ca nào — kiểm tra lại startHour/endHour/durationMinutes");
+    throw ApiError.badRequest(
+      "Khung giờ không sinh được ca nào — kiểm tra lại startHour/endHour/durationMinutes",
+    );
   }
   return InterviewSlot.insertMany(slots);
 }
@@ -30,7 +32,10 @@ export async function listSlots(campaignId) {
     .populate("interviewerIds", "name email");
   const bookings = await InterviewBooking.find({
     slotId: { $in: slots.map((s) => s._id) },
-  }).populate("applicationId", "fullName email departmentPreferences status applicationCode");
+  }).populate(
+    "applicationId",
+    "fullName email departmentPreferences status applicationCode",
+  );
   return { slots, bookings };
 }
 
@@ -50,11 +55,22 @@ export async function updateSlot(slotId, data) {
 
   // Đổi startTime mà không gửi endTime → dời endTime giữ nguyên thời lượng ca
   if (data.startTime !== undefined && data.endTime === undefined) {
-    const duration = timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime);
-    data = { ...data, endTime: minutesToTime(timeToMinutes(data.startTime) + duration) };
+    const duration =
+      timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime);
+    data = {
+      ...data,
+      endTime: minutesToTime(timeToMinutes(data.startTime) + duration),
+    };
   }
 
-  const allowed = ["interviewerIds", "location", "date", "startTime", "endTime", "capacity"];
+  const allowed = [
+    "interviewerIds",
+    "location",
+    "date",
+    "startTime",
+    "endTime",
+    "capacity",
+  ];
   for (const key of allowed) {
     if (data[key] !== undefined) slot[key] = data[key];
   }
@@ -83,7 +99,9 @@ export async function assignSlot(applicationId, slotId) {
   const application = await Application.findById(applicationId);
   if (!application) throw ApiError.notFound("Không tìm thấy hồ sơ");
   if (application.status !== "passed_cv") {
-    throw ApiError.badRequest("Chỉ gán lịch phỏng vấn cho hồ sơ đã đạt vòng đơn");
+    throw ApiError.badRequest(
+      "Chỉ gán lịch phỏng vấn cho hồ sơ đã đạt vòng đơn",
+    );
   }
 
   const existing = await InterviewBooking.findOne({ applicationId });
@@ -95,7 +113,8 @@ export async function assignSlot(applicationId, slotId) {
     { $inc: { bookedCount: 1, version: 1 } },
     { new: true },
   );
-  if (!target) throw ApiError.badRequest("Ca phỏng vấn không tồn tại hoặc đã hết chỗ");
+  if (!target)
+    throw ApiError.badRequest("Ca phỏng vấn không tồn tại hoặc đã hết chỗ");
 
   if (existing) {
     await InterviewSlot.updateOne(
@@ -113,7 +132,11 @@ export async function assignSlot(applicationId, slotId) {
 }
 
 // Chấm điểm + điểm danh phỏng vấn theo booking (nghiệp vụ 3.1)
-export async function scoreBooking(bookingId, scoredBy, { criteriaScores, comment, attendance }) {
+export async function scoreBooking(
+  bookingId,
+  scoredBy,
+  { criteriaScores, comment, attendance },
+) {
   const booking = await InterviewBooking.findById(bookingId);
   if (!booking) throw ApiError.notFound("Không tìm thấy lịch phỏng vấn");
 
@@ -234,7 +257,10 @@ export async function listInterviewResults(campaignId) {
 // Danh sách người có thể phỏng vấn (BCN/Leader đang hoạt động)
 // $ne:false thay vì true — tài khoản cũ tạo trước khi có field isActive vẫn được tính
 export function listInterviewers() {
-  return User.find({ role: { $in: ["bcn", "leader"] }, isActive: { $ne: false } })
+  return User.find({
+    role: { $in: ["bcn", "leader"] },
+    isActive: { $ne: false },
+  })
     .select("name email role")
     .sort({ name: 1 });
 }
