@@ -352,7 +352,9 @@ export async function saveMentorReview(
   return trainee;
 }
 
-// Chốt Đạt/Trượt cuối vòng — CHỈ BCN/Leader (route đã giới hạn)
+// Chốt Đạt/Trượt cuối vòng — CHỈ BCN/Leader (route đã giới hạn).
+// Đủ điều kiện (qualified/certified) → hồ sơ chuyển "admitted" qua state machine,
+// job promote tự nâng tài khoản candidate lên MEMBER + gửi email trúng tuyển
 export async function updateEvalStatus(traineeId, evalStatus) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
@@ -360,6 +362,22 @@ export async function updateEvalStatus(traineeId, evalStatus) {
   trainee.evalStatus = evalStatus;
   if (evalStatus === "certified") trainee.status = "completed";
   await trainee.save();
+
+  if (
+    ["qualified", "certified"].includes(evalStatus) &&
+    trainee.applicationId
+  ) {
+    const { transition } = await import("./applicationStateMachine.js");
+    const Application = (await import("mongoose")).default.model("Application");
+    const application = await Application.findById(
+      trainee.applicationId,
+    ).select("status");
+    // Chỉ chuyển khi còn ở passed_interview — đã admitted/rejected thì giữ nguyên
+    if (application?.status === "passed_interview") {
+      await transition(trainee.applicationId, "admitted");
+    }
+  }
+
   return trainee;
 }
 
