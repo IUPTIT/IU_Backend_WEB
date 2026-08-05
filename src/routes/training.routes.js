@@ -4,6 +4,7 @@ import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
 import ApiError from "../utils/ApiError.js";
 import * as controller from "../controllers/training.controller.js";
+import * as taskController from "../controllers/trainingTask.controller.js";
 import { idParam, objectId } from "../validations/common.validation.js";
 import { LESSON_KINDS } from "../models/trainingProgram.model.js";
 import { TRAINEE_EVAL_STATUS } from "../models/trainee.model.js";
@@ -81,6 +82,9 @@ const bcnLeaderOrMentor = (req, _res, next) => {
   return next(ApiError.forbidden("Chỉ BCN/Leader/Mentor mới truy cập được"));
 };
 
+// Trainee tự xem vòng training của mình — không giới hạn role, service xác minh
+router.get("/me", controller.getMyTraining);
+
 router.get("/trainees", bcnOrLeader, controller.listTrainees);
 router.get("/mentors", bcnOrLeader, controller.listMentors);
 router.get("/mentor-candidates", bcnOrLeader, controller.listMentorCandidates);
@@ -98,7 +102,10 @@ router.post(
   bcnOnly,
   celebrate({
     // programId là fallback — mentor có lộ trình riêng sẽ dùng lộ trình của mình
-    [Segments.BODY]: Joi.object({ programId: objectId.allow(null, "") }),
+    [Segments.BODY]: Joi.object({
+      programId: objectId.allow(null, ""),
+      campaignId: objectId.allow(null, ""),
+    }),
   }),
   controller.autoAssignGroups,
 );
@@ -112,15 +119,124 @@ router.post(
   createProgramBody,
   controller.createProgram,
 );
+// Mentor xóa lộ trình của mình (BCN/Leader xóa được tất cả — check trong service)
+router.delete(
+  "/programs/:id",
+  bcnLeaderOrMentor,
+  idParam,
+  controller.deleteProgram,
+);
 
 router.get("/groups", bcnLeaderOrMentor, controller.listGroups);
 router.post("/groups", bcnOnly, createGroupBody, controller.createGroup);
 
+// ---- Task: mentor giao task cho team, trainee nộp bài, mentor chấm ----
+
+const createTaskBody = celebrate({
+  [Segments.BODY]: Joi.object({
+    groupId: objectId.required(),
+    title: Joi.string().trim().max(200).required(),
+    description: Joi.string().allow(""),
+    attachmentUrl: Joi.string().uri().allow(""),
+    deadline: Joi.date().iso().allow(null),
+    // Bỏ trống → giao cho cả team
+    assigneeIds: Joi.array().items(objectId),
+  }),
+});
+
+const updateTaskBody = celebrate({
+  [Segments.BODY]: Joi.object({
+    title: Joi.string().trim().max(200),
+    description: Joi.string().allow(""),
+    attachmentUrl: Joi.string().uri().allow(""),
+    deadline: Joi.date().iso().allow(null),
+  }).min(1),
+});
+
+const submitTaskBody = celebrate({
+  [Segments.BODY]: Joi.object({
+    submissionUrl: Joi.string().uri().allow(""),
+    submissionNote: Joi.string().allow(""),
+  }).or("submissionUrl", "submissionNote"),
+});
+
+const reviewParams = celebrate({
+  [Segments.PARAMS]: Joi.object({
+    id: objectId.required(),
+    traineeId: objectId.required(),
+  }),
+});
+
+const reviewBody = celebrate({
+  [Segments.BODY]: Joi.object({
+    status: Joi.string().valid("approved", "rejected").required(),
+    feedback: Joi.string().allow(""),
+    score: Joi.number().min(0).max(10).allow(null),
+  }),
+});
+
+// Trainee (mọi user đăng nhập là trainee sẽ được service xác minh)
+router.get("/tasks/mine", taskController.listMyTasks);
+router.post(
+  "/tasks/:id/submit",
+  idParam,
+  submitTaskBody,
+  taskController.submitTask,
+);
+
+// Mentor/BCN/Leader
+router.get("/tasks", bcnLeaderOrMentor, taskController.listTasks);
+router.post(
+  "/tasks",
+  bcnLeaderOrMentor,
+  createTaskBody,
+  taskController.createTask,
+);
+router.get("/tasks/:id", bcnLeaderOrMentor, idParam, taskController.getTask);
+router.patch(
+  "/tasks/:id",
+  bcnLeaderOrMentor,
+  idParam,
+  updateTaskBody,
+  taskController.updateTask,
+);
+router.delete(
+  "/tasks/:id",
+  bcnLeaderOrMentor,
+  idParam,
+  taskController.deleteTask,
+);
+router.patch(
+  "/tasks/:id/review/:traineeId",
+  bcnLeaderOrMentor,
+  reviewParams,
+  reviewBody,
+  taskController.reviewSubmission,
+);
+
+// Mentor xem tân binh các team mình dẫn (để đánh giá cuối vòng)
+router.get("/my-team", bcnLeaderOrMentor, controller.listMyTeamTrainees);
+
 router.get("/review-summary", bcnOrLeader, controller.getReviewSummary);
-// Mentor đánh giá tân binh trong team mình
+// Mentor lưu note quá trình + điểm cho tân binh team mình (không chốt Đạt/Trượt)
+router.patch(
+  "/trainees/:id/mentor-review",
+  bcnLeaderOrMentor,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      score: Joi.number().min(0).max(10).allow(null),
+      note: Joi.string().allow(""),
+      // true = gửi kết quả lên BCN, false/bỏ trống = lưu nháp
+      submit: Joi.boolean(),
+    }).min(1),
+  }),
+  controller.saveMentorReview,
+);
+// Chốt Đạt/Trượt cuối vòng training — CHỈ BCN/Leader
 router.patch(
   "/trainees/:id/eval",
-  bcnLeaderOrMentor,
+  bcnOrLeader,
   idParam,
   evalStatusBody,
   controller.updateEvalStatus,

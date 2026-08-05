@@ -2,8 +2,16 @@ import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as trainingService from "../services/training.service.js";
 
+export const getMyTraining = catchAsync(async (req, res) => {
+  const result = await trainingService.getMyTraining(req.user.id);
+  sendSuccess(res, { message: "Vòng training của bạn", data: result });
+});
+
 export const listTrainees = catchAsync(async (req, res) => {
-  const trainees = await trainingService.listTrainees(req.query.department);
+  const trainees = await trainingService.listTrainees(
+    req.query.department,
+    req.query.campaignId,
+  );
   sendSuccess(res, { message: "Danh sách trainee", data: { trainees } });
 });
 
@@ -35,6 +43,7 @@ export const autoAssignGroups = catchAsync(async (req, res) => {
   const result = await trainingService.autoAssignGroups(
     req.body.programId,
     req.user.id,
+    req.body.campaignId,
   );
   sendSuccess(res, {
     statusCode: 201,
@@ -62,8 +71,13 @@ export const createProgram = catchAsync(async (req, res) => {
   });
 });
 
-export const listGroups = catchAsync(async (_req, res) => {
-  const groups = await trainingService.listGroups();
+export const deleteProgram = catchAsync(async (req, res) => {
+  await trainingService.deleteProgram(req.params.id, req.user);
+  sendSuccess(res, { message: "Đã xóa lộ trình" });
+});
+
+export const listGroups = catchAsync(async (req, res) => {
+  const groups = await trainingService.listGroups(req.query.campaignId);
   sendSuccess(res, { message: "Danh sách team", data: { groups } });
 });
 
@@ -76,9 +90,23 @@ export const createGroup = catchAsync(async (req, res) => {
   });
 });
 
-export const getReviewSummary = catchAsync(async (_req, res) => {
-  const summary = await trainingService.getReviewSummary();
+export const getReviewSummary = catchAsync(async (req, res) => {
+  const summary = await trainingService.getReviewSummary(req.query.campaignId);
   sendSuccess(res, { message: "Tổng kết training", data: { summary } });
+});
+
+export const listMyTeamTrainees = catchAsync(async (req, res) => {
+  const trainees = await trainingService.listMyTeamTrainees(req.user.id);
+  sendSuccess(res, { message: "Tân binh team của bạn", data: { trainees } });
+});
+
+export const saveMentorReview = catchAsync(async (req, res) => {
+  const trainee = await trainingService.saveMentorReview(
+    req.params.id,
+    req.body,
+    req.user,
+  );
+  sendSuccess(res, { message: "Đã lưu đánh giá quá trình", data: { trainee } });
 });
 
 export const updateEvalStatus = catchAsync(async (req, res) => {

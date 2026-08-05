@@ -4,10 +4,17 @@ import mongoose from "mongoose";
 const trainingGroupSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    // Lộ trình có thể gán sau — chia đội random không bắt mentor phải có lộ trình trước
     programId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TrainingProgram",
-      required: true,
+      default: null,
+    },
+    // Đợt tuyển nguồn — chia đội theo đợt, lọc danh sách team theo đợt
+    campaignId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RecruitmentCampaign",
+      default: null,
     },
     department: { type: String, required: true, trim: true },
     specialtyLabel: { type: String, default: "" },

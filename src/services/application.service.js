@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import Application from "../models/application.model.js";
 import ApplicationForm from "../models/applicationForm.model.js";
 import ApplicationScore from "../models/applicationScore.model.js";
+import Counter from "../models/counter.model.js";
 import * as campaignService from "./campaign.service.js";
 import * as emailService from "./email.service.js";
 import { transition } from "./applicationStateMachine.js";
@@ -67,21 +68,36 @@ async function validateAnswers(campaign, answers = []) {
 }
 
 // Mã hồ sơ: APP-<năm><F|S>-<số thứ tự trong đợt> — VD APP-2026F-0142
-// Lấy max số thứ tự hiện có + 1 (KHÔNG đếm số hồ sơ: rút đơn xoá hồ sơ sẽ gây trùng mã)
+// Số thứ tự cấp qua Counter ($inc atomic) — hai request submit đồng thời không thể
+// nhận cùng một mã (trước đây đọc max rồi +1 nên bị race → E11000/409)
 async function generateCode(campaign) {
   const open = new Date(campaign.openAt);
   const half = open.getMonth() + 1 >= 7 ? "F" : "S"; // Fall từ tháng 7, Spring trước đó
   const prefix = `APP-${open.getFullYear()}${half}`;
+  const key = `applicationCode:${campaign._id}:${prefix}`;
+
+  // Đồng bộ counter với dữ liệu có sẵn (đơn nộp trước khi có counter) — $max chỉ
+  // nâng counter lên, không bao giờ hạ xuống nên gọi lặp lại vẫn an toàn
   const latest = await Application.findOne({
     campaignId: campaign._id,
     applicationCode: { $regex: `^${prefix}-` },
   })
     .sort({ applicationCode: -1 })
     .select("applicationCode");
-  const lastSeq = latest
-    ? Number.parseInt(latest.applicationCode.split("-").pop(), 10)
-    : 0;
-  return `${prefix}-${String(lastSeq + 1).padStart(4, "0")}`;
+  if (latest) {
+    const lastSeq = Number.parseInt(
+      latest.applicationCode.split("-").pop(),
+      10,
+    );
+    await Counter.updateOne(
+      { _id: key },
+      { $max: { seq: lastSeq } },
+      { upsert: true },
+    );
+  }
+
+  const seq = await Counter.nextSeq(key);
+  return `${prefix}-${String(seq).padStart(4, "0")}`;
 }
 
 // ---- Public: draft flow (nghiệp vụ 1.2) ----

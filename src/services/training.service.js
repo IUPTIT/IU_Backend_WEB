@@ -38,9 +38,35 @@ export async function createTraineeFromApplication(application) {
 
 // ---- Trainees ----
 
-export function listTrainees(department) {
+// Trainee xem vòng training của CHÍNH MÌNH: team, mentor, lộ trình
+export async function getMyTraining(userId) {
+  const trainee = await Trainee.findOne({ userId });
+  if (!trainee) {
+    throw ApiError.notFound("Bạn chưa ở vòng training");
+  }
+  const group = trainee.groupId
+    ? await TrainingGroup.findById(trainee.groupId).populate(
+        "mentorId",
+        "name email",
+      )
+    : null;
+  // Fallback: team chưa gắn lộ trình thì lấy lộ trình mới nhất của mentor —
+  // mentor thêm/sửa/xóa lộ trình là mentee thấy bản mới ngay
+  let program = group?.programId
+    ? await TrainingProgram.findById(group.programId)
+    : null;
+  if (!program && group?.mentorId) {
+    program = await TrainingProgram.findOne({
+      createdBy: group.mentorId._id ?? group.mentorId,
+    }).sort({ createdAt: -1 });
+  }
+  return { trainee, group, program };
+}
+
+export function listTrainees(department, campaignId) {
   const filter = { status: { $ne: "removed" } };
   if (department) filter.department = department;
+  if (campaignId) filter.campaignId = campaignId;
   return Trainee.find(filter)
     .sort({ createdAt: -1 })
     .populate({
@@ -86,7 +112,11 @@ export async function setMentor(userId, isMentor) {
 // Chia team TỰ ĐỘNG: random trộn tân binh chưa có team rồi chia đều cho các mentor.
 // Mỗi team dùng LỘ TRÌNH RIÊNG của mentor đó (mentor tự tạo cách train của mình);
 // mentor chưa có lộ trình thì dùng lộ trình fallback được chọn.
-export async function autoAssignGroups(fallbackProgramId, createdBy) {
+export async function autoAssignGroups(
+  fallbackProgramId,
+  createdBy,
+  campaignId,
+) {
   const fallbackProgram = fallbackProgramId
     ? await getProgram(fallbackProgramId)
     : null;
@@ -96,10 +126,10 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
       "Chưa có mentor nào — đẩy quyền mentor cho member trước",
     );
   }
-  const trainees = await Trainee.find({
-    groupId: null,
-    status: { $ne: "removed" },
-  });
+  // Chia đội theo ĐỢT TUYỂN: chỉ trộn tân binh của đợt được chọn
+  const traineeFilter = { groupId: null, status: { $ne: "removed" } };
+  if (campaignId) traineeFilter.campaignId = campaignId;
+  const trainees = await Trainee.find(traineeFilter);
   if (!trainees.length) {
     throw ApiError.badRequest("Không có tân binh nào chưa được chia team");
   }
@@ -124,12 +154,8 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
     }).sort({
       createdAt: -1,
     });
+    // Không có lộ trình nào cũng vẫn chia đội được — mentor gán lộ trình sau
     const program = mentorProgram ?? fallbackProgram;
-    if (!program) {
-      throw ApiError.badRequest(
-        `Mentor ${mentor.name} chưa có lộ trình riêng — chọn lộ trình fallback hoặc để mentor tạo lộ trình trước`,
-      );
-    }
 
     // Ban của team = ban phổ biến nhất trong nhóm
     const deptCount = new Map();
@@ -140,9 +166,14 @@ export async function autoAssignGroups(fallbackProgramId, createdBy) {
       [...deptCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
       "Tổng hợp";
 
+    // Đợt tuyển của team = đợt của các thành viên (campaignId truyền vào ưu tiên)
+    const groupCampaignId =
+      campaignId ?? members.find((t) => t.campaignId)?.campaignId ?? null;
+
     const group = await TrainingGroup.create({
       name: `Team ${mentor.name}`,
-      programId: program._id,
+      programId: program?._id ?? null,
+      campaignId: groupCampaignId,
       department,
       specialtyLabel: department,
       mentorId: mentor._id,
@@ -172,14 +203,53 @@ export async function getProgram(id) {
   return program;
 }
 
-export function createProgram(data, createdBy) {
-  return TrainingProgram.create({ ...data, createdBy });
+export async function createProgram(data, createdBy) {
+  const program = await TrainingProgram.create({ ...data, createdBy });
+  // Lộ trình mới nhất của mentor tự áp cho các team mentor đang dẫn —
+  // mentee thấy update ngay, không phải chờ chia đội lại
+  await TrainingGroup.updateMany(
+    { mentorId: createdBy },
+    { $set: { programId: program._id } },
+  );
+  return program;
+}
+
+// Xóa lộ trình: mentor chỉ xóa lộ trình của mình, BCN/Leader xóa được tất cả.
+// Team đang dùng lộ trình này được gỡ về null (không chặn xóa) — mentor gán lại sau
+export async function deleteProgram(id, user) {
+  const program = await getProgram(id);
+  const isManager = ["bcn", "leader"].includes(user.role);
+  if (!isManager && String(program.createdBy) !== String(user.id)) {
+    throw ApiError.forbidden("Bạn chỉ xóa được lộ trình do mình tạo");
+  }
+  await TrainingGroup.updateMany(
+    { programId: program._id },
+    { $set: { programId: null } },
+  );
+  await program.deleteOne();
+
+  // Team vừa mất lộ trình rơi về lộ trình mới nhất còn lại của mentor đó (nếu có)
+  const orphans = await TrainingGroup.find({
+    programId: null,
+    mentorId: { $ne: null },
+  });
+  for (const group of orphans) {
+    const latest = await TrainingProgram.findOne({
+      createdBy: group.mentorId,
+    }).sort({ createdAt: -1 });
+    if (latest) {
+      group.programId = latest._id;
+      await group.save();
+    }
+  }
 }
 
 // ---- Groups (chia team) ----
 
-export function listGroups() {
-  return TrainingGroup.find()
+export function listGroups(campaignId) {
+  const filter = {};
+  if (campaignId) filter.campaignId = campaignId;
+  return TrainingGroup.find(filter)
     .sort({ createdAt: -1 })
     .populate("mentorId", "name email role");
 }
@@ -221,16 +291,18 @@ export async function createGroup(data, createdBy) {
 
 // ---- Đánh giá tổng kết ----
 
-export async function getReviewSummary() {
+export async function getReviewSummary(campaignId) {
+  const base = campaignId ? { campaignId } : {};
   const [total, done, needs] = await Promise.all([
-    Trainee.countDocuments({ status: { $ne: "removed" } }),
+    Trainee.countDocuments({ ...base, status: { $ne: "removed" } }),
     Trainee.countDocuments({
+      ...base,
       $or: [
         { evalStatus: { $in: ["qualified", "certified"] } },
         { status: "completed" },
       ],
     }),
-    Trainee.countDocuments({ evalStatus: "failed" }),
+    Trainee.countDocuments({ ...base, evalStatus: "failed" }),
   ]);
   return {
     totalTrainees: total,
@@ -239,12 +311,73 @@ export async function getReviewSummary() {
   };
 }
 
+// Tân binh trong các team user đang dẫn (mentor xem team mình để đánh giá)
+export async function listMyTeamTrainees(userId) {
+  const groups = await TrainingGroup.find({ mentorId: userId }).select("_id");
+  return Trainee.find({
+    groupId: { $in: groups.map((g) => g._id) },
+    status: { $ne: "removed" },
+  })
+    .sort({ fullName: 1 })
+    .populate("groupId", "name");
+}
+
+// Mentor lưu đánh giá QUÁ TRÌNH (note + điểm) cho tân binh team mình —
+// không đụng evalStatus (Đạt/Trượt là quyết định của BCN)
+export async function saveMentorReview(
+  traineeId,
+  { score, note, submit },
+  user,
+) {
+  const trainee = await Trainee.findById(traineeId);
+  if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
+
+  if (!["bcn", "leader"].includes(user.role)) {
+    const group = trainee.groupId
+      ? await TrainingGroup.findById(trainee.groupId).select("mentorId")
+      : null;
+    if (!group || String(group.mentorId) !== String(user.id)) {
+      throw ApiError.forbidden("Tân binh này không thuộc team của bạn");
+    }
+  }
+
+  if (score !== undefined) trainee.mentorScore = score;
+  if (note !== undefined) trainee.mentorNote = note;
+  // submit=true → gửi kết quả lên BCN; không thì vẫn là nháp của mentor
+  if (submit) {
+    trainee.mentorReviewStatus = "submitted";
+    trainee.mentorReviewSubmittedAt = new Date();
+  }
+  await trainee.save();
+  return trainee;
+}
+
+// Chốt Đạt/Trượt cuối vòng — CHỈ BCN/Leader (route đã giới hạn).
+// Đủ điều kiện (qualified/certified) → hồ sơ chuyển "admitted" qua state machine,
+// job promote tự nâng tài khoản candidate lên MEMBER + gửi email trúng tuyển
 export async function updateEvalStatus(traineeId, evalStatus) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
+
   trainee.evalStatus = evalStatus;
   if (evalStatus === "certified") trainee.status = "completed";
   await trainee.save();
+
+  if (
+    ["qualified", "certified"].includes(evalStatus) &&
+    trainee.applicationId
+  ) {
+    const { transition } = await import("./applicationStateMachine.js");
+    const Application = (await import("mongoose")).default.model("Application");
+    const application = await Application.findById(
+      trainee.applicationId,
+    ).select("status");
+    // Chỉ chuyển khi còn ở passed_interview — đã admitted/rejected thì giữ nguyên
+    if (application?.status === "passed_interview") {
+      await transition(trainee.applicationId, "admitted");
+    }
+  }
+
   return trainee;
 }
 
