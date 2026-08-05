@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
+import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
 import catchAsync from "../utils/catchAsync.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import * as notificationService from "../services/notification.service.js";
@@ -9,6 +10,7 @@ import { objectId } from "../validations/common.validation.js";
 const router = Router();
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 
 router.get(
   "/",

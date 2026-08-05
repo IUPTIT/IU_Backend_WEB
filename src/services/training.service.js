@@ -512,7 +512,10 @@ export async function handleIncompleteTrainee(
       const user = await User.findById(trainee.userId);
       if (user && user.role === "member") {
         user.isActive = false;
+        user.status = "disabled";
         await user.save();
+        const tokenService = await import("./token.service.js");
+        await tokenService.revokeAllRefreshTokens(user.id);
       }
       await notificationService.createNotification({
         userId: trainee.userId,

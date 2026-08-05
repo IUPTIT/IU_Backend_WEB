@@ -2,6 +2,7 @@ import { Router } from "express";
 import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
+import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
 import ApiError from "../utils/ApiError.js";
 import * as controller from "../controllers/training.controller.js";
 import * as taskController from "../controllers/trainingTask.controller.js";
@@ -70,6 +71,7 @@ const certificatesBody = celebrate({
 });
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 const bcnOnly = authorize("bcn");
 const bcnOrLeader = authorize("bcn", "leader");
 
@@ -280,10 +282,10 @@ router.patch(
   }),
   controller.saveMentorReview,
 );
-// Chốt Đạt/Trượt cuối vòng training — CHỈ BCN/Leader
+// Chốt Đạt/Trượt / certified cuối vòng training — chỉ BCN
 router.patch(
   "/trainees/:id/eval",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   evalStatusBody,
   controller.updateEvalStatus,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
+import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
 import * as controller from "../controllers/recruitment.controller.js";
 import * as campaignValidation from "../validations/recruitmentCampaign.validation.js";
 import * as formValidation from "../validations/applicationForm.validation.js";
@@ -56,6 +57,7 @@ const updateSlotBody = celebrate({
 });
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 
 const bcnOnly = authorize("bcn");
 const bcnOrLeader = authorize("bcn", "leader");

@@ -10,22 +10,21 @@ async function issueTokens(user) {
   return { accessToken, refreshToken };
 }
 
-export async function register({ name, email, password }) {
-  const existing = await User.findOne({ email });
-  if (existing) throw ApiError.conflict("Email is already registered");
+/** Chặn tài khoản đã vô hiệu hoá (login / refresh / Google) */
+function assertAccountActive(user) {
+  if (!user || user.status === "disabled" || user.isActive === false) {
+    throw ApiError.forbidden("Tài khoản đã bị vô hiệu hoá");
+  }
+}
 
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role: "member",
-    status: "pending",
-  });
-
-  const otp = await tokenService.createOtp(user, TOKEN_TYPES.VERIFY_EMAIL);
-  await emailService.sendVerificationEmail(user.email, otp);
-
-  return user;
+/**
+ * Đăng ký công khai tắt — tài khoản Member chỉ tạo qua luồng tuyển
+ * (Pass vòng đơn → Candidate → Trúng tuyển → Member).
+ */
+export async function register() {
+  throw ApiError.forbidden(
+    "Hệ thống không mở đăng ký công khai. Tài khoản được tạo qua quy trình tuyển thành viên IU CLUB.",
+  );
 }
 
 export async function verifyEmail({ email, otp }) {
@@ -58,8 +57,7 @@ export async function login({ email, password }) {
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized("Invalid email or password");
   }
-  if (user.status === "disabled" || user.isActive === false)
-    throw ApiError.forbidden("Tài khoản đã bị vô hiệu hoá");
+  assertAccountActive(user);
   if (!user.emailVerified) throw ApiError.forbidden("Email not verified");
 
   const tokens = await issueTokens(user);
@@ -79,8 +77,14 @@ export async function refresh(oldRefreshToken) {
   const user = await User.findById(payload.sub);
   if (!user) throw ApiError.unauthorized("Invalid refresh token");
 
-  // Rotation: revoke the used token, issue a new pair.
+  // Rotation: revoke token đã dùng trước — kể cả khi account disabled
   await tokenService.revokeRefreshToken(oldRefreshToken);
+
+  if (user.status === "disabled" || user.isActive === false) {
+    await tokenService.revokeAllRefreshTokens(user.id);
+    throw ApiError.forbidden("Tài khoản đã bị vô hiệu hoá");
+  }
+
   const tokens = await issueTokens(user);
   return { user, ...tokens };
 }
@@ -131,23 +135,24 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
   return issueTokens(user).then((tokens) => ({ user, ...tokens }));
 }
 
+/**
+ * Google SSO: chỉ đăng nhập / liên kết tài khoản ĐÃ tồn tại
+ * (Candidate/Member/Leader/BCN). Không tự tạo Member mới.
+ */
 export async function loginWithGoogle(profile) {
   const email = profile.emails?.[0]?.value?.toLowerCase();
   if (!email) throw ApiError.badRequest("Google account has no email");
 
-  let user = await User.findOne({ $or: [{ googleId: profile.id }, { email }] });
+  const user = await User.findOne({ $or: [{ googleId: profile.id }, { email }] });
   if (!user) {
-    user = await User.create({
-      name: profile.displayName || email,
-      email,
-      googleId: profile.id,
-      avatar: profile.photos?.[0]?.value || "",
-      emailVerified: true,
-      status: "active",
-      role: "member",
-    });
-  } else if (!user.googleId) {
-    // Link Google to an existing local account.
+    throw ApiError.forbidden(
+      "Tài khoản chưa tồn tại. Vui lòng hoàn tất quy trình tuyển thành viên trước khi đăng nhập Google.",
+    );
+  }
+
+  assertAccountActive(user);
+
+  if (!user.googleId) {
     user.googleId = profile.id;
     user.emailVerified = true;
     if (user.status === "pending") user.status = "active";
