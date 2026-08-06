@@ -6,6 +6,8 @@ export const ROLES = ["bcn", "leader", "member", "candidate"];
 export const USER_STATUS = ["pending", "active", "disabled"];
 /** Trạng thái phụ Member (Ch.2.4) — không phải Role */
 export const MEMBER_STATUS = ["training", "official"];
+/** Trạng thái hoạt động trong CLB (roster) — tách với login status */
+export const CLUB_STATUS = ["active", "inactive", "alumni"];
 
 const userSchema = new mongoose.Schema(
   {
@@ -20,9 +22,15 @@ const userSchema = new mongoose.Schema(
     // Optional: Google-only accounts have no local password.
     password: { type: String, select: false },
     googleId: { type: String, index: { unique: true, sparse: true } },
+    /** Primary portal role (bcn/leader/member/candidate) */
     role: { type: String, enum: ROLES, default: "member" },
+    /** Additive capabilities — luôn gồm `role`; dual Member+Leader = ["member","leader"] */
+    roles: {
+      type: [{ type: String, enum: ROLES }],
+      default: undefined,
+    },
     status: { type: String, enum: USER_STATUS, default: "pending" },
-    // Chỉ áp dụng khi role=member: Đang training → Chính thức (Ch.2.4)
+    // Khi có member trong roles: Đang training → Chính thức (Ch.2.4)
     memberStatus: {
       type: String,
       enum: MEMBER_STATUS,
@@ -30,26 +38,44 @@ const userSchema = new mongoose.Schema(
     },
     emailVerified: { type: Boolean, default: false },
     avatar: { type: String, default: "" },
-    // Bắt buộc đổi mật khẩu ở lần đăng nhập đầu (tài khoản Ứng viên sinh tự động,
-    // password mặc định là ngày sinh DDMMYYYY) — không cho bỏ qua.
     requirePasswordChange: { type: Boolean, default: false },
-    // Liên kết ngược tới hồ sơ ứng tuyển gốc (tài khoản sinh từ luồng tuyển thành viên)
     sourceApplicationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Application",
       default: null,
     },
-    // Vô hiệu hoá thay vì xoá (rớt phỏng vấn / không trúng tuyển)
     isActive: { type: Boolean, default: true },
-    // Member được đẩy quyền làm mentor dẫn team vòng training
     isMentor: { type: Boolean, default: false },
+    // Denormalized tên ban (cache) — nguồn chính là departmentId
+    department: { type: String, trim: true, default: "" },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ClubDepartment",
+      default: null,
+    },
+    departmentJoinedAt: { type: Date, default: null },
+    phone: { type: String, trim: true, default: "" },
+    bio: { type: String, trim: true, default: "", maxlength: 200 },
+    studentId: { type: String, trim: true, default: "" },
+    generation: { type: String, trim: true, default: "" },
+    clubStatus: {
+      type: String,
+      enum: CLUB_STATUS,
+      default: "active",
+    },
   },
   { timestamps: true },
 );
 
 userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ role: 1, clubStatus: 1 });
+userSchema.index({ roles: 1 });
+userSchema.index({ departmentId: 1 });
 
 userSchema.pre("save", async function hashPassword(next) {
+  if (!this.roles?.length && this.role) {
+    this.roles = [this.role];
+  }
   if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 10);
   return next();
@@ -60,12 +86,12 @@ userSchema.methods.comparePassword = function comparePassword(plain) {
   return bcrypt.compare(plain, this.password);
 };
 
-// Strip sensitive fields from JSON output.
 userSchema.set("toJSON", {
   virtuals: true,
   transform(_doc, ret) {
     delete ret.password;
     delete ret.__v;
+    if (!ret.roles?.length && ret.role) ret.roles = [ret.role];
     return ret;
   },
 });

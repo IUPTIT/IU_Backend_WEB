@@ -7,10 +7,16 @@ export const JOB_CREATE_CANDIDATE_ACCOUNT = "createCandidateAccount";
 
 // Mật khẩu mặc định = ngày sinh DDMMYYYY (bắt buộc đổi ở lần đăng nhập đầu)
 function passwordFromDob(dateOfBirth) {
+  const raw = String(dateOfBirth ?? "");
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw.slice(0, 10));
+  if (m) return `${m[3]}${m[2]}${m[1]}`;
   const d = new Date(dateOfBirth);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}${mm}${d.getFullYear()}`;
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("dateOfBirth không hợp lệ");
+  }
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}${mm}${d.getUTCFullYear()}`;
 }
 
 export function defineCreateCandidateAccountJob() {

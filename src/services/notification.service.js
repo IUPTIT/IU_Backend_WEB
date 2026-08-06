@@ -1,4 +1,6 @@
-import Notification from "../models/notification.model.js";
+import Notification, {
+  NOTIFICATION_TYPES,
+} from "../models/notification.model.js";
 
 export async function createNotification({
   userId,
@@ -8,7 +10,13 @@ export async function createNotification({
   link = null,
 }) {
   if (!userId) return null;
-  return Notification.create({ userId, title, body, type, link });
+  // Type lạ vẫn phải gửi được thông báo, không để rơi im lặng vì lỗi enum
+  let safeType = type;
+  if (!NOTIFICATION_TYPES.includes(safeType)) {
+    console.warn(`[notification] unknown type "${type}", fallback to general`);
+    safeType = "general";
+  }
+  return Notification.create({ userId, title, body, type: safeType, link });
 }
 
 export function listForUser(userId, { limit = 30 } = {}) {

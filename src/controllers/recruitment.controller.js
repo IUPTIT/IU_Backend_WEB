@@ -80,6 +80,11 @@ export const listApplications = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Danh sách hồ sơ", data: result });
 });
 
+export const getApplication = catchAsync(async (req, res) => {
+  const application = await applicationService.getApplicationById(req.params.id);
+  sendSuccess(res, { message: "Chi tiết hồ sơ", data: { application } });
+});
+
 // ---- Phần 2: chấm điểm & quyết định vòng đơn ----
 
 export const scoreApplication = catchAsync(async (req, res) => {

@@ -2,11 +2,59 @@ import ApiError from "../utils/ApiError.js";
 import RecruitmentCampaign from "../models/recruitmentCampaign.model.js";
 import ApplicationForm from "../models/applicationForm.model.js";
 import Application from "../models/application.model.js";
+import ClubDepartment from "../models/clubDepartment.model.js";
+
+/** Chỉ tiêu phải trùng tên Ban CLB đang active. */
+async function assertQuotasMatchDepartments(quotas) {
+  if (!Array.isArray(quotas) || quotas.length === 0) return;
+  const names = quotas.map((q) => String(q.department || "").trim()).filter(Boolean);
+  const depts = await ClubDepartment.find({
+    status: "active",
+    name: { $in: names },
+  }).select("name");
+  const ok = new Set(depts.map((d) => d.name));
+  const unknown = names.filter((n) => !ok.has(n));
+  if (unknown.length) {
+    throw ApiError.badRequest(
+      `Chỉ tiêu không khớp Ban CLB: ${unknown.join(", ")}. Tạo Ban trước hoặc chọn đúng tên Ban.`,
+    );
+  }
+}
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function countRegisteredApplicants(campaignId) {
+  return Application.countDocuments({
+    campaignId,
+    status: { $ne: "draft" },
+  });
+}
 
 // Tạo đợt tuyển (draft) + seed sẵn form với 10 trường cố định (1-1 với campaign)
 export async function createCampaign(data, createdBy) {
+  await assertQuotasMatchDepartments(data.quotas);
+
+  const name = String(data.name || "").trim();
+  if (!name) throw ApiError.badRequest("Tên đợt đăng ký là bắt buộc");
+
+  const dup = await RecruitmentCampaign.findOne({
+    name: new RegExp(`^${escapeRegex(name)}$`, "i"),
+  });
+  if (dup) {
+    throw ApiError.conflict("Tên đợt đăng ký đã tồn tại");
+  }
+
+  if (data.openAt && data.closeAt && new Date(data.openAt) >= new Date(data.closeAt)) {
+    throw ApiError.badRequest(
+      "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc",
+    );
+  }
+
   const campaign = await RecruitmentCampaign.create({
     ...data,
+    name,
     status: "draft",
     createdBy,
   });
@@ -39,13 +87,39 @@ export function listActiveCampaigns() {
 export async function updateCampaign(id, data) {
   const campaign = await getCampaign(id);
 
-  if (campaign.status !== "draft") {
-    // Sau publish chỉ được gia hạn/rút ngắn closeAt hoặc điều chỉnh quotas (spec 2.3)
-    const allowed = ["closeAt", "quotas", "description"];
-    const illegal = Object.keys(data).filter((k) => !allowed.includes(k));
-    if (illegal.length) {
+  if (data.quotas) await assertQuotasMatchDepartments(data.quotas);
+
+  const applicants = await countRegisteredApplicants(campaign._id);
+  if (applicants > 0) {
+    // Đã có ứng viên: không cho sửa tên / thời gian mở-đóng
+    const lockedKeys = ["name", "openAt", "closeAt"];
+    const tryingLocked = lockedKeys.filter((k) => data[k] !== undefined);
+    if (tryingLocked.length) {
       throw ApiError.badRequest(
-        `Đợt tuyển đã publish chỉ cho phép sửa: ${allowed.join(", ")}`,
+        "This recruitment campaign already has registered applicants. Recruitment information cannot be modified.",
+      );
+    }
+  }
+
+  if (data.name) {
+    const name = String(data.name).trim();
+    const dup = await RecruitmentCampaign.findOne({
+      _id: { $ne: campaign._id },
+      name: new RegExp(`^${escapeRegex(name)}$`, "i"),
+    });
+    if (dup) throw ApiError.conflict("Tên đợt đăng ký đã tồn tại");
+    data.name = name;
+  }
+
+  if (
+    (data.openAt || campaign.openAt) &&
+    (data.closeAt || campaign.closeAt)
+  ) {
+    const open = new Date(data.openAt ?? campaign.openAt);
+    const close = new Date(data.closeAt ?? campaign.closeAt);
+    if (open >= close) {
+      throw ApiError.badRequest(
+        "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc",
       );
     }
   }
@@ -69,13 +143,13 @@ export async function updateCampaign(id, data) {
   return campaign;
 }
 
+/** Kích hoạt: draft/closed → open (Inactive → Active). Chỉ Active hiện cho SV. */
 export async function publishCampaign(id) {
   const campaign = await getCampaign(id);
-  if (campaign.status !== "draft") {
-    throw ApiError.badRequest(
-      "Chỉ đợt tuyển ở trạng thái draft mới được publish",
-    );
+  if (campaign.status === "completed") {
+    throw ApiError.badRequest("Không thể kích hoạt đợt đã hoàn tất");
   }
+  if (campaign.status === "open") return campaign;
 
   // Không cho 2 đợt "open" trùng thời gian cho cùng một ban (nghiệp vụ 0.1)
   const departments = campaign.quotas.map((q) => q.department);
@@ -102,10 +176,14 @@ export async function publishCampaign(id) {
   return campaign;
 }
 
+/** Tắt kích hoạt: ngừng nhận đăng ký, giữ dữ liệu (open → closed). */
 export async function closeCampaign(id) {
   const campaign = await getCampaign(id);
+  if (campaign.status === "completed") {
+    throw ApiError.badRequest("Đợt đã hoàn tất");
+  }
   if (campaign.status !== "open") {
-    throw ApiError.badRequest("Chỉ đợt tuyển đang mở mới được đóng");
+    return campaign;
   }
   campaign.status = "closed";
   await campaign.save();
@@ -125,12 +203,11 @@ export async function completeCampaign(id) {
 
 export async function deleteCampaign(id) {
   const campaign = await getCampaign(id);
-  const submitted = await Application.countDocuments({
-    campaignId: campaign._id,
-    status: { $ne: "draft" },
-  });
+  const submitted = await countRegisteredApplicants(campaign._id);
   if (submitted > 0) {
-    throw ApiError.badRequest("Không thể xoá đợt tuyển đã có hồ sơ nộp");
+    throw ApiError.badRequest(
+      "This recruitment campaign has registered applicants and cannot be deleted.",
+    );
   }
   await Application.deleteMany({ campaignId: campaign._id });
   await ApplicationForm.deleteOne({ campaignId: campaign._id });

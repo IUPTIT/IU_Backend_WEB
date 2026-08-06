@@ -1,6 +1,22 @@
 /**
+ * DEPRECATED — dữ liệu @example.com. Hệ thống dùng email thật: npm run seed:real
+ * Chỉ chạy được khi ALLOW_FAKE_SEED=1.
+ */
+import dotenv from "dotenv";
+
+dotenv.config();
+
+if (process.env.ALLOW_FAKE_SEED !== "1") {
+  console.error(
+    "[seed:demo] Đã tắt. Dùng `npm run seed:real` (email thật).\n" +
+      "Muốn chạy demo cũ: ALLOW_FAKE_SEED=1 npm run seed:demo",
+  );
+  process.exit(1);
+}
+
+/**
  * Seed tài khoản demo + dữ liệu training tối thiểu (idempotent).
- * Chạy: npm run seed:demo
+ * Chạy: ALLOW_FAKE_SEED=1 npm run seed:demo
  *
  * Tài khoản (mật khẩu chung: Demo@12345):
  *   bcn      → lấy từ ADMIN_* trong .env (hoặc tạo nếu thiếu)
@@ -8,10 +24,6 @@
  *   mentor@example.com   (member + isMentor)
  *   trainee1@example.com … trainee3@example.com
  */
-import dotenv from "dotenv";
-
-dotenv.config();
-
 const { connectDatabase, disconnectDatabase } =
   await import("../config/database.js");
 const { default: User } = await import("../models/user.model.js");

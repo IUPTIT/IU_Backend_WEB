@@ -261,7 +261,7 @@ async function assertEditable(application) {
 export async function editApplication(code, email, data) {
   const application = await lookupApplication({ code });
   assertOwner(application, email);
-  assertEditable(application);
+  await assertEditable(application);
 
   const campaign = await campaignService.getCampaign(
     application.campaignId._id ?? application.campaignId,
@@ -295,11 +295,36 @@ export async function editApplication(code, email, data) {
 export async function withdrawApplication(code, email) {
   const application = await lookupApplication({ code });
   assertOwner(application, email);
-  assertEditable(application);
+  await assertEditable(application);
   await Application.deleteOne({ _id: application._id });
 }
 
 // ---- BCN: danh sách hồ sơ vòng đơn ----
+
+async function enrichWithScores(applications) {
+  if (!applications.length) return [];
+  const averages = await ApplicationScore.aggregate([
+    { $match: { applicationId: { $in: applications.map((a) => a._id) } } },
+    {
+      $group: {
+        _id: { applicationId: "$applicationId", round: "$round" },
+        avg: { $avg: "$totalScore" },
+      },
+    },
+  ]);
+  const scoreMap = new Map(
+    averages.map((s) => [`${s._id.applicationId}:${s._id.round}`, s.avg]),
+  );
+  return applications.map((doc) => {
+    const obj = doc.toObject({ virtuals: true });
+    const cv = scoreMap.get(`${doc._id}:cv`);
+    const interview = scoreMap.get(`${doc._id}:interview`);
+    obj.cvScore = cv != null ? Number(cv.toFixed(2)) : null;
+    obj.interviewScore =
+      interview != null ? Number(interview.toFixed(2)) : null;
+    return obj;
+  });
+}
 
 export async function listApplications({
   campaignId,
@@ -326,33 +351,23 @@ export async function listApplications({
     Application.countDocuments(filter),
   ]);
 
-  // Đính kèm điểm trung bình từng vòng (thang 0-100) để FE hiển thị danh sách
-  const averages = await ApplicationScore.aggregate([
-    { $match: { applicationId: { $in: applications.map((a) => a._id) } } },
-    {
-      $group: {
-        _id: { applicationId: "$applicationId", round: "$round" },
-        avg: { $avg: "$totalScore" },
-      },
-    },
-  ]);
-  const scoreMap = new Map(
-    averages.map((s) => [`${s._id.applicationId}:${s._id.round}`, s.avg]),
-  );
-  const enriched = applications.map((doc) => {
-    const obj = doc.toObject({ virtuals: true });
-    const cv = scoreMap.get(`${doc._id}:cv`);
-    const interview = scoreMap.get(`${doc._id}:interview`);
-    obj.cvScore = cv != null ? Number(cv.toFixed(2)) : null;
-    obj.interviewScore =
-      interview != null ? Number(interview.toFixed(2)) : null;
-    return obj;
-  });
-
   return {
-    applications: enriched,
+    applications: await enrichWithScores(applications),
     total,
     page: numericPage,
     limit: numericLimit,
   };
+}
+
+/** Chi tiết 1 hồ sơ (BCN) — kèm điểm TB vòng đơn / PV */
+export async function getApplicationById(id) {
+  const application = await Application.findOne({
+    _id: id,
+    status: { $ne: "draft" },
+  })
+    .populate("campaignId", "name closeAt status")
+    .populate("reviewerIds", "name email");
+  if (!application) throw ApiError.notFound("Không tìm thấy hồ sơ ứng tuyển");
+  const [enriched] = await enrichWithScores([application]);
+  return enriched;
 }

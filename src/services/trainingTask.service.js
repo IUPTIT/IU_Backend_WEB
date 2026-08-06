@@ -3,10 +3,16 @@ import TrainingTask from "../models/trainingTask.model.js";
 import TrainingGroup from "../models/trainingGroup.model.js";
 import Trainee from "../models/trainee.model.js";
 
-// BCN/Leader quản được mọi team; mentor chỉ quản team mình dẫn
+// BCN quản được mọi team; Mentor chỉ quản team mình phụ trách.
 function assertCanManageGroup(user, group) {
-  if (["bcn", "leader"].includes(user.role)) return;
-  if (group.mentorId && String(group.mentorId) === String(user.id)) return;
+  if (user.role === "bcn") return;
+  if (
+    user.isMentor &&
+    group.mentorId &&
+    String(group.mentorId) === String(user.id)
+  ) {
+    return;
+  }
   throw ApiError.forbidden("Bạn không phải mentor của team này");
 }
 
@@ -57,7 +63,7 @@ export async function listTasks({ groupId }, user) {
     const group = await getGroup(groupId);
     assertCanManageGroup(user, group);
     filter.groupId = group._id;
-  } else if (!["bcn", "leader"].includes(user.role)) {
+  } else if (user.role !== "bcn") {
     // Mentor không truyền groupId → chỉ thấy task của các team mình dẫn
     const myGroups = await TrainingGroup.find({ mentorId: user.id }).select(
       "_id",
@@ -148,6 +154,35 @@ export async function submitTask(taskId, data, user) {
   assignment.submissionUrl = data.submissionUrl ?? "";
   assignment.submissionNote = data.submissionNote ?? "";
   assignment.submittedAt = new Date();
+  if (!assignment.workStartedAt) assignment.workStartedAt = new Date();
+  await task.save();
+  return task;
+}
+
+/** Tân binh ghi nhật ký tiến độ (không đổi sang submitted) */
+export async function addProgressLog(taskId, content, user) {
+  const text = String(content || "").trim();
+  if (!text) throw ApiError.badRequest("Nội dung nhật ký bắt buộc");
+  if (text.length > 2000) {
+    throw ApiError.badRequest("Nhật ký tối đa 2000 ký tự");
+  }
+  const trainee = await getMyTrainee(user);
+  const task = await TrainingTask.findById(taskId);
+  if (!task) throw ApiError.notFound("Không tìm thấy task");
+  const assignment = task.assignments.find(
+    (a) => String(a.traineeId) === String(trainee._id),
+  );
+  if (!assignment) throw ApiError.forbidden("Bạn không được giao task này");
+  if (assignment.status === "approved") {
+    throw ApiError.badRequest("Bài đã duyệt — không cập nhật nhật ký nữa");
+  }
+  if (!Array.isArray(assignment.progressLogs)) assignment.progressLogs = [];
+  assignment.progressLogs.push({ content: text, createdAt: new Date() });
+  if (!assignment.workStartedAt) assignment.workStartedAt = new Date();
+  // Đánh dấu đang làm nếu còn trạng thái chưa nộp
+  if (assignment.status === "assigned" || assignment.status === "rejected") {
+    // giữ assigned/rejected — "In Progress" suy ra từ workStartedAt / progressLogs
+  }
   await task.save();
   return task;
 }

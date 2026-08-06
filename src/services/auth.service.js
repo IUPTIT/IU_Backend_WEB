@@ -100,19 +100,22 @@ export async function forgotPassword({ email }) {
   await emailService.sendPasswordResetEmail(user.email, resetToken);
 }
 
-export async function resetPassword({ email, token, password }) {
-  const user = await User.findOne({ email });
-  if (!user) throw ApiError.badRequest("Invalid reset request");
-
-  const record = await tokenService.consumeToken(
-    user.id,
+export async function resetPassword({ token, password }) {
+  const record = await tokenService.consumeTokenByValue(
     token,
     TOKEN_TYPES.RESET_PASSWORD,
   );
-  if (!record) throw ApiError.badRequest("Invalid or expired reset token");
+  if (!record) throw ApiError.badRequest("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+
+  const user = await User.findById(record.user).select("+password");
+  if (!user) throw ApiError.badRequest("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
 
   user.password = password;
+  user.requirePasswordChange = false;
   await user.save();
+
+  // Đặt lại mật khẩu → thu hồi mọi phiên đăng nhập cũ
+  await tokenService.revokeAllRefreshTokens(user.id);
 }
 
 export async function changePassword(userId, { currentPassword, newPassword }) {
@@ -133,6 +136,24 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
   // Đổi mật khẩu → thu hồi mọi refresh token cũ, buộc các thiết bị khác đăng nhập lại
   await tokenService.revokeAllRefreshTokens(user.id);
   return issueTokens(user).then((tokens) => ({ user, ...tokens }));
+}
+
+/** User tự cập nhật hồ sơ của mình (tên, điện thoại, giới thiệu, avatar). */
+export async function updateMyProfile(userId, data) {
+  const user = await User.findById(userId);
+  if (!user) throw ApiError.unauthorized();
+
+  if (data.name !== undefined) {
+    const name = String(data.name).trim();
+    if (!name) throw ApiError.badRequest("Tên hiển thị không được để trống");
+    user.name = name;
+  }
+  if (data.phone !== undefined) user.phone = String(data.phone).trim();
+  if (data.bio !== undefined) user.bio = String(data.bio).trim();
+  if (data.avatar !== undefined) user.avatar = data.avatar;
+
+  await user.save();
+  return user;
 }
 
 /**

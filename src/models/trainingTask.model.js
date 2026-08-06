@@ -23,6 +23,14 @@ const assignmentSchema = new mongoose.Schema(
     submissionUrl: { type: String, default: "" },
     submissionNote: { type: String, default: "" },
     submittedAt: { type: Date, default: null },
+    /** Nhật ký tiến độ tân binh cập nhật trước khi nộp chính thức */
+    progressLogs: [
+      {
+        content: { type: String, required: true, trim: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    workStartedAt: { type: Date, default: null },
     // Mentor chấm: nhận xét + điểm (thang 10), rejected thì trainee nộp lại được
     feedback: { type: String, default: "" },
     score: { type: Number, min: 0, max: 10, default: null },

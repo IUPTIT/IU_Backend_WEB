@@ -1,10 +1,21 @@
 import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import config from "../config/env.js";
 
-// Lazily built transport; when SMTP is unset, emails are logged to console.
+// Lazily built SMTP transport (chỉ dùng khi không có SendGrid).
 let transporter = null;
+let sendgridReady = false;
 
-function getTransporter() {
+function ensureSendgrid() {
+  if (!config.sendgrid.enabled) return false;
+  if (!sendgridReady) {
+    sgMail.setApiKey(config.sendgrid.apiKey);
+    sendgridReady = true;
+  }
+  return true;
+}
+
+function getSmtpTransporter() {
   if (!config.smtp.enabled) return null;
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -18,12 +29,88 @@ function getTransporter() {
 }
 
 async function send({ to, subject, html, text }) {
-  const tx = getTransporter();
+  const from = config.emailFrom;
+
+  // 1) SendGrid Web API — ổn định trên PaaS (không phụ thuộc SMTP outbound)
+  if (ensureSendgrid()) {
+    try {
+      await sgMail.send({
+        to,
+        from,
+        subject,
+        text: text || undefined,
+        html: html || undefined,
+      });
+      return { delivered: true, logged: false, provider: "sendgrid" };
+    } catch (err) {
+      const detail = err?.response?.body
+        ? JSON.stringify(err.response.body)
+        : err.message;
+      const tx = getSmtpTransporter();
+      // Sender chưa verify trên SendGrid → fallback SMTP nếu còn cấu hình (local)
+      if (tx && /verified Sender Identity/i.test(detail)) {
+        console.warn(
+          `[email:sendgrid] Sender chưa verify — fallback SMTP. Chi tiết: ${detail}`,
+        );
+        await tx.sendMail({ from, to, subject, html, text });
+        return {
+          delivered: true,
+          logged: false,
+          provider: "smtp-fallback",
+        };
+      }
+      console.error(`[email:sendgrid] To: ${to} | ${subject} — ${detail}`);
+      throw new Error(`SendGrid gửi thất bại: ${detail}`);
+    }
+  }
+
+  // 2) SMTP (local / legacy)
+  const tx = getSmtpTransporter();
   if (!tx) {
     console.log(`[email:dev] To: ${to} | ${subject}\n${text ?? html}`);
-    return;
+    return { delivered: false, logged: true, provider: "console" };
   }
-  await tx.sendMail({ from: config.smtp.from, to, subject, html, text });
+  await tx.sendMail({ from, to, subject, html, text });
+  return { delivered: true, logged: false, provider: "smtp" };
+}
+
+/** Gửi email tùy chỉnh (subject/html đã render sẵn từ FE). */
+export async function sendRawEmail({ to, subject, html, text }) {
+  if (!to) throw new Error("Thiếu địa chỉ email người nhận");
+  if (!subject?.trim()) throw new Error("Subject không được trống");
+  return send({ to, subject, html, text });
+}
+
+/**
+ * Gửi hàng loạt. Mỗi phần tử đã có subject/html riêng (FE render placeholder).
+ * Không dừng cả batch khi 1 thư lỗi.
+ */
+export async function sendBulkEmails(messages) {
+  let sent = 0;
+  let failed = 0;
+  let logged = 0;
+  const errors = [];
+  for (const msg of messages) {
+    try {
+      const result = await sendRawEmail(msg);
+      if (result.delivered) {
+        sent += 1;
+      } else if (result.logged) {
+        // SMTP tắt — chỉ ghi log console, không tính là đã gửi thật
+        logged += 1;
+      } else {
+        failed += 1;
+        errors.push({ to: msg.to, message: "Không gửi được email" });
+      }
+    } catch (err) {
+      failed += 1;
+      errors.push({
+        to: msg.to,
+        message: err instanceof Error ? err.message : "Gửi thất bại",
+      });
+    }
+  }
+  return { sent, failed, logged, errors };
 }
 
 /* =====================================================================
@@ -177,96 +264,93 @@ export function sendDraftLinkEmail(application, draftToken) {
   });
 }
 
-// Pass vòng đơn — gửi kèm tài khoản candidate (mật khẩu mặc định là ngày sinh DDMMYYYY)
-export function sendCandidateAccountEmail(application, rawPassword) {
+// Pass vòng đơn — Auto Rule `cv_pass` (tắt rule = không gửi)
+export async function sendCandidateAccountEmail(application, rawPassword) {
   const loginUrl = `${config.clientUrl}/login`;
-  return send({
+  const automation = await import("./emailAutomation.service.js");
+  // Lúc Pass CV thường chưa có lịch — placeholder mặc định; Admin sửa template trong Settings
+  return automation.dispatchAutomatedEmail("cv_pass", {
     to: application.email,
-    subject: `Chúc mừng bạn đã vượt qua vòng đơn IU CLUB! (${application.applicationCode})`,
-    text: `Chuc mung! Ho so dat vong don. Tai khoan: ${application.email} / ${rawPassword}. Dang nhap tai ${loginUrl} de dat lich phong van.`,
-    html: renderEmail({
-      title: "Bạn đã vượt qua vòng đơn! 🚀",
-      intro: `Chúc mừng <b style="color:${COLORS.text}">${application.fullName}</b>! Hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> đã <b style="color:${COLORS.text}">ĐẠT vòng đơn</b>. Bước tiếp theo: đăng nhập và chọn ca phỏng vấn.`,
-      rows: [
-        { label: "Tài khoản", value: application.email },
-        { label: "Mật khẩu", value: rawPassword },
-      ],
-      cta: { label: "Đăng nhập & đặt lịch phỏng vấn", url: loginUrl },
-      note: "Hệ thống sẽ yêu cầu đổi mật khẩu ngay lần đăng nhập đầu tiên. Vào mục <b>Lịch phỏng vấn</b> để chọn ca phù hợp.",
+    data: automation.applicationEmailData(application, {
+      result: "ĐẠT vòng đơn — vào Vòng Phỏng vấn",
+      temp_password: rawPassword,
+      login_url: loginUrl,
+      interview_time:
+        "Đăng nhập portal để chọn ca phỏng vấn phù hợp",
+      location:
+        "Sẽ hiển thị khi bạn đăng ký lịch (hoặc Ban Tuyển thông báo)",
+      interview_date: "—",
     }),
   });
 }
 
-// Thông báo bị loại — round: "failed_cv" | "failed_interview" | "rejected"
-export function sendApplicationRejectedEmail(application, round) {
+// Thông báo bị loại — map status → eventKey automation
+export async function sendApplicationRejectedEmail(application, round) {
+  const automation = await import("./emailAutomation.service.js");
+  const eventKey =
+    round === "failed_cv"
+      ? "cv_fail"
+      : round === "failed_interview"
+        ? "interview_fail"
+        : "final_fail";
   const roundLabel =
     round === "failed_cv"
       ? "vòng đơn"
       : round === "failed_interview"
         ? "vòng phỏng vấn"
         : "vòng xét duyệt cuối";
-  const accountNote =
-    round === "failed_cv"
-      ? "Hẹn gặp lại bạn ở đợt tuyển sau — đừng nản nhé!"
-      : "Tài khoản ứng viên của bạn đã được vô hiệu hoá. Hẹn gặp lại bạn ở đợt tuyển sau!";
-  return send({
+  return automation.dispatchAutomatedEmail(eventKey, {
     to: application.email,
-    subject: `Kết quả ứng tuyển IU CLUB (${application.applicationCode})`,
-    text: `Cam on ban da ung tuyen. Rat tiec ho so chua phu hop o ${roundLabel}. ${accountNote}`,
-    html: renderEmail({
-      title: "Kết quả ứng tuyển",
-      intro: `Cảm ơn <b style="color:${COLORS.text}">${application.fullName}</b> đã dành thời gian ứng tuyển vào IU CLUB. Rất tiếc hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> của bạn chưa phù hợp ở <b style="color:${COLORS.text}">${roundLabel}</b>.`,
-      note: accountNote,
+    data: automation.applicationEmailData(application, {
+      result: `Không đạt ${roundLabel}`,
     }),
   });
 }
 
-// Đạt vòng phỏng vấn — chúc mừng, chờ kết quả xét duyệt cuối
-export function sendInterviewPassedEmail(application) {
-  return send({
-    to: application.email,
-    subject: `Chúc mừng bạn đã vượt qua vòng phỏng vấn IU CLUB! (${application.applicationCode})`,
-    text: `Chuc mung ${application.fullName}! Ban da DAT vong phong van. Ket qua trung tuyen chinh thuc se duoc thong bao qua email sau khi BCN xet duyet cuoi.`,
-    html: renderEmail({
-      title: "Bạn đã vượt qua vòng phỏng vấn! 🎉",
-      intro: `Chúc mừng <b style="color:${COLORS.text}">${application.fullName}</b>! Hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> đã <b style="color:${COLORS.text}">ĐẠT vòng phỏng vấn</b>.`,
-      note: "Ban Chủ nhiệm đang tổng hợp kết quả — thông báo trúng tuyển chính thức sẽ được gửi qua email trong thời gian sớm nhất. Cảm ơn bạn đã đồng hành!",
-    }),
-  });
-}
-
-// Trúng tuyển chính thức — tài khoản được nâng thành Member
-export function sendAdmittedEmail(application) {
+// Đạt vòng phỏng vấn
+export async function sendInterviewPassedEmail(application) {
+  const automation = await import("./emailAutomation.service.js");
   const loginUrl = `${config.clientUrl}/login`;
-  return send({
+  return automation.dispatchAutomatedEmail("interview_pass", {
     to: application.email,
-    subject: `Chúc mừng bạn đã TRÚNG TUYỂN IU CLUB! (${application.applicationCode})`,
-    text: `Chuc mung ${application.fullName}! Ban da chinh thuc tro thanh thanh vien IU CLUB. Dang nhap tai ${loginUrl}.`,
-    html: renderEmail({
-      title: "Chào mừng thành viên mới! 🎊",
-      intro: `Chúc mừng <b style="color:${COLORS.text}">${application.fullName}</b>! Bạn đã chính thức trở thành thành viên IU CLUB. Tài khoản của bạn đã được nâng thành <b style="color:${COLORS.accent}">Member</b>.`,
-      cta: { label: "Đăng nhập ngay", url: loginUrl },
-      note: "Hành trình mới bắt đầu — hẹn gặp bạn ở buổi sinh hoạt đầu tiên!",
+    data: automation.applicationEmailData(application, {
+      result: "ĐẠT vòng phỏng vấn",
+      login_url: loginUrl,
     }),
   });
 }
 
-// Xác nhận đặt / đổi lịch phỏng vấn thành công
-export function sendBookingConfirmedEmail(application, slot) {
-  const date = new Date(slot.date).toLocaleDateString("vi-VN");
-  return send({
+// Trúng tuyển — final_pass (+ welcome_member nếu bật)
+export async function sendAdmittedEmail(application) {
+  const automation = await import("./emailAutomation.service.js");
+  const loginUrl = `${config.clientUrl}/login`;
+  const data = automation.applicationEmailData(application, {
+    result: "TRÚNG TUYỂN",
+    login_url: loginUrl,
+  });
+  const r1 = await automation.dispatchAutomatedEmail("final_pass", {
     to: application.email,
-    subject: `IU CLUB — Xác nhận lịch phỏng vấn (${application.applicationCode})`,
-    text: `Ban da dat lich phong van: ${date} ${slot.startTime}-${slot.endTime} tai ${slot.location}.`,
-    html: renderEmail({
-      title: "Đã xác nhận lịch phỏng vấn ✅",
-      intro: `Bạn đã đặt lịch phỏng vấn thành công. Thông tin chi tiết:`,
-      rows: [
-        { label: "Ngày", value: date },
-        { label: "Giờ", value: `${slot.startTime} - ${slot.endTime}` },
-        { label: "Địa điểm", value: slot.location },
-      ],
-      note: "Vui lòng có mặt trước 10 phút. Chúc bạn phỏng vấn thật tốt!",
+    data,
+  });
+  await automation.dispatchAutomatedEmail("welcome_member", {
+    to: application.email,
+    data,
+  });
+  return r1;
+}
+
+// Xác nhận đặt / đổi lịch phỏng vấn
+export async function sendBookingConfirmedEmail(application, slot) {
+  const date = new Date(slot.date).toLocaleDateString("vi-VN");
+  const automation = await import("./emailAutomation.service.js");
+  return automation.dispatchAutomatedEmail("booking_confirmed", {
+    to: application.email,
+    data: automation.applicationEmailData(application, {
+      interview_date: date,
+      interview_time: `${slot.startTime} - ${slot.endTime}`,
+      location: slot.location || "—",
+      meeting_link: slot.meetingLink || "",
+      result: "Đã xác nhận lịch",
     }),
   });
 }
@@ -278,12 +362,16 @@ export function sendInterviewerAssignedEmail(user, slot) {
   const path =
     user.role === "bcn"
       ? `/admin/recruitment/interviews/slots/${slotId}`
-      : `/leader/recruitment/interviews/slots/${slotId}`;
+      : user.role === "member"
+        ? `/member/recruitment/interviews/slots/${slotId}`
+        : `/leader/recruitment/interviews/slots/${slotId}`;
   const url = `${config.clientUrl}${path}`;
   const portalHint =
     user.role === "bcn"
       ? "Vào Admin › Tuyển dụng › Phỏng vấn để xem ứng viên và chấm điểm."
-      : "Vào Leader Portal › Tuyển dụng › Ca của tôi để xem danh sách ứng viên và chấm điểm.";
+      : user.role === "member"
+        ? "Vào Member Portal › Ca phỏng vấn của tôi để xem ứng viên và chấm điểm."
+        : "Vào Leader Portal › Tuyển dụng › Ca của tôi để xem danh sách ứng viên và chấm điểm.";
   return send({
     to: user.email,
     subject: `IU CLUB — Bạn được phân công phỏng vấn (${date} ${slot.startTime})`,
@@ -306,22 +394,24 @@ export function sendInterviewerAssignedEmail(user, slot) {
   });
 }
 
-// Nhắc lịch phỏng vấn sắp diễn ra (job quét, trước 24h và 2h)
-export function sendInterviewReminderEmail(application, slot, timeLeftLabel) {
+/** Nhắc lịch PV — truyền ruleKey (vd. interview_remind_24h) để chỉ gửi 1 mốc */
+export async function sendInterviewReminderEmail(
+  application,
+  slot,
+  timeLeftLabel,
+  { ruleKey } = {},
+) {
   const date = new Date(slot.date).toLocaleDateString("vi-VN");
-  return send({
+  const automation = await import("./emailAutomation.service.js");
+  return automation.dispatchAutomatedEmail("interview_remind", {
     to: application.email,
-    subject: `IU CLUB — Nhắc lịch phỏng vấn còn ${timeLeftLabel} (${application.applicationCode})`,
-    text: `Nhac lich: ban co lich phong van luc ${slot.startTime} ngay ${date} tai ${slot.location} (con ${timeLeftLabel}).`,
-    html: renderEmail({
-      title: `Phỏng vấn của bạn còn ${timeLeftLabel} nữa ⏰`,
-      intro: `Nhắc bạn lịch phỏng vấn IU CLUB sắp diễn ra — đừng quên nhé!`,
-      rows: [
-        { label: "Ngày", value: date },
-        { label: "Giờ", value: `${slot.startTime} - ${slot.endTime}` },
-        { label: "Địa điểm", value: slot.location },
-      ],
-      note: "Vui lòng có mặt trước 10 phút. Chúc bạn tự tin và may mắn!",
+    ruleKey,
+    data: automation.applicationEmailData(application, {
+      interview_date: date,
+      interview_time: `${slot.startTime} - ${slot.endTime}`,
+      location: slot.location || "—",
+      time_left: timeLeftLabel,
+      result: `Nhắc lịch — còn ${timeLeftLabel}`,
     }),
   });
 }
@@ -344,7 +434,7 @@ export function sendPasswordResetEmail(to, resetToken) {
 
 /** Thông báo tân binh đã được chia nhóm training + mentor */
 export function sendTrainingGroupAssignedEmail(trainee, group, mentorName) {
-  const url = `${config.clientUrl}/member/training/roadmap`;
+  const url = `${config.clientUrl}/candidate/training`;
   return send({
     to: trainee.email,
     subject: `IU CLUB — Bạn đã được chia nhóm training (${group.name})`,
@@ -360,7 +450,7 @@ export function sendTrainingGroupAssignedEmail(trainee, group, mentorName) {
 
 /** Nhắc lần cuối khi chưa hoàn thành training đúng hạn */
 export function sendTrainingIncompleteReminderEmail(trainee, reason) {
-  const url = `${config.clientUrl}/member/training/progress`;
+  const url = `${config.clientUrl}/candidate/training`;
   return send({
     to: trainee.email,
     subject: "IU CLUB — Nhắc hoàn thành chương trình training",
@@ -376,7 +466,7 @@ export function sendTrainingIncompleteReminderEmail(trainee, reason) {
 
 /** Nhắc deadline task training sắp tới / quá hạn */
 export function sendTaskDeadlineReminderEmail(trainee, task, timeLeftLabel) {
-  const url = `${config.clientUrl}/member/training/tasks`;
+  const url = `${config.clientUrl}/candidate/training`;
   return send({
     to: trainee.email,
     subject: `IU CLUB — Nhắc task training: ${task.title}`,
@@ -390,18 +480,53 @@ export function sendTaskDeadlineReminderEmail(trainee, task, timeLeftLabel) {
   });
 }
 
-/** Nhắc ứng viên chưa đặt lịch phỏng vấn sau X ngày Pass vòng đơn */
-export function sendUnbookedReminderEmail(application) {
+/** Nhắc đăng ký lịch PV — Auto Rule book_slot_remind */
+export async function sendUnbookedReminderEmail(
+  application,
+  { deadlineLabel } = {},
+) {
   const loginUrl = `${config.clientUrl}/login`;
-  return send({
+  const deadline =
+    deadlineLabel ||
+    "trước khi hết hạn đăng ký lịch (xem portal ứng viên)";
+  const automation = await import("./emailAutomation.service.js");
+  return automation.dispatchAutomatedEmail("book_slot_remind", {
     to: application.email,
-    subject: `IU CLUB — Nhắc đặt lịch phỏng vấn (${application.applicationCode})`,
-    text: `Ban da dat vong don nhung chua dat lich phong van. Dang nhap tai ${loginUrl} de chon ca.`,
+    data: automation.applicationEmailData(application, {
+      booking_deadline: deadline,
+      login_url: loginUrl,
+      result: "Chưa đăng ký lịch PV",
+    }),
+  });
+}
+
+/** Thông báo gán / chuyển / gỡ Ban */
+export function sendDepartmentMembershipEmail(user, title, body) {
+  const url = `${config.clientUrl}/member`;
+  return send({
+    to: user.email,
+    subject: `IU CLUB — ${title}`,
+    text: `${body} Xem: ${url}`,
     html: renderEmail({
-      title: "Bạn chưa đặt lịch phỏng vấn ⏳",
-      intro: `Chào <b style="color:${COLORS.text}">${application.fullName}</b>! Hồ sơ <b style="color:${COLORS.accent}">${application.applicationCode}</b> đã đạt vòng đơn nhưng bạn chưa chọn ca phỏng vấn.`,
-      cta: { label: "Đăng nhập & đặt lịch ngay", url: loginUrl },
-      note: "Nếu không đặt lịch kịp thời, Ban Chủ nhiệm có thể chủ động gán ca hoặc đánh dấu vắng không đặt lịch.",
+      title,
+      intro: `Chào <b style="color:${COLORS.text}">${user.name}</b>! ${body}`,
+      cta: { label: "Vào Member Portal", url },
+    }),
+  });
+}
+
+/** Thông báo chỉ định / thu hồi Leader */
+export function sendLeaderAppointmentEmail(user, title, body) {
+  const url = `${config.clientUrl}/leader`;
+  return send({
+    to: user.email,
+    subject: `IU CLUB — ${title}`,
+    text: `${body} Xem: ${url}`,
+    html: renderEmail({
+      title,
+      intro: `Chào <b style="color:${COLORS.text}">${user.name}</b>! ${body}`,
+      cta: { label: "Vào Leader Portal", url },
+      note: "Tài khoản và mật khẩu của bạn không đổi. Menu Leader sẽ xuất hiện khi đăng nhập.",
     }),
   });
 }

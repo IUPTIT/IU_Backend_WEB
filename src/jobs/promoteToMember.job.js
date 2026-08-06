@@ -6,11 +6,16 @@ import * as trainingService from "../services/training.service.js";
 
 export const JOB_PROMOTE_TO_MEMBER = "promoteToMember";
 
+/**
+ * Trúng tuyển (admitted): bàn giao sang Tân binh training.
+ * KHÔNG nâng role Member — vẫn giữ candidate đến khi hoàn thành training.
+ * (Agenda job name giữ nguyên để tương thích queue cũ.)
+ */
 export function definePromoteToMemberJob() {
   agenda.define(JOB_PROMOTE_TO_MEMBER, { concurrency: 5 }, async (job) => {
     const { applicationId } = job.attrs.data || {};
     console.log(
-      `[job:${JOB_PROMOTE_TO_MEMBER}] Promoting candidate to member for applicationId: ${applicationId}`,
+      `[job:${JOB_PROMOTE_TO_MEMBER}] Start training handover for applicationId: ${applicationId}`,
     );
 
     try {
@@ -25,34 +30,23 @@ export function definePromoteToMemberJob() {
       const user = await User.findById(application.userId);
       if (!user) return;
 
-      const alreadyMember = user.role === "member";
-      if (!alreadyMember) {
-        user.role = "member";
-        user.isActive = true;
-        user.status = "active";
-      }
-      // Ch.2.4: Member mới = Đang training (giữ official nếu đã chứng nhận trước đó)
-      if (user.memberStatus !== "official") {
-        user.memberStatus = "training";
-      }
+      // Giữ portal Ứng viên trong suốt vòng training
+      user.role = "candidate";
+      user.roles = ["candidate"];
+      user.memberStatus = undefined;
+      user.isActive = true;
+      user.status = "active";
       await user.save();
 
-      // Luôn upsert trainee — kể cả khi user đã là member (tránh miss bàn giao training)
       await trainingService.createTraineeFromApplication(application);
+      await emailService.sendAdmittedEmail(application);
 
-      if (!alreadyMember) {
-        await emailService.sendAdmittedEmail(application);
-        console.log(
-          `[job:${JOB_PROMOTE_TO_MEMBER}] Promoted ${user.email} to member`,
-        );
-      } else {
-        console.log(
-          `[job:${JOB_PROMOTE_TO_MEMBER}] Already member — ensured trainee for ${user.email}`,
-        );
-      }
+      console.log(
+        `[job:${JOB_PROMOTE_TO_MEMBER}] ${user.email} → candidate + trainee (chưa Member)`,
+      );
     } catch (err) {
       console.error(
-        `[job:${JOB_PROMOTE_TO_MEMBER}] Error promoting candidate for applicationId ${applicationId}:`,
+        `[job:${JOB_PROMOTE_TO_MEMBER}] Error for applicationId ${applicationId}:`,
         err.message,
       );
       throw err;

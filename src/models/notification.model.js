@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+export const NOTIFICATION_TYPES = [
+  "booking_reminder",
+  "interview_result",
+  "cv_result",
+  "final_result",
+  "booking_confirmed",
+  "interview_assignment",
+  "training_chat",
+  "department_assigned",
+  "department_transferred",
+  "department_removed",
+  "leader_appointed",
+  "leader_revoked",
+  "general",
+];
+
 const notificationSchema = new mongoose.Schema(
   {
     userId: {
@@ -12,15 +28,7 @@ const notificationSchema = new mongoose.Schema(
     body: { type: String, default: "", trim: true },
     type: {
       type: String,
-      enum: [
-        "booking_reminder",
-        "interview_result",
-        "cv_result",
-        "final_result",
-        "booking_confirmed",
-        "interview_assignment",
-        "general",
-      ],
+      enum: NOTIFICATION_TYPES,
       default: "general",
     },
     link: { type: String, default: null },

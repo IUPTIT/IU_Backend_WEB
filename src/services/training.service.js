@@ -4,6 +4,7 @@ import TrainingGroup from "../models/trainingGroup.model.js";
 import Trainee from "../models/trainee.model.js";
 import User from "../models/user.model.js";
 import RecruitmentCampaign from "../models/recruitmentCampaign.model.js";
+import { hasRole, mongoRoleIn } from "../utils/roles.js";
 
 // Tạo trainee từ hồ sơ ứng tuyển (idempotent theo userId) — gọi khi TRÚNG TUYỂN
 // (admitted): bàn giao sang luồng Đào tạo thành viên mới theo nghiệp vụ Phần 4
@@ -36,11 +37,18 @@ export async function createTraineeFromApplication(application) {
     },
     { upsert: true },
   );
-  // Đồng bộ member_status = Đang training (Ch.2.4)
+  // Tân binh vẫn role candidate — không gán memberStatus (chỉ dùng khi đã Member)
   await User.updateOne(
-    { _id: application.userId, role: "member" },
-    { $set: { memberStatus: "training" } },
+    { _id: application.userId },
+    { $unset: { memberStatus: 1 } },
   );
+  // Gắn departmentId nếu Ban đã có trong danh mục
+  try {
+    const { syncUserDepartmentFromName } = await import("./department.service.js");
+    await syncUserDepartmentFromName(application.userId, department);
+  } catch (err) {
+    console.warn("[training] sync departmentId failed:", err.message);
+  }
   return Trainee.findOne({ userId: application.userId });
 }
 
@@ -71,10 +79,14 @@ export async function getMyTraining(userId) {
   return { trainee, group, program };
 }
 
-export function listTrainees(department, campaignId) {
+export async function listTrainees(department, campaignId, user) {
   const filter = { status: { $ne: "removed" } };
   if (department) filter.department = department;
   if (campaignId) filter.campaignId = campaignId;
+  if (user?.role !== "bcn" && user?.isMentor) {
+    const groups = await TrainingGroup.find({ mentorId: user.id }).select("_id");
+    filter.groupId = { $in: groups.map((group) => group._id) };
+  }
   return Trainee.find(filter)
     .sort({ createdAt: -1 })
     .populate({
@@ -84,127 +96,51 @@ export function listTrainees(department, campaignId) {
     });
 }
 
-// Mentor thực thụ: member đã được đẩy quyền (isMentor) hoặc leader
+// Pool thành viên chính thức để BCN chọn làm Mentor training.
 export function listMentors() {
   return User.find({
-    $or: [{ isMentor: true }, { role: "leader" }],
-    role: { $in: ["leader", "member"] },
+    ...mongoRoleIn(["member", "leader"]),
     isActive: { $ne: false },
+    clubStatus: "active",
+    $or: [
+      { memberStatus: "official" },
+      { role: "leader" },
+      { roles: "leader" },
+    ],
   })
-    .select("name email role isMentor")
+    .select("name email role roles isMentor memberStatus")
     .sort({ name: 1 });
 }
 
-// Ứng viên mentor: mọi member/leader đang hoạt động kèm cờ isMentor để BCN bật/tắt
+// Danh sách TV CLB để BCN chọn làm Mentor training.
 export function listMentorCandidates() {
-  return User.find({
-    role: { $in: ["leader", "member"] },
-    isActive: { $ne: false },
-  })
-    .select("name email role isMentor")
-    .sort({ name: 1 });
+  return listMentors();
 }
 
-// Đẩy / hạ quyền mentor cho member
+// Mentor training là quyền độc lập, không liên quan role Leader Ban.
 export async function setMentor(userId, isMentor) {
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound("Không tìm thấy thành viên");
-  if (!["member", "leader"].includes(user.role)) {
-    throw ApiError.badRequest("Chỉ member/leader mới làm mentor được");
+  if (!hasRole(user, "member") && !hasRole(user, "leader")) {
+    throw ApiError.badRequest("Chỉ thành viên CLB mới làm Mentor training được");
   }
   user.isMentor = Boolean(isMentor);
+  if (!user.isMentor) {
+    await TrainingGroup.updateMany(
+      { mentorId: user._id },
+      { $set: { mentorId: null, mentorAccepted: false } },
+    );
+  }
   await user.save();
   return user;
 }
 
-// Chia team TỰ ĐỘNG: random trộn tân binh chưa có team rồi chia đều cho các mentor.
-// Mỗi team dùng LỘ TRÌNH RIÊNG của mentor đó (mentor tự tạo cách train của mình);
-// mentor chưa có lộ trình thì dùng lộ trình fallback được chọn.
-export async function autoAssignGroups(
-  fallbackProgramId,
-  createdBy,
-  campaignId,
-) {
-  const fallbackProgram = fallbackProgramId
-    ? await getProgram(fallbackProgramId)
-    : null;
-  const mentors = await listMentors();
-  if (!mentors.length) {
-    throw ApiError.badRequest(
-      "Chưa có mentor nào — đẩy quyền mentor cho member trước",
-    );
-  }
-  // Chia đội theo ĐỢT TUYỂN: chỉ trộn tân binh của đợt được chọn
-  const traineeFilter = { groupId: null, status: { $ne: "removed" } };
-  if (campaignId) traineeFilter.campaignId = campaignId;
-  const trainees = await Trainee.find(traineeFilter);
-  if (!trainees.length) {
-    throw ApiError.badRequest("Không có tân binh nào chưa được chia team");
-  }
-
-  // Fisher–Yates shuffle rồi chia round-robin → chênh lệch tối đa 1 người/team
-  const shuffled = [...trainees];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const buckets = mentors.map(() => []);
-  shuffled.forEach((t, i) => buckets[i % mentors.length].push(t));
-
-  const groups = [];
-  for (const [i, mentor] of mentors.entries()) {
-    const members = buckets[i];
-    if (!members.length) continue;
-
-    // Lộ trình của chính mentor (mới nhất) — không có thì dùng fallback
-    const mentorProgram = await TrainingProgram.findOne({
-      createdBy: mentor._id,
-    }).sort({
-      createdAt: -1,
-    });
-    // Không có lộ trình nào cũng vẫn chia đội được — mentor gán lộ trình sau
-    const program = mentorProgram ?? fallbackProgram;
-
-    // Ban của team = ban phổ biến nhất trong nhóm
-    const deptCount = new Map();
-    for (const t of members) {
-      deptCount.set(t.department, (deptCount.get(t.department) ?? 0) + 1);
-    }
-    const department =
-      [...deptCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ??
-      "Tổng hợp";
-
-    // Đợt tuyển của team = đợt của các thành viên (campaignId truyền vào ưu tiên)
-    const groupCampaignId =
-      campaignId ?? members.find((t) => t.campaignId)?.campaignId ?? null;
-
-    const group = await TrainingGroup.create({
-      name: `Team ${mentor.name}`,
-      programId: program?._id ?? null,
-      campaignId: groupCampaignId,
-      department,
-      specialtyLabel: department,
-      mentorId: mentor._id,
-      memberIds: members.map((t) => t._id),
-      mentorAccepted: true,
-      createdBy,
-    });
-    await Trainee.updateMany(
-      { _id: { $in: members.map((t) => t._id) } },
-      { $set: { groupId: group._id, status: "in_progress" } },
-    );
-    const populated = await group.populate("mentorId", "name email role");
-    await notifyGroupAssignment(populated, members);
-    groups.push(populated);
-  }
-
-  return { groups, assigned: shuffled.length, mentors: mentors.length };
-}
-
 // ---- Programs (lộ trình) ----
 
-export function listPrograms() {
-  return TrainingProgram.find().sort({ createdAt: -1 });
+export function listPrograms(user) {
+  // Mentor chỉ thấy lộ trình của mình; BCN xem tất cả để gắn đội (read-only).
+  const filter = hasRole(user, "bcn") ? {} : { createdBy: user.id };
+  return TrainingProgram.find(filter).sort({ createdAt: -1 });
 }
 
 export async function getProgram(id) {
@@ -213,10 +149,13 @@ export async function getProgram(id) {
   return program;
 }
 
-export async function createProgram(data, createdBy) {
+export async function createProgram(data, user) {
+  if (!user?.isMentor) {
+    throw ApiError.forbidden("Chỉ Mentor training được tạo lộ trình");
+  }
+  const createdBy = user.id;
   const program = await TrainingProgram.create({ ...data, createdBy });
-  // Lộ trình mới nhất của mentor tự áp cho các team mentor đang dẫn —
-  // mentee thấy update ngay, không phải chờ chia đội lại
+  // Lộ trình mới nhất của mentor tự áp cho các team đang dẫn
   await TrainingGroup.updateMany(
     { mentorId: createdBy },
     { $set: { programId: program._id } },
@@ -224,11 +163,10 @@ export async function createProgram(data, createdBy) {
   return program;
 }
 
-/** Cập nhật lộ trình (BCN mọi lộ trình; mentor chỉ của mình) — UC 35 */
+/** Mentor chỉ cập nhật lộ trình do chính mình tạo. */
 export async function updateProgram(id, data, user) {
   const program = await getProgram(id);
-  const isManager = ["bcn", "leader"].includes(user.role);
-  if (!isManager && String(program.createdBy) !== String(user.id)) {
+  if (!user?.isMentor || String(program.createdBy) !== String(user.id)) {
     throw ApiError.forbidden("Bạn chỉ sửa được lộ trình do mình tạo");
   }
   const fields = ["name", "department", "stages", "lessons", "passThresholdPercent"];
@@ -239,12 +177,10 @@ export async function updateProgram(id, data, user) {
   return program;
 }
 
-// Xóa lộ trình: mentor chỉ xóa lộ trình của mình, BCN/Leader xóa được tất cả.
-// Team đang dùng lộ trình này được gỡ về null (không chặn xóa) — mentor gán lại sau
+// Mentor chỉ xóa lộ trình của mình.
 export async function deleteProgram(id, user) {
   const program = await getProgram(id);
-  const isManager = ["bcn", "leader"].includes(user.role);
-  if (!isManager && String(program.createdBy) !== String(user.id)) {
+  if (!user?.isMentor || String(program.createdBy) !== String(user.id)) {
     throw ApiError.forbidden("Bạn chỉ xóa được lộ trình do mình tạo");
   }
   await TrainingGroup.updateMany(
@@ -271,20 +207,72 @@ export async function deleteProgram(id, user) {
 
 // ---- Groups (chia team) ----
 
-export function listGroups(campaignId) {
+/** Thành viên chính thức CLB mới được chỉ định làm Mentor training. */
+async function assertCanBeTrainingMentor(userId) {
+  if (!userId) return null;
+  const user = await User.findById(userId);
+  if (!user || user.isActive === false || user.status === "disabled") {
+    throw ApiError.badRequest("Thành viên không tồn tại hoặc đã bị khoá");
+  }
+  if (hasRole(user, "candidate") && !hasRole(user, "member") && !hasRole(user, "leader")) {
+    throw ApiError.badRequest("Ứng viên chưa phải thành viên CLB");
+  }
+  if (!hasRole(user, "member") && !hasRole(user, "leader")) {
+    throw ApiError.badRequest("Chỉ thành viên CLB mới làm Mentor training");
+  }
+  if (hasRole(user, "member") && user.memberStatus === "training") {
+    throw ApiError.badRequest("Chỉ Member chính thức mới làm Mentor training");
+  }
+  return user;
+}
+
+/** Chỉ định Mentor training → bật isMentor, tuyệt đối không đổi role Leader Ban. */
+async function grantTrainingMentor(userId) {
+  const user = await assertCanBeTrainingMentor(userId);
+  if (!user) return;
+  user.isMentor = true;
+  if (!user.memberStatus && hasRole(user, "member")) {
+    user.memberStatus = "official";
+  }
+  await user.save();
+  return user;
+}
+
+/**
+ * Thu hồi Mentor training khi không còn phụ trách đội nào.
+ * Không tác động role Leader Ban.
+ */
+async function maybeRevokeTrainingMentor(userId) {
+  if (!userId) return;
+  const stillMentor = await TrainingGroup.exists({ mentorId: userId });
+  if (stillMentor) return;
+  const user = await User.findById(userId);
+  if (!user || !user.isMentor) return;
+  user.isMentor = false;
+  await user.save();
+}
+
+export function listGroups(campaignId, user) {
   const filter = {};
   if (campaignId) filter.campaignId = campaignId;
+  if (user?.role !== "bcn") filter.mentorId = user.id;
   return TrainingGroup.find(filter)
     .sort({ createdAt: -1 })
-    .populate("mentorId", "name email role");
+    .populate("mentorId", "name email role isMentor");
 }
 
 export async function createGroup(data, createdBy) {
-  await getProgram(data.programId);
+  if (data.programId) await getProgram(data.programId);
+  if (data.mentorId) {
+    await grantTrainingMentor(data.mentorId);
+  }
 
   // Trainee phải tồn tại và chưa thuộc team khác
-  const trainees = await Trainee.find({ _id: { $in: data.memberIds } });
-  if (trainees.length !== data.memberIds.length) {
+  const memberIds = data.memberIds ?? [];
+  const trainees = memberIds.length
+    ? await Trainee.find({ _id: { $in: memberIds } })
+    : [];
+  if (trainees.length !== memberIds.length) {
     throw ApiError.badRequest("Danh sách trainee có thành viên không tồn tại");
   }
   const taken = trainees.filter((t) => t.groupId);
@@ -296,23 +284,25 @@ export async function createGroup(data, createdBy) {
 
   const group = await TrainingGroup.create({
     name: data.name,
-    programId: data.programId,
-    department: data.department,
+    programId: data.programId || null,
+    department: data.department || "Tổng hợp",
     specialtyLabel: data.specialtyLabel ?? "",
-    mentorId: data.mentorId ?? null,
-    memberIds: data.memberIds,
+    mentorId: data.mentorId || null,
+    memberIds,
     mentorAccepted: Boolean(data.mentorId),
     createdBy,
+    campaignId: data.campaignId || null,
   });
 
-  // Gán team + chuyển trạng thái sang "đang training"
-  await Trainee.updateMany(
-    { _id: { $in: data.memberIds } },
-    { $set: { groupId: group._id, status: "in_progress" } },
-  );
+  if (memberIds.length) {
+    await Trainee.updateMany(
+      { _id: { $in: memberIds } },
+      { $set: { groupId: group._id, status: "in_progress" } },
+    );
+  }
 
-  const populated = await group.populate("mentorId", "name email role");
-  await notifyGroupAssignment(populated, trainees);
+  const populated = await group.populate("mentorId", "name email role isMentor");
+  if (trainees.length) await notifyGroupAssignment(populated, trainees);
   return populated;
 }
 
@@ -344,9 +334,14 @@ export async function updateGroup(id, data, user) {
   const group = await TrainingGroup.findById(id);
   if (!group) throw ApiError.notFound("Không tìm thấy nhóm training");
 
-  const isManager = ["bcn", "leader"].includes(user.role);
-  if (!isManager && String(group.mentorId) !== String(user.id)) {
+  const isBcn = user.role === "bcn";
+  const isAssignedMentor =
+    user.isMentor && String(group.mentorId) === String(user.id);
+  if (!isBcn && !isAssignedMentor) {
     throw ApiError.forbidden("Bạn không có quyền sửa nhóm này");
+  }
+  if (!isBcn && data.mentorId !== undefined) {
+    throw ApiError.forbidden("Chỉ BCN được phân hoặc đổi Mentor phụ trách");
   }
 
   if (data.name !== undefined) group.name = data.name;
@@ -389,12 +384,21 @@ export async function updateGroup(id, data, user) {
   }
 
   if (data.mentorId !== undefined) {
-    group.mentorId = data.mentorId || null;
-    group.mentorAccepted = Boolean(data.mentorId);
+    const previousMentorId = group.mentorId ? String(group.mentorId) : null;
+    const nextMentorId = data.mentorId || null;
+    if (nextMentorId) {
+      await grantTrainingMentor(nextMentorId);
+    }
+    group.mentorId = nextMentorId;
+    group.mentorAccepted = Boolean(nextMentorId);
+    await group.save();
+    if (previousMentorId && previousMentorId !== String(nextMentorId || "")) {
+      await maybeRevokeTrainingMentor(previousMentorId);
+    }
   }
 
   await group.save();
-  const populated = await group.populate("mentorId", "name email role");
+  const populated = await group.populate("mentorId", "name email role isMentor");
 
   if (newlyAssigned.length || data.mentorId !== undefined) {
     const notifyList =
@@ -405,6 +409,27 @@ export async function updateGroup(id, data, user) {
   }
 
   return populated;
+}
+
+/** BCN xóa đội training — gỡ trainee khỏi đội, xóa tin nhắn nhóm, thu hồi mentor nếu không còn đội. */
+export async function deleteGroup(id) {
+  const group = await TrainingGroup.findById(id);
+  if (!group) throw ApiError.notFound("Không tìm thấy nhóm training");
+
+  const mentorId = group.mentorId ? String(group.mentorId) : null;
+  const { default: TrainingMessage } = await import(
+    "../models/trainingMessage.model.js"
+  );
+
+  await Trainee.updateMany(
+    { groupId: group._id },
+    { $set: { groupId: null, status: "pending" } },
+  );
+  await TrainingMessage.deleteMany({ groupId: group._id });
+  await group.deleteOne();
+
+  if (mentorId) await maybeRevokeTrainingMentor(mentorId);
+  return { id: String(id) };
 }
 
 /** Gửi lại thông báo phân nhóm (UC 39 — thao tác thủ công) */
@@ -598,7 +623,7 @@ export async function confirmTrainingCompletion(traineeId, note, user) {
 async function assertGroupChatAccess(groupId, user) {
   const group = await TrainingGroup.findById(groupId);
   if (!group) throw ApiError.notFound("Không tìm thấy nhóm training");
-  if (["bcn", "leader"].includes(user.role)) return group;
+  if (user.role === "bcn") return group;
   if (String(group.mentorId) === String(user.id)) return group;
   const trainee = await Trainee.findOne({ userId: user.id });
   if (
@@ -667,10 +692,10 @@ export async function postGroupMessage(groupId, content, user) {
       const u = byId.get(uid);
       let link = "/member/training/progress";
       if (mentorUid && uid === mentorUid) {
-        if (u?.role === "leader") link = "/leader/training/groups";
-        else link = "/member/mentor/tasks";
-      } else if (u?.role === "leader") {
-        link = "/leader/training/groups";
+        link =
+          u?.role === "leader"
+            ? "/leader/training/groups"
+            : "/member/mentor/tasks";
       }
       await notificationService.createNotification({
         userId: uid,
@@ -730,7 +755,7 @@ export async function saveMentorReview(
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
-  if (!["bcn", "leader"].includes(user.role)) {
+  if (user.role !== "bcn") {
     const group = trainee.groupId
       ? await TrainingGroup.findById(trainee.groupId).select("mentorId")
       : null;
@@ -752,6 +777,7 @@ export async function saveMentorReview(
 
 // Chốt Đạt/Trượt vòng đào tạo thành viên mới — chỉ BCN.
 // Trúng tuyển (admitted) đã xảy ra trước khi vào training; không admit lại từ đây.
+// Đạt training (qualified/certified) → mới nâng role Member chính thức.
 export async function updateEvalStatus(traineeId, evalStatus) {
   const trainee = await Trainee.findById(traineeId);
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
@@ -767,21 +793,34 @@ export async function updateEvalStatus(traineeId, evalStatus) {
   }
 
   trainee.evalStatus = evalStatus;
-  if (evalStatus === "certified") {
+  if (evalStatus === "qualified" || evalStatus === "certified") {
     trainee.status = "completed";
-    if (!trainee.certificateCode) {
+    if (evalStatus === "certified" && !trainee.certificateCode) {
       trainee.certificateCode = buildCertificateCode(trainee._id);
       trainee.certificateIssuedAt = new Date();
     }
     if (trainee.userId) {
-      await User.updateOne(
-        { _id: trainee.userId },
-        { $set: { memberStatus: "official" } },
-      );
+      await promoteTraineeUserToOfficialMember(trainee.userId);
     }
   }
   await trainee.save();
   return trainee;
+}
+
+/** Tân binh hoàn thành training → Member chính thức */
+async function promoteTraineeUserToOfficialMember(userId) {
+  await User.updateOne(
+    { _id: userId },
+    {
+      $set: {
+        role: "member",
+        roles: ["member"],
+        memberStatus: "official",
+        isActive: true,
+        status: "active",
+      },
+    },
+  );
 }
 
 function buildCertificateCode(traineeId) {
@@ -841,10 +880,7 @@ export async function issueCertificates(traineeIds) {
     await trainee.save();
 
     if (trainee.userId) {
-      await User.updateOne(
-        { _id: trainee.userId },
-        { $set: { memberStatus: "official" } },
-      );
+      await promoteTraineeUserToOfficialMember(trainee.userId);
       try {
         await notificationService.createNotification({
           userId: trainee.userId,

@@ -60,7 +60,8 @@ router.use(authenticate);
 router.use(requirePasswordChanged);
 
 const bcnOnly = authorize("bcn");
-const bcnOrLeader = authorize("bcn", "leader");
+/** Ai được phân vào panel ca (bcn/leader/member) đều xem/chấm được — service assertCanAccessSlot */
+const panelAccess = authorize("bcn", "leader", "member");
 
 // ---- Phần 0: BCN quản lý đợt tuyển & form ----
 router.post(
@@ -104,6 +105,7 @@ router.put(
 
 // ---- Phần 2: vòng đơn — chỉ BCN (Leader ◐ chỉ ca PV được phân công) ----
 router.get("/applications", bcnOnly, controller.listApplications);
+router.get("/applications/:id", bcnOnly, idParam, controller.getApplication);
 router.post(
   "/applications/:id/score",
   bcnOnly,
@@ -149,9 +151,10 @@ router.post(
 );
 
 // ---- Phần 3: ca phỏng vấn ----
-// Leader chỉ: slots/mine + slot/booking detail (đã assert panel) + score
+// Panel (bcn/leader/member trong interviewerIds): slots/mine + detail + score
+// Chỉ BCN: tạo/sửa ca, list all, phân công, quyết định vòng PV
 router.get("/interviewers", bcnOnly, controller.listInterviewers);
-router.get("/slots/mine", bcnOrLeader, controller.listMyInterviewSlots);
+router.get("/slots/mine", panelAccess, controller.listMyInterviewSlots);
 router.post(
   "/slots",
   bcnOnly,
@@ -175,8 +178,8 @@ router.patch(
   controller.updateSlot,
 );
 router.delete("/slots/:id", bcnOnly, idParam, controller.deleteSlot);
-router.get("/slots/:id", bcnOrLeader, idParam, controller.getSlotDetail);
-router.get("/bookings/:id", bcnOrLeader, idParam, controller.getBookingDetail);
+router.get("/slots/:id", panelAccess, idParam, controller.getSlotDetail);
+router.get("/bookings/:id", panelAccess, idParam, controller.getBookingDetail);
 router.get(
   "/campaigns/:id/interview-results",
   bcnOnly,
@@ -204,7 +207,7 @@ router.post(
 );
 router.post(
   "/bookings/:id/score",
-  bcnOrLeader,
+  panelAccess,
   idParam,
   scoreValidation.createScore,
   controller.scoreBooking,

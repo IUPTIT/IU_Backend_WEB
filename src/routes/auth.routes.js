@@ -10,6 +10,7 @@ import {
   resendOtpValidator,
   loginValidator,
   changePasswordValidator,
+  updateProfileValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
 } from "../validations/auth.validation.js";
@@ -54,6 +55,12 @@ router.post(
 );
 
 router.get("/me", authenticate, authController.me);
+router.patch(
+  "/me",
+  authenticate,
+  updateProfileValidator,
+  authController.updateMe,
+);
 router.post(
   "/change-password",
   authenticate,

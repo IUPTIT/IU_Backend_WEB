@@ -165,7 +165,7 @@ async function handleSideEffects(application, _previousStatus, nextStatus) {
     }
   }
 
-  // Case 4: Trúng tuyển -> nâng role Member + bàn giao sang luồng Đào tạo (trainee)
+  // Case 4: Trúng tuyển -> tạo hồ sơ tân binh (giữ role candidate đến khi xong training)
   if (nextStatus === APPLICATION_STATUS.ADMITTED) {
     await agenda.now(JOB_PROMOTE_TO_MEMBER, { applicationId });
   }

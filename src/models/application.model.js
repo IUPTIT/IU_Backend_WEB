@@ -114,9 +114,9 @@ const applicationSchema = new mongoose.Schema(
       validate: {
         validator: function (val) {
           if (!val) return true;
-          return /^[0-9]{10}$/.test(val);
+          return /^0\d{9}$/.test(val);
         },
-        message: "Số điện thoại phải có đúng 10 chữ số",
+        message: "Số điện thoại phải gồm 10 số và bắt đầu bằng 0",
       },
     },
 

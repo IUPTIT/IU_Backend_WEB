@@ -3,49 +3,88 @@ import Application from "../models/application.model.js";
 import InterviewBooking from "../models/interviewBooking.model.js";
 import * as emailService from "../services/email.service.js";
 import * as notificationService from "../services/notification.service.js";
+import * as emailAutomation from "../services/emailAutomation.service.js";
 
 export const JOB_SEND_UNBOOKED_REMINDER = "sendUnbookedReminder";
 
-/** Số ngày sau Pass CV chưa đặt lịch thì gửi nhắc (nghiệp vụ 3.2) */
-const UNBOOKED_REMINDER_DAYS = 3;
+function addDays(date, days) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function formatDeadline(d) {
+  return d.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function defineSendUnbookedReminderJob() {
   agenda.define(
     JOB_SEND_UNBOOKED_REMINDER,
     { concurrency: 1 },
     async (_job) => {
-      console.log(
-        `[job:${JOB_SEND_UNBOOKED_REMINDER}] Scanning unbooked passed_cv applications...`,
-      );
-      try {
-        const cutoff = new Date(
-          Date.now() - UNBOOKED_REMINDER_DAYS * 24 * 60 * 60 * 1000,
+      const cfg = await emailAutomation.getBookSlotRemindConfig();
+      if (!cfg) {
+        console.log(
+          `[job:${JOB_SEND_UNBOOKED_REMINDER}] Rule book_slot_remind disabled — skip`,
         );
+        return;
+      }
+
+      const remindAfterDays = Math.max(0, cfg.remindAfterDays);
+      const bookingWindowDays = Math.max(
+        remindAfterDays,
+        cfg.bookingWindowDays,
+      );
+
+      console.log(
+        `[job:${JOB_SEND_UNBOOKED_REMINDER}] remindAfter=${remindAfterDays}d window=${bookingWindowDays}d`,
+      );
+
+      try {
+        const now = Date.now();
         const bookedIds = await InterviewBooking.distinct("applicationId");
         const apps = await Application.find({
           status: "passed_cv",
           bookingReminderSentAt: null,
-          updatedAt: { $lte: cutoff },
           _id: { $nin: bookedIds },
         }).limit(100);
 
+        let sent = 0;
         for (const app of apps) {
-          await emailService.sendUnbookedReminderEmail(app);
+          const passedAt = new Date(app.updatedAt);
+          const deadline = addDays(passedAt, bookingWindowDays);
+          const remindAt = addDays(passedAt, remindAfterDays);
+
+          if (now < remindAt.getTime()) continue;
+          if (now > deadline.getTime()) continue;
+
+          const daysLeft = Math.max(
+            0,
+            Math.ceil((deadline.getTime() - now) / (24 * 60 * 60 * 1000)),
+          );
+          const deadlineLabel = `${formatDeadline(deadline)} (còn khoảng ${daysLeft} ngày)`;
+
+          await emailService.sendUnbookedReminderEmail(app, { deadlineLabel });
           if (app.userId) {
             await notificationService.createNotification({
               userId: app.userId,
-              title: "Nhắc đặt lịch phỏng vấn",
-              body: "Bạn đã đạt vòng đơn nhưng chưa chọn ca phỏng vấn. Vào Lịch phỏng vấn để đặt lịch.",
+              title: "Nhắc đăng ký lịch phỏng vấn",
+              body: `Bạn đã đạt vòng đơn nhưng chưa chọn ca. Hạn đăng ký: ${deadlineLabel}.`,
               type: "booking_reminder",
               link: "/candidate/interview",
             });
           }
           app.bookingReminderSentAt = new Date();
           await app.save();
+          sent += 1;
         }
-        if (apps.length) {
+        if (sent) {
           console.log(
-            `[job:${JOB_SEND_UNBOOKED_REMINDER}] Sent ${apps.length} unbooked reminders`,
+            `[job:${JOB_SEND_UNBOOKED_REMINDER}] Sent ${sent} book-slot reminders`,
           );
         }
       } catch (err) {

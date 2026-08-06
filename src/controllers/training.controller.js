@@ -11,6 +11,7 @@ export const listTrainees = catchAsync(async (req, res) => {
   const trainees = await trainingService.listTrainees(
     req.query.department,
     req.query.campaignId,
+    req.user,
   );
   sendSuccess(res, { message: "Danh sách trainee", data: { trainees } });
 });
@@ -39,21 +40,8 @@ export const setMentor = catchAsync(async (req, res) => {
   });
 });
 
-export const autoAssignGroups = catchAsync(async (req, res) => {
-  const result = await trainingService.autoAssignGroups(
-    req.body.programId,
-    req.user.id,
-    req.body.campaignId,
-  );
-  sendSuccess(res, {
-    statusCode: 201,
-    message: `Đã chia ${result.assigned} tân binh vào ${result.groups.length} team`,
-    data: result,
-  });
-});
-
-export const listPrograms = catchAsync(async (_req, res) => {
-  const programs = await trainingService.listPrograms();
+export const listPrograms = catchAsync(async (req, res) => {
+  const programs = await trainingService.listPrograms(req.user);
   sendSuccess(res, { message: "Danh sách lộ trình", data: { programs } });
 });
 
@@ -63,7 +51,7 @@ export const getProgram = catchAsync(async (req, res) => {
 });
 
 export const createProgram = catchAsync(async (req, res) => {
-  const program = await trainingService.createProgram(req.body, req.user.id);
+  const program = await trainingService.createProgram(req.body, req.user);
   sendSuccess(res, {
     statusCode: 201,
     message: "Đã tạo lộ trình",
@@ -86,7 +74,7 @@ export const deleteProgram = catchAsync(async (req, res) => {
 });
 
 export const listGroups = catchAsync(async (req, res) => {
-  const groups = await trainingService.listGroups(req.query.campaignId);
+  const groups = await trainingService.listGroups(req.query.campaignId, req.user);
   sendSuccess(res, { message: "Danh sách team", data: { groups } });
 });
 
@@ -106,6 +94,11 @@ export const updateGroup = catchAsync(async (req, res) => {
     req.user,
   );
   sendSuccess(res, { message: "Đã cập nhật nhóm training", data: { group } });
+});
+
+export const deleteGroup = catchAsync(async (req, res) => {
+  await trainingService.deleteGroup(req.params.id);
+  sendSuccess(res, { message: "Đã xóa nhóm training" });
 });
 
 export const resendGroupNotifications = catchAsync(async (req, res) => {

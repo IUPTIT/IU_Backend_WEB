@@ -11,6 +11,13 @@ import * as emailService from "./email.service.js";
 
 // ---- Helpers phân quyền panel ca phỏng vấn ----
 
+/** Deep link portal theo role người được phân công PV */
+export function interviewSlotPortalPath(role, slotId) {
+  if (role === "bcn") return `/admin/recruitment/interviews/slots/${slotId}`;
+  if (role === "member") return `/member/recruitment/interviews/slots/${slotId}`;
+  return `/leader/recruitment/interviews/slots/${slotId}`;
+}
+
 /** Ca phải có ≥1 người PV trước khi cho book / gán ứng viên */
 export function assertSlotHasInterviewers(slot) {
   if (!slot?.interviewerIds?.length) {
@@ -20,7 +27,7 @@ export function assertSlotHasInterviewers(slot) {
   }
 }
 
-/** BCN toàn quyền; Leader chỉ ca mình nằm trong interviewerIds */
+/** BCN toàn quyền; Leader/Member chỉ ca mình nằm trong interviewerIds */
 export function assertCanAccessSlot(slot, actor) {
   if (!actor) return;
   if (actor.role === "bcn") return;
@@ -47,10 +54,7 @@ export async function notifyInterviewersNewBooking(slot, application) {
   const name = application.fullName ?? "Ứng viên";
   for (const u of users) {
     try {
-      const link =
-        u.role === "bcn"
-          ? `/admin/recruitment/interviews/slots/${slot._id}`
-          : `/leader/recruitment/interviews/slots/${slot._id}`;
+      const link = interviewSlotPortalPath(u.role, slot._id);
       await notificationService.createNotification({
         userId: u._id,
         title: "Ứng viên mới đặt lịch phỏng vấn",
@@ -76,10 +80,7 @@ async function notifyInterviewersAssigned(slot, addedUserIds) {
   const dateLabel = new Date(slot.date).toLocaleDateString("vi-VN");
   for (const u of users) {
     try {
-      const link =
-        u.role === "bcn"
-          ? `/admin/recruitment/interviews/slots/${slot._id}`
-          : `/leader/recruitment/interviews/slots/${slot._id}`;
+      const link = interviewSlotPortalPath(u.role, slot._id);
       await notificationService.createNotification({
         userId: u._id,
         title: "Bạn được phân công phỏng vấn",
@@ -473,11 +474,11 @@ export async function listInterviewResults(campaignId) {
   });
 }
 
-// Danh sách người có thể phỏng vấn / chấm hồ sơ (BCN/Leader đang hoạt động)
-// $ne:false thay vì true — tài khoản cũ tạo trước khi có field isActive vẫn được tính
+// Danh sách người có thể được phân công PV (BCN / Leader / Member đang hoạt động)
+// Ai nằm trong interviewerIds của ca đều chấm được — không bắt buộc role Leader
 export function listInterviewers() {
   return User.find({
-    role: { $in: ["bcn", "leader"] },
+    role: { $in: ["bcn", "leader", "member"] },
     isActive: { $ne: false },
   })
     .select("name email role")
