@@ -27,9 +27,11 @@ Health check: `GET http://localhost:3456/api/v1/health` (port follows `PORT`).
 ## Environment variables
 
 See `.env.example`. Required: `MONGODB_URI`, `JWT_ACCESS_SECRET`,
-`JWT_REFRESH_SECRET`. Google SSO and email (OTP/reset) activate automatically
-once their variables are filled in — without them, the app still runs and
-verification/reset codes are printed to the console for local development.
+`JWT_REFRESH_SECRET`. Google SSO and email activate when configured:
+
+- **Email (khuyên dùng trên deploy):** `SENDGRID_API_KEY` + `EMAIL_FROM` (sender đã verify trên SendGrid).
+- **Fallback local:** `SMTP_*` (Gmail SMTP thường lỗi / bị chặn khi deploy PaaS).
+- Không có cả hai → OTP/reset in ra console (dev).
 
 ## Project structure
 

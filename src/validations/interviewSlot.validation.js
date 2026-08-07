@@ -37,7 +37,8 @@ export const createSlot = celebrate({
       "any.required": "Địa điểm / Link phỏng vấn (location) là bắt buộc",
     }),
 
-    // Cho phép tạo ca trống — phân công người phỏng vấn sau
+    // Cho phép tạo ca trống — phân công người PV sau (AssignInterviewersModal).
+    // Book/gán ứng viên vẫn bắt buộc ≥1 interviewer ở service.
     interviewerIds: Joi.array()
       .items(Joi.string().hex().length(24))
       .default([]),
@@ -104,7 +105,6 @@ export const bulkGenerateSlots = celebrate({
       "any.required": "location là bắt buộc",
     }),
 
-    // Cho phép tạo hàng loạt ca trống — phân công người phỏng vấn sau
     interviewerIds: Joi.array()
       .items(Joi.string().hex().length(24))
       .default([]),

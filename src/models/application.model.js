@@ -114,9 +114,9 @@ const applicationSchema = new mongoose.Schema(
       validate: {
         validator: function (val) {
           if (!val) return true;
-          return /^[0-9]{10}$/.test(val);
+          return /^0\d{9}$/.test(val);
         },
-        message: "Số điện thoại phải có đúng 10 chữ số",
+        message: "Số điện thoại phải gồm 10 số và bắt đầu bằng 0",
       },
     },
 
@@ -193,6 +193,31 @@ const applicationSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    // Ban sinh hoạt chính thức khi trúng tuyển (mặc định = NV1; BCN có thể đổi sang NV2/NV3)
+    assignedDepartment: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    // Người được phân công chấm vòng đơn (1–n) — tránh thiên vị
+    reviewerIds: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
+
+    // Đã gửi email nhắc chưa đặt lịch phỏng vấn
+    bookingReminderSentAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Đã gửi email thông báo kết quả vòng phỏng vấn
+    interviewResultNotifiedAt: {
+      type: Date,
+      default: null,
+    },
+
     // ID của tài khoản User được tạo sau khi ứng viên Pass vòng đơn
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -233,8 +258,9 @@ applicationSchema.statics.hasActiveSubmittedApplication = async function (
 };
 
 /**
- * Instance method kiểm tra hồ sơ có được phép chỉnh sửa hay không.
+ * Instance method kiểm tra hồ sơ có được phép chỉnh sửa / rút đơn hay không.
  * Điều kiện: status === 'pending_review' AND đợt tuyển chưa đóng đơn.
+ * (Chặn thêm khi đã có điểm chấm — kiểm tra ở service vì cần query ApplicationScore)
  *
  * @param {Date} [campaignCloseAt] Thời gian đóng đơn của đợt tuyển (nếu chưa populate campaignId)
  * @returns {boolean}

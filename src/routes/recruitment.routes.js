@@ -2,6 +2,7 @@ import { Router } from "express";
 import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
+import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
 import * as controller from "../controllers/recruitment.controller.js";
 import * as campaignValidation from "../validations/recruitmentCampaign.validation.js";
 import * as formValidation from "../validations/applicationForm.validation.js";
@@ -56,9 +57,11 @@ const updateSlotBody = celebrate({
 });
 
 router.use(authenticate);
+router.use(requirePasswordChanged);
 
 const bcnOnly = authorize("bcn");
-const bcnOrLeader = authorize("bcn", "leader");
+/** Ai được phân vào panel ca (bcn/leader/member) đều xem/chấm được — service assertCanAccessSlot */
+const panelAccess = authorize("bcn", "leader", "member");
 
 // ---- Phần 0: BCN quản lý đợt tuyển & form ----
 router.post(
@@ -67,8 +70,8 @@ router.post(
   campaignValidation.createCampaign,
   controller.createCampaign,
 );
-router.get("/campaigns", bcnOrLeader, controller.listCampaigns);
-router.get("/campaigns/:id", bcnOrLeader, idParam, controller.getCampaign);
+router.get("/campaigns", bcnOnly, controller.listCampaigns);
+router.get("/campaigns/:id", bcnOnly, idParam, controller.getCampaign);
 router.patch(
   "/campaigns/:id",
   bcnOnly,
@@ -83,9 +86,15 @@ router.post(
   controller.publishCampaign,
 );
 router.post("/campaigns/:id/close", bcnOnly, idParam, controller.closeCampaign);
+router.post(
+  "/campaigns/:id/complete",
+  bcnOnly,
+  idParam,
+  controller.completeCampaign,
+);
 router.delete("/campaigns/:id", bcnOnly, idParam, controller.deleteCampaign);
 
-router.get("/campaigns/:id/form", bcnOrLeader, idParam, controller.getForm);
+router.get("/campaigns/:id/form", bcnOnly, idParam, controller.getForm);
 router.put(
   "/campaigns/:id/form",
   bcnOnly,
@@ -94,18 +103,19 @@ router.put(
   controller.updateForm,
 );
 
-// ---- Phần 2: vòng đơn — danh sách, chấm điểm, quyết định ----
-router.get("/applications", bcnOrLeader, controller.listApplications);
+// ---- Phần 2: vòng đơn — chỉ BCN (Leader ◐ chỉ ca PV được phân công) ----
+router.get("/applications", bcnOnly, controller.listApplications);
+router.get("/applications/:id", bcnOnly, idParam, controller.getApplication);
 router.post(
   "/applications/:id/score",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   scoreValidation.createScore,
   controller.scoreApplication,
 );
 router.get(
   "/applications/:id/scores",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.getScoreSummary,
 );
@@ -116,9 +126,35 @@ router.post(
   statusBody("passed_cv", "failed_cv"),
   controller.decideApplication,
 );
+router.post(
+  "/applications/bulk-decide-cv",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      campaignId: objectId.required(),
+      threshold: Joi.number().min(0).max(100).required(),
+      failBelow: Joi.boolean().default(true),
+    }),
+  }),
+  controller.bulkDecideCv,
+);
+router.post(
+  "/applications/:id/assign-reviewers",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      reviewerIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.assignReviewers,
+);
 
 // ---- Phần 3: ca phỏng vấn ----
-router.get("/interviewers", bcnOrLeader, controller.listInterviewers);
+// Panel (bcn/leader/member trong interviewerIds): slots/mine + detail + score
+// Chỉ BCN: tạo/sửa ca, list all, phân công, quyết định vòng PV
+router.get("/interviewers", bcnOnly, controller.listInterviewers);
+router.get("/slots/mine", panelAccess, controller.listMyInterviewSlots);
 router.post(
   "/slots",
   bcnOnly,
@@ -132,21 +168,21 @@ router.post(
   slotValidation.bulkGenerateSlots,
   controller.bulkGenerateSlots,
 );
-router.get("/campaigns/:id/slots", bcnOrLeader, idParam, controller.listSlots);
-// bcnOrLeader: leader được tự nhận / bổ sung mình vào ca phỏng vấn
+router.get("/campaigns/:id/slots", bcnOnly, idParam, controller.listSlots);
+// Chỉ BCN tạo/sửa/xoá ca & phân công panel
 router.patch(
   "/slots/:id",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   updateSlotBody,
   controller.updateSlot,
 );
 router.delete("/slots/:id", bcnOnly, idParam, controller.deleteSlot);
-router.get("/slots/:id", bcnOrLeader, idParam, controller.getSlotDetail);
-router.get("/bookings/:id", bcnOrLeader, idParam, controller.getBookingDetail);
+router.get("/slots/:id", panelAccess, idParam, controller.getSlotDetail);
+router.get("/bookings/:id", panelAccess, idParam, controller.getBookingDetail);
 router.get(
   "/campaigns/:id/interview-results",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.listInterviewResults,
 );
@@ -157,9 +193,21 @@ router.post(
   assignSlotBody,
   controller.assignSlot,
 );
+router.get(
+  "/campaigns/:id/unbooked",
+  bcnOnly,
+  idParam,
+  controller.listUnbookedApplications,
+);
+router.post(
+  "/applications/:id/mark-unbooked-no-show",
+  bcnOnly,
+  idParam,
+  controller.markUnbookedNoShow,
+);
 router.post(
   "/bookings/:id/score",
-  bcnOrLeader,
+  panelAccess,
   idParam,
   scoreValidation.createScore,
   controller.scoreBooking,
@@ -173,6 +221,17 @@ router.post(
 );
 
 // ---- Phần 4: kết quả cuối & bàn giao ----
+router.patch(
+  "/applications/:id/assigned-department",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      department: Joi.string().trim().required(),
+    }),
+  }),
+  controller.assignOfficialDepartment,
+);
 router.post(
   "/applications/:id/confirm-final",
   bcnOnly,
@@ -190,9 +249,19 @@ router.post(
   }),
   controller.markResultNotified,
 );
+router.post(
+  "/applications/notify-interview",
+  bcnOnly,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+    }),
+  }),
+  controller.markInterviewResultNotified,
+);
 router.get(
   "/campaigns/:id/new-members",
-  bcnOrLeader,
+  bcnOnly,
   idParam,
   controller.listNewMembers,
 );
