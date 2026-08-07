@@ -44,7 +44,8 @@ export async function createTraineeFromApplication(application) {
   );
   // Gắn departmentId nếu Ban đã có trong danh mục
   try {
-    const { syncUserDepartmentFromName } = await import("./department.service.js");
+    const { syncUserDepartmentFromName } =
+      await import("./department.service.js");
     await syncUserDepartmentFromName(application.userId, department);
   } catch (err) {
     console.warn("[training] sync departmentId failed:", err.message);
@@ -84,7 +85,9 @@ export async function listTrainees(department, campaignId, user) {
   if (department) filter.department = department;
   if (campaignId) filter.campaignId = campaignId;
   if (user?.role !== "bcn" && user?.isMentor) {
-    const groups = await TrainingGroup.find({ mentorId: user.id }).select("_id");
+    const groups = await TrainingGroup.find({ mentorId: user.id }).select(
+      "_id",
+    );
     filter.groupId = { $in: groups.map((group) => group._id) };
   }
   return Trainee.find(filter)
@@ -122,7 +125,9 @@ export async function setMentor(userId, isMentor) {
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound("Không tìm thấy thành viên");
   if (!hasRole(user, "member") && !hasRole(user, "leader")) {
-    throw ApiError.badRequest("Chỉ thành viên CLB mới làm Mentor training được");
+    throw ApiError.badRequest(
+      "Chỉ thành viên CLB mới làm Mentor training được",
+    );
   }
   user.isMentor = Boolean(isMentor);
   if (!user.isMentor) {
@@ -169,7 +174,13 @@ export async function updateProgram(id, data, user) {
   if (!user?.isMentor || String(program.createdBy) !== String(user.id)) {
     throw ApiError.forbidden("Bạn chỉ sửa được lộ trình do mình tạo");
   }
-  const fields = ["name", "department", "stages", "lessons", "passThresholdPercent"];
+  const fields = [
+    "name",
+    "department",
+    "stages",
+    "lessons",
+    "passThresholdPercent",
+  ];
   for (const key of fields) {
     if (data[key] !== undefined) program[key] = data[key];
   }
@@ -214,7 +225,11 @@ async function assertCanBeTrainingMentor(userId) {
   if (!user || user.isActive === false || user.status === "disabled") {
     throw ApiError.badRequest("Thành viên không tồn tại hoặc đã bị khoá");
   }
-  if (hasRole(user, "candidate") && !hasRole(user, "member") && !hasRole(user, "leader")) {
+  if (
+    hasRole(user, "candidate") &&
+    !hasRole(user, "member") &&
+    !hasRole(user, "leader")
+  ) {
     throw ApiError.badRequest("Ứng viên chưa phải thành viên CLB");
   }
   if (!hasRole(user, "member") && !hasRole(user, "leader")) {
@@ -301,7 +316,10 @@ export async function createGroup(data, createdBy) {
     );
   }
 
-  const populated = await group.populate("mentorId", "name email role isMentor");
+  const populated = await group.populate(
+    "mentorId",
+    "name email role isMentor",
+  );
   if (trainees.length) await notifyGroupAssignment(populated, trainees);
   return populated;
 }
@@ -358,7 +376,9 @@ export async function updateGroup(id, data, user) {
   if (data.memberIds !== undefined) {
     const trainees = await Trainee.find({ _id: { $in: data.memberIds } });
     if (trainees.length !== data.memberIds.length) {
-      throw ApiError.badRequest("Danh sách trainee có thành viên không tồn tại");
+      throw ApiError.badRequest(
+        "Danh sách trainee có thành viên không tồn tại",
+      );
     }
     const taken = trainees.filter(
       (t) => t.groupId && String(t.groupId) !== String(group._id),
@@ -398,7 +418,10 @@ export async function updateGroup(id, data, user) {
   }
 
   await group.save();
-  const populated = await group.populate("mentorId", "name email role isMentor");
+  const populated = await group.populate(
+    "mentorId",
+    "name email role isMentor",
+  );
 
   if (newlyAssigned.length || data.mentorId !== undefined) {
     const notifyList =
@@ -417,9 +440,8 @@ export async function deleteGroup(id) {
   if (!group) throw ApiError.notFound("Không tìm thấy nhóm training");
 
   const mentorId = group.mentorId ? String(group.mentorId) : null;
-  const { default: TrainingMessage } = await import(
-    "../models/trainingMessage.model.js"
-  );
+  const { default: TrainingMessage } =
+    await import("../models/trainingMessage.model.js");
 
   await Trainee.updateMany(
     { groupId: group._id },
@@ -542,7 +564,9 @@ export async function handleIncompleteTrainee(
     for (const task of tasks) {
       if (!task.deadline) continue;
       const current = new Date(task.deadline).getTime();
-      task.deadline = new Date(Math.max(current, base) + EXTEND_DAYS * 86400000);
+      task.deadline = new Date(
+        Math.max(current, base) + EXTEND_DAYS * 86400000,
+      );
       task.deadlineReminderSentAt = null;
       await task.save();
     }
@@ -636,9 +660,8 @@ async function assertGroupChatAccess(groupId, user) {
 }
 
 export async function listGroupMessages(groupId, user, { limit = 50 } = {}) {
-  const TrainingMessage = (
-    await import("../models/trainingMessage.model.js")
-  ).default;
+  const TrainingMessage = (await import("../models/trainingMessage.model.js"))
+    .default;
   await assertGroupChatAccess(groupId, user);
   return TrainingMessage.find({ groupId })
     .sort({ createdAt: -1 })
@@ -647,9 +670,8 @@ export async function listGroupMessages(groupId, user, { limit = 50 } = {}) {
 }
 
 export async function postGroupMessage(groupId, content, user) {
-  const TrainingMessage = (
-    await import("../models/trainingMessage.model.js")
-  ).default;
+  const TrainingMessage = (await import("../models/trainingMessage.model.js"))
+    .default;
   const group = await assertGroupChatAccess(groupId, user);
   const text = String(content || "").trim();
   if (!text) throw ApiError.badRequest("Nội dung tin nhắn không được trống");
@@ -783,8 +805,7 @@ export async function updateEvalStatus(traineeId, evalStatus) {
   if (!trainee) throw ApiError.notFound("Không tìm thấy trainee");
 
   if (evalStatus === "qualified") {
-    const { percent, threshold } =
-      await getTraineePassProgress(trainee);
+    const { percent, threshold } = await getTraineePassProgress(trainee);
     if (percent < threshold) {
       throw ApiError.badRequest(
         `Chưa đạt ngưỡng hoàn thành ${threshold}% task (hiện ${percent}%)`,
@@ -871,8 +892,7 @@ export async function issueCertificates(traineeIds) {
   let issued = 0;
   const notificationService = await import("./notification.service.js");
   for (const trainee of trainees) {
-    const code =
-      trainee.certificateCode || buildCertificateCode(trainee._id);
+    const code = trainee.certificateCode || buildCertificateCode(trainee._id);
     trainee.evalStatus = "certified";
     trainee.status = "completed";
     trainee.certificateCode = code;

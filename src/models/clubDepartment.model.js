@@ -5,7 +5,13 @@ export const DEPT_STATUS = ["active", "paused"];
 const clubDepartmentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, unique: true },
-    code: { type: String, required: true, trim: true, unique: true, lowercase: true },
+    code: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+      lowercase: true,
+    },
     description: { type: String, default: "", trim: true },
     /** Lĩnh vực phụ trách */
     field: { type: String, default: "", trim: true },

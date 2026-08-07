@@ -23,19 +23,15 @@ const { default: TrainingMessage } =
   await import("../models/trainingMessage.model.js");
 const { default: ClubDepartment } =
   await import("../models/clubDepartment.model.js");
-const { default: DepartmentMembershipEvent } = await import(
-  "../models/departmentMembershipEvent.model.js"
-);
-const { default: DepartmentLeadershipEvent } = await import(
-  "../models/departmentLeadershipEvent.model.js"
-);
-const { default: RecruitmentCampaign } = await import(
-  "../models/recruitmentCampaign.model.js"
-);
+const { default: DepartmentMembershipEvent } =
+  await import("../models/departmentMembershipEvent.model.js");
+const { default: DepartmentLeadershipEvent } =
+  await import("../models/departmentLeadershipEvent.model.js");
+const { default: RecruitmentCampaign } =
+  await import("../models/recruitmentCampaign.model.js");
 const { default: ApplicationForm } =
   await import("../models/applicationForm.model.js");
-const { default: Application } =
-  await import("../models/application.model.js");
+const { default: Application } = await import("../models/application.model.js");
 const { default: ApplicationScore } =
   await import("../models/applicationScore.model.js");
 const { default: InterviewSlot } =
@@ -50,8 +46,7 @@ const { default: Counter } = await import("../models/counter.model.js");
 const { default: EmailTemplate } =
   await import("../models/emailTemplate.model.js");
 
-const SHARED_PASSWORD =
-  process.env.SEED_REAL_PASSWORD || "IuClub@2026";
+const SHARED_PASSWORD = process.env.SEED_REAL_PASSWORD || "IuClub@2026";
 
 const ADMIN = {
   name: process.env.ADMIN_NAME || "IU Club Admin",
@@ -189,7 +184,8 @@ async function main() {
     for (const m of MEMBERS) await createMember(m);
 
     // Template email mặc định (trống cũng được; seed để Admin Settings không rỗng)
-    const emailTplService = await import("../services/emailTemplate.service.js");
+    const emailTplService =
+      await import("../services/emailTemplate.service.js");
     await emailTplService.ensureDefaultTemplates();
 
     console.log("\n========== DB sạch — chỉ Admin + 5 thành viên ==========");
@@ -198,7 +194,9 @@ async function main() {
     for (const m of MEMBERS) {
       console.log(`  ${m.email}  —  ${m.name}`);
     }
-    console.log("Không còn Ban / đợt tuyển / hồ sơ / đội training / ứng viên cũ.");
+    console.log(
+      "Không còn Ban / đợt tuyển / hồ sơ / đội training / ứng viên cũ.",
+    );
     console.log("========================================================");
   } finally {
     await disconnectDatabase();

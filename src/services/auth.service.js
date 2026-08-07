@@ -105,10 +105,16 @@ export async function resetPassword({ token, password }) {
     token,
     TOKEN_TYPES.RESET_PASSWORD,
   );
-  if (!record) throw ApiError.badRequest("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+  if (!record)
+    throw ApiError.badRequest(
+      "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+    );
 
   const user = await User.findById(record.user).select("+password");
-  if (!user) throw ApiError.badRequest("Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+  if (!user)
+    throw ApiError.badRequest(
+      "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+    );
 
   user.password = password;
   user.requirePasswordChange = false;
@@ -164,7 +170,9 @@ export async function loginWithGoogle(profile) {
   const email = profile.emails?.[0]?.value?.toLowerCase();
   if (!email) throw ApiError.badRequest("Google account has no email");
 
-  const user = await User.findOne({ $or: [{ googleId: profile.id }, { email }] });
+  const user = await User.findOne({
+    $or: [{ googleId: profile.id }, { email }],
+  });
   if (!user) {
     throw ApiError.forbidden(
       "Tài khoản chưa tồn tại. Vui lòng hoàn tất quy trình tuyển thành viên trước khi đăng nhập Google.",

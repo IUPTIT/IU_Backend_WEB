@@ -275,10 +275,8 @@ export async function sendCandidateAccountEmail(application, rawPassword) {
       result: "ĐẠT vòng đơn — vào Vòng Phỏng vấn",
       temp_password: rawPassword,
       login_url: loginUrl,
-      interview_time:
-        "Đăng nhập portal để chọn ca phỏng vấn phù hợp",
-      location:
-        "Sẽ hiển thị khi bạn đăng ký lịch (hoặc Ban Tuyển thông báo)",
+      interview_time: "Đăng nhập portal để chọn ca phỏng vấn phù hợp",
+      location: "Sẽ hiển thị khi bạn đăng ký lịch (hoặc Ban Tuyển thông báo)",
       interview_date: "—",
     }),
   });
@@ -487,8 +485,7 @@ export async function sendUnbookedReminderEmail(
 ) {
   const loginUrl = `${config.clientUrl}/login`;
   const deadline =
-    deadlineLabel ||
-    "trước khi hết hạn đăng ký lịch (xem portal ứng viên)";
+    deadlineLabel || "trước khi hết hạn đăng ký lịch (xem portal ứng viên)";
   const automation = await import("./emailAutomation.service.js");
   return automation.dispatchAutomatedEmail("book_slot_remind", {
     to: application.email,

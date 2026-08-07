@@ -92,7 +92,9 @@ async function countActiveBcn(excludeUserId) {
 async function assertCanChangeBcn(user, actorId, actionLabel) {
   if (!hasRole(user, "bcn")) return;
   if (String(user._id) === String(actorId)) {
-    throw ApiError.badRequest(`Không thể ${actionLabel} chính tài khoản của bạn`);
+    throw ApiError.badRequest(
+      `Không thể ${actionLabel} chính tài khoản của bạn`,
+    );
   }
   const others = await countActiveBcn(user._id);
   if (others < 1) {
@@ -134,7 +136,8 @@ export async function listMembers({
     ];
   }
   const numericPage = Math.max(Number(page) || 1, 1);
-  const numericLimit = limit != null ? Math.min(Math.max(Number(limit) || 20, 1), 200) : null;
+  const numericLimit =
+    limit != null ? Math.min(Math.max(Number(limit) || 20, 1), 200) : null;
 
   if (!numericLimit) {
     const users = await User.find(filter).sort({ createdAt: -1 });
@@ -174,14 +177,15 @@ export async function createMember(data) {
     );
   }
   if (!ROSTER_ROLES.includes(role)) {
-    throw ApiError.badRequest("Chỉ tạo Member hoặc Leader từ Quản lý thành viên");
+    throw ApiError.badRequest(
+      "Chỉ tạo Member hoặc Leader từ Quản lý thành viên",
+    );
   }
   if (await findByEmail(email)) {
     throw ApiError.conflict("Email đã tồn tại trong hệ thống");
   }
 
-  const roles =
-    role === "leader" ? ["member", "leader"] : ["member"];
+  const roles = role === "leader" ? ["member", "leader"] : ["member"];
   const user = new User({
     name,
     email,
@@ -339,14 +343,13 @@ export async function createAccount(data) {
     emailVerified: true,
     requirePasswordChange: true,
     clubStatus: "active",
-    memberStatus:
-      roles.includes("member")
-        ? isTraining || role === "member"
-          ? isTraining
-            ? "training"
-            : "official"
+    memberStatus: roles.includes("member")
+      ? isTraining || role === "member"
+        ? isTraining
+          ? "training"
           : "official"
-        : undefined,
+        : "official"
+      : undefined,
     department: "",
     phone: data.phone?.trim() || "",
   });
@@ -428,9 +431,7 @@ function normalizeImportRow(raw, index) {
     phone: String(raw?.phone ?? "").trim(),
     studentId: String(raw?.studentId ?? "").trim(),
     generation: String(raw?.generation ?? "").trim(),
-    departmentName: String(
-      raw?.departmentName ?? raw?.department ?? "",
-    ).trim(),
+    departmentName: String(raw?.departmentName ?? raw?.department ?? "").trim(),
   };
 }
 
@@ -454,9 +455,7 @@ export async function validateMemberImportRows(rows) {
     emailCounts.set(row.email, (emailCounts.get(row.email) || 0) + 1);
   }
 
-  const emails = [
-    ...new Set(normalized.map((r) => r.email).filter(Boolean)),
-  ];
+  const emails = [...new Set(normalized.map((r) => r.email).filter(Boolean))];
   const existing = emails.length
     ? await User.find({ email: { $in: emails } }).select("email")
     : [];

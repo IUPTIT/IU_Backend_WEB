@@ -156,7 +156,9 @@ try {
   const users = {};
   for (const acc of ACCOUNTS) {
     users[acc.key] = await upsertUser(acc);
-    console.log(`[seed:demo] ${acc.role}${acc.isMentor ? "+mentor" : ""}: ${acc.email}`);
+    console.log(
+      `[seed:demo] ${acc.role}${acc.isMentor ? "+mentor" : ""}: ${acc.email}`,
+    );
   }
 
   const mentor = users.mentor;
@@ -215,7 +217,7 @@ try {
 
   // Trainee records
   const trainees = [];
-  for (const [i, u] of traineeUsers.entries()) {
+  for (const u of traineeUsers) {
     let t = await Trainee.findOne({ userId: u._id });
     if (!t) {
       t = await Trainee.create({

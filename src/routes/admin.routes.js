@@ -3,7 +3,12 @@ import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
 import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
-import { idParam, objectId, personName, phoneVNOptional } from "../validations/common.validation.js";
+import {
+  idParam,
+  objectId,
+  personName,
+  phoneVNOptional,
+} from "../validations/common.validation.js";
 import * as controller from "../controllers/admin.controller.js";
 
 const router = Router();

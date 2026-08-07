@@ -107,7 +107,10 @@ export async function getOverview() {
     const t = new Date(app.createdAt).getTime();
     const idx = Math.min(
       5,
-      Math.max(0, Math.floor((t - since.getTime()) / (7 * 24 * 60 * 60 * 1000))),
+      Math.max(
+        0,
+        Math.floor((t - since.getTime()) / (7 * 24 * 60 * 60 * 1000)),
+      ),
     );
     weekBuckets[idx].received += 1;
     if (

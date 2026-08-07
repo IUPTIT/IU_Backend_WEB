@@ -79,7 +79,9 @@ const bcnOnly = authorize("bcn");
 const bcnOrMentor = (req, _res, next) => {
   if (hasRole(req.user, "bcn") || req.user?.isMentor === true) return next();
   return next(
-    ApiError.forbidden("Chỉ BCN hoặc Mentor training được thực hiện thao tác này"),
+    ApiError.forbidden(
+      "Chỉ BCN hoặc Mentor training được thực hiện thao tác này",
+    ),
   );
 };
 /** Chỉ Mentor training — Admin/BCN không tạo/sửa/xóa lộ trình. */
@@ -121,12 +123,7 @@ router.patch(
   createProgramBody,
   controller.updateProgram,
 );
-router.delete(
-  "/programs/:id",
-  mentorOnly,
-  idParam,
-  controller.deleteProgram,
-);
+router.delete("/programs/:id", mentorOnly, idParam, controller.deleteProgram);
 
 router.get("/groups", bcnOrMentor, controller.listGroups);
 router.post("/groups", bcnOnly, createGroupBody, controller.createGroup);
@@ -238,12 +235,7 @@ router.post(
 
 // Mentor/BCN/Leader
 router.get("/tasks", bcnOrMentor, taskController.listTasks);
-router.post(
-  "/tasks",
-  bcnOrMentor,
-  createTaskBody,
-  taskController.createTask,
-);
+router.post("/tasks", bcnOrMentor, createTaskBody, taskController.createTask);
 router.get("/tasks/:id", bcnOrMentor, idParam, taskController.getTask);
 router.patch(
   "/tasks/:id",
@@ -252,12 +244,7 @@ router.patch(
   updateTaskBody,
   taskController.updateTask,
 );
-router.delete(
-  "/tasks/:id",
-  bcnOrMentor,
-  idParam,
-  taskController.deleteTask,
-);
+router.delete("/tasks/:id", bcnOrMentor, idParam, taskController.deleteTask);
 router.patch(
   "/tasks/:id/review/:traineeId",
   bcnOrMentor,

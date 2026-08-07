@@ -74,7 +74,10 @@ export const deleteProgram = catchAsync(async (req, res) => {
 });
 
 export const listGroups = catchAsync(async (req, res) => {
-  const groups = await trainingService.listGroups(req.query.campaignId, req.user);
+  const groups = await trainingService.listGroups(
+    req.query.campaignId,
+    req.user,
+  );
   sendSuccess(res, { message: "Danh sách team", data: { groups } });
 });
 

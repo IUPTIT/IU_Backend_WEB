@@ -109,9 +109,7 @@ const config = {
 
   /** From chung: EMAIL_FROM > SMTP_FROM (phải verify trên SendGrid) */
   emailFrom:
-    envVars.EMAIL_FROM ||
-    envVars.SMTP_FROM ||
-    "IU_CLUB <no-reply@iuclub.dev>",
+    envVars.EMAIL_FROM || envVars.SMTP_FROM || "IU_CLUB <no-reply@iuclub.dev>",
 
   sendgrid: {
     apiKey: envVars.SENDGRID_API_KEY,

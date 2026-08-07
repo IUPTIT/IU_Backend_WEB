@@ -3,7 +3,12 @@ import ClubDepartment from "../models/clubDepartment.model.js";
 import DepartmentMembershipEvent from "../models/departmentMembershipEvent.model.js";
 import DepartmentLeadershipEvent from "../models/departmentLeadershipEvent.model.js";
 import User from "../models/user.model.js";
-import { addRole, effectiveRoles, hasRole, removeRole } from "../utils/roles.js";
+import {
+  addRole,
+  effectiveRoles,
+  hasRole,
+  removeRole,
+} from "../utils/roles.js";
 import { toAdminUserDto } from "./adminUser.service.js";
 import * as notificationService from "./notification.service.js";
 import * as emailService from "./email.service.js";
@@ -33,7 +38,9 @@ export function toDepartmentDto(dept, extras = {}) {
     headcountTarget: dept.headcountTarget ?? null,
     status: dept.status,
     sortOrder: dept.sortOrder ?? 0,
-    headUserId: dept.headUserId ? String(dept.headUserId._id ?? dept.headUserId) : null,
+    headUserId: dept.headUserId
+      ? String(dept.headUserId._id ?? dept.headUserId)
+      : null,
     headUserName: dept.headUserId?.name ?? extras.headUserName ?? null,
     headVacantSince: dept.headVacantSince ?? null,
     memberCount: extras.memberCount ?? undefined,
@@ -85,9 +92,7 @@ export async function createDepartment(data, actorId) {
 
   const memberIds = [
     ...new Set(
-      [...(data.memberIds || []), data.headUserId]
-        .filter(Boolean)
-        .map(String),
+      [...(data.memberIds || []), data.headUserId].filter(Boolean).map(String),
     ),
   ];
   if (memberIds.length) {
@@ -168,7 +173,8 @@ export async function updateDepartment(id, data, actorId) {
     if (clash) throw ApiError.conflict("Tên Ban đã tồn tại");
     dept.name = name;
   }
-  if (data.description !== undefined) dept.description = String(data.description).trim();
+  if (data.description !== undefined)
+    dept.description = String(data.description).trim();
   if (data.field !== undefined) dept.field = String(data.field).trim();
   if (data.headcountTarget !== undefined) {
     dept.headcountTarget =
@@ -182,7 +188,8 @@ export async function updateDepartment(id, data, actorId) {
     }
     dept.status = data.status;
   }
-  if (data.sortOrder !== undefined) dept.sortOrder = Number(data.sortOrder) || 0;
+  if (data.sortOrder !== undefined)
+    dept.sortOrder = Number(data.sortOrder) || 0;
   await dept.save();
 
   // Đồng bộ tên denormalized trên User
@@ -237,7 +244,9 @@ export async function updateDepartment(id, data, actorId) {
     const currentHeadId = dept.headUserId ? String(dept.headUserId) : null;
     if (currentHeadId && currentHeadId !== finalHeadId) {
       await revokeLeader(dept._id, currentHeadId, actorId, {
-        reason: finalHeadId ? "Thay Leader khi cập nhật Ban" : "Thu hồi khi cập nhật Ban",
+        reason: finalHeadId
+          ? "Thay Leader khi cập nhật Ban"
+          : "Thu hồi khi cập nhật Ban",
       });
     }
 
@@ -315,9 +324,7 @@ export async function listDepartmentMembers(departmentId) {
     title: "head",
     isActive: true,
   }).select("userId title");
-  const leadMap = new Map(
-    activeLeads.map((l) => [String(l.userId), l.title]),
-  );
+  const leadMap = new Map(activeLeads.map((l) => [String(l.userId), l.title]));
   return users.map((u) => ({
     ...toAdminUserDto(u),
     leadershipTitle: leadMap.get(String(u._id)) ?? null,
@@ -341,7 +348,12 @@ export async function listUnassignedOfficialMembers({ q } = {}) {
     ],
   };
   if (q?.trim()) {
-    const re = new RegExp(String(q).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    const re = new RegExp(
+      String(q)
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "i",
+    );
     filter.$and.push({ $or: [{ name: re }, { email: re }] });
   }
   const users = await User.find(filter).sort({ name: 1 });
@@ -416,9 +428,14 @@ export async function assignMemberToDepartment(
 
   // Nếu đang Leader Ban hiện tại mà chuyển đi → thu hồi leadership
   if (fromId) {
-    await revokeAllLeadershipForUserInDepartment(user._id, user.departmentId, actorId, {
-      reason: reason || "Chuyển ban",
-    });
+    await revokeAllLeadershipForUserInDepartment(
+      user._id,
+      user.departmentId,
+      actorId,
+      {
+        reason: reason || "Chuyển ban",
+      },
+    );
   }
 
   const effectiveAt = joinedAt ? new Date(joinedAt) : new Date();
@@ -448,7 +465,9 @@ export async function assignMemberToDepartment(
   await notifyDepartment(
     user,
     fromDept ? "department_transferred" : "department_assigned",
-    fromDept ? `Đã chuyển sang Ban ${dept.name}` : `Bạn đã được xếp vào Ban ${dept.name}`,
+    fromDept
+      ? `Đã chuyển sang Ban ${dept.name}`
+      : `Bạn đã được xếp vào Ban ${dept.name}`,
     body,
     "/member",
   );
@@ -548,7 +567,11 @@ async function revokeLeadershipInternal(row, actorId, reason) {
   await row.save();
 
   const dept = await ClubDepartment.findById(row.departmentId);
-  if (dept && row.title === "head" && String(dept.headUserId) === String(row.userId)) {
+  if (
+    dept &&
+    row.title === "head" &&
+    String(dept.headUserId) === String(row.userId)
+  ) {
     dept.headUserId = null;
     dept.headVacantSince = new Date();
     await dept.save();
@@ -596,7 +619,9 @@ export async function appointLeader(
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound("Không tìm thấy thành viên");
   if (String(user.departmentId) !== String(dept._id)) {
-    throw ApiError.badRequest("Thành viên phải thuộc Ban này trước khi chỉ định Leader");
+    throw ApiError.badRequest(
+      "Thành viên phải thuộc Ban này trước khi chỉ định Leader",
+    );
   }
   if (!hasRole(user, "member") && !hasRole(user, "leader")) {
     throw ApiError.badRequest("Chỉ Member/Leader mới được chỉ định");
@@ -628,7 +653,11 @@ export async function appointLeader(
     isActive: true,
   });
   for (const row of legacyLeads) {
-    await revokeLeadershipInternal(row, actorId, "Chuẩn hóa một Leader mỗi Ban");
+    await revokeLeadershipInternal(
+      row,
+      actorId,
+      "Chuẩn hóa một Leader mỗi Ban",
+    );
   }
 
   const currentHead = await DepartmentLeadershipEvent.findOne({
@@ -637,11 +666,7 @@ export async function appointLeader(
     isActive: true,
   });
   if (currentHead && String(currentHead.userId) !== String(user._id)) {
-    await revokeLeadershipInternal(
-      currentHead,
-      actorId,
-      "Thay Leader mới",
-    );
+    await revokeLeadershipInternal(currentHead, actorId, "Thay Leader mới");
   }
 
   // Đã active cùng title → idempotent update
@@ -737,9 +762,7 @@ export async function assignMyDepartmentMember(
   const target = await User.findById(memberId);
   if (!target) throw ApiError.notFound("Không tìm thấy thành viên");
   if (target.departmentId && String(target.departmentId) !== dept.id) {
-    throw ApiError.forbidden(
-      "Leader không được chuyển thành viên từ Ban khác",
-    );
+    throw ApiError.forbidden("Leader không được chuyển thành viên từ Ban khác");
   }
   return assignMemberToDepartment(
     memberId,
@@ -779,17 +802,28 @@ export async function updateMyDepartmentMember(leaderId, memberId, data) {
   return toAdminUserDto(target);
 }
 
-export async function revokeLeader(departmentId, userId, actorId, { reason } = {}) {
+export async function revokeLeader(
+  departmentId,
+  userId,
+  actorId,
+  { reason } = {},
+) {
   const rows = await DepartmentLeadershipEvent.find({
     departmentId,
     userId,
     isActive: true,
   });
   if (!rows.length) {
-    throw ApiError.notFound("Thành viên không đang giữ vai trò Leader ở Ban này");
+    throw ApiError.notFound(
+      "Thành viên không đang giữ vai trò Leader ở Ban này",
+    );
   }
   for (const row of rows) {
-    await revokeLeadershipInternal(row, actorId, reason || "Thu hồi vai trò Leader");
+    await revokeLeadershipInternal(
+      row,
+      actorId,
+      reason || "Thu hồi vai trò Leader",
+    );
   }
   const user = await User.findById(userId);
   return { member: toAdminUserDto(user) };
@@ -823,15 +857,14 @@ export async function listLeaderVacancies({ days = HEAD_VACANCY_DAYS } = {}) {
   const threshold = new Date(Date.now() - Number(days) * 86400000);
   const depts = await ClubDepartment.find({
     status: "active",
-    $or: [
-      { headUserId: null },
-      { headUserId: { $exists: false } },
-    ],
+    $or: [{ headUserId: null }, { headUserId: { $exists: false } }],
   }).sort({ headVacantSince: 1 });
 
   return depts.map((d) => {
     const since = d.headVacantSince || d.updatedAt || d.createdAt;
-    const vacantDays = Math.floor((Date.now() - new Date(since).getTime()) / 86400000);
+    const vacantDays = Math.floor(
+      (Date.now() - new Date(since).getTime()) / 86400000,
+    );
     return {
       ...toDepartmentDto(d),
       vacantDays,
@@ -904,9 +937,7 @@ export async function syncUserDepartmentFromName(userId, departmentName) {
   const dept = await resolveDepartmentByName(departmentName);
   if (!dept) return null;
 
-  const user = await User.findById(userId).select(
-    "role roles memberStatus",
-  );
+  const user = await User.findById(userId).select("role roles memberStatus");
   if (!user) return null;
 
   // Tân binh / candidate: chỉ biết Ban qua Trainee — chưa gắn departmentId roster Member

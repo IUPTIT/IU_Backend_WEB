@@ -45,7 +45,9 @@ export const updateProfileValidator = celebrate({
     phone: phoneVNOptional,
     bio: Joi.string().trim().allow("").max(200),
     // Ảnh đại diện gửi lên dạng data URL hoặc URL
-    avatar: Joi.string().allow("").max(4 * 1024 * 1024),
+    avatar: Joi.string()
+      .allow("")
+      .max(4 * 1024 * 1024),
   }).min(1),
 });
 

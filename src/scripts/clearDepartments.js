@@ -9,15 +9,12 @@ dotenv.config();
 
 const { connectDatabase, disconnectDatabase } =
   await import("../config/database.js");
-const { default: ClubDepartment } = await import(
-  "../models/clubDepartment.model.js"
-);
-const { default: DepartmentMembershipEvent } = await import(
-  "../models/departmentMembershipEvent.model.js"
-);
-const { default: DepartmentLeadershipEvent } = await import(
-  "../models/departmentLeadershipEvent.model.js"
-);
+const { default: ClubDepartment } =
+  await import("../models/clubDepartment.model.js");
+const { default: DepartmentMembershipEvent } =
+  await import("../models/departmentMembershipEvent.model.js");
+const { default: DepartmentLeadershipEvent } =
+  await import("../models/departmentLeadershipEvent.model.js");
 const { default: User } = await import("../models/user.model.js");
 const { hasRole, removeRole } = await import("../utils/roles.js");
 
@@ -35,7 +32,9 @@ async function main() {
     },
   );
 
-  const leaders = await User.find({ $or: [{ roles: "leader" }, { role: "leader" }] });
+  const leaders = await User.find({
+    $or: [{ roles: "leader" }, { role: "leader" }],
+  });
   let demoted = 0;
   for (const user of leaders) {
     if (!hasRole(user, "leader")) continue;

@@ -3,11 +3,12 @@ import { ROLES } from "../models/user.model.js";
 /** roles[] nếu có; không thì [role] — luôn unique */
 export function effectiveRoles(user) {
   if (!user) return [];
-  const list = Array.isArray(user.roles) && user.roles.length
-    ? user.roles
-    : user.role
-      ? [user.role]
-      : [];
+  const list =
+    Array.isArray(user.roles) && user.roles.length
+      ? user.roles
+      : user.role
+        ? [user.role]
+        : [];
   return [...new Set(list.filter((r) => ROLES.includes(r)))];
 }
 
@@ -21,7 +22,9 @@ export function hasRole(user, ...wanted) {
  * Dual member+leader → primary = leader (portal Leader).
  */
 export function applyRoles(user, nextRoles, { primary } = {}) {
-  const cleaned = [...new Set((nextRoles || []).filter((r) => ROLES.includes(r)))];
+  const cleaned = [
+    ...new Set((nextRoles || []).filter((r) => ROLES.includes(r))),
+  ];
   if (!cleaned.length) {
     throw new Error("roles không được rỗng");
   }
@@ -64,7 +67,11 @@ export function removeRole(user, role) {
 /** Filter Mongo: user có role X (legacy role hoặc roles[]) */
 export function mongoHasRole(role) {
   return {
-    $or: [{ roles: role }, { role, roles: { $in: [null, []] } }, { role, roles: { $size: 0 } }],
+    $or: [
+      { roles: role },
+      { role, roles: { $in: [null, []] } },
+      { role, roles: { $size: 0 } },
+    ],
   };
 }
 

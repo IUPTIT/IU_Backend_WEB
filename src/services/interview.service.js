@@ -14,7 +14,8 @@ import * as emailService from "./email.service.js";
 /** Deep link portal theo role người được phân công PV */
 export function interviewSlotPortalPath(role, slotId) {
   if (role === "bcn") return `/admin/recruitment/interviews/slots/${slotId}`;
-  if (role === "member") return `/member/recruitment/interviews/slots/${slotId}`;
+  if (role === "member")
+    return `/member/recruitment/interviews/slots/${slotId}`;
   return `/leader/recruitment/interviews/slots/${slotId}`;
 }
 
@@ -32,9 +33,7 @@ export function assertCanAccessSlot(slot, actor) {
   if (!actor) return;
   if (actor.role === "bcn") return;
   const uid = String(actor.id ?? actor._id);
-  const ids = (slot.interviewerIds ?? []).map((id) =>
-    String(id?._id ?? id),
-  );
+  const ids = (slot.interviewerIds ?? []).map((id) => String(id?._id ?? id));
   if (!ids.includes(uid)) {
     throw ApiError.forbidden(
       "Bạn không được phân công phụ trách ca phỏng vấn này",
@@ -44,7 +43,9 @@ export function assertCanAccessSlot(slot, actor) {
 
 /** Thông báo panel khi có ứng viên mới vào ca (book / gán) */
 export async function notifyInterviewersNewBooking(slot, application) {
-  const ids = (slot.interviewerIds ?? []).map((id) => String(id)).filter(Boolean);
+  const ids = (slot.interviewerIds ?? [])
+    .map((id) => String(id))
+    .filter(Boolean);
   if (!ids.length) return;
   const users = await User.find({
     _id: { $in: ids },
@@ -194,9 +195,7 @@ export async function updateSlot(slotId, data) {
     if (data[key] !== undefined) slot[key] = data[key];
   }
   if (data.interviewerIds !== undefined && !slot.interviewerIds?.length) {
-    throw ApiError.badRequest(
-      "Ca phải có ít nhất 1 người phỏng vấn phụ trách",
-    );
+    throw ApiError.badRequest("Ca phải có ít nhất 1 người phỏng vấn phụ trách");
   }
   if (slot.capacity < slot.bookedCount) {
     throw ApiError.badRequest("Sức chứa mới nhỏ hơn số ứng viên đã đặt");
@@ -241,9 +240,7 @@ export async function assignSlot(applicationId, slotId) {
   const targetPreview = await InterviewSlot.findById(slotId);
   if (!targetPreview) throw ApiError.notFound("Ca phỏng vấn không tồn tại");
   assertSlotHasInterviewers(targetPreview);
-  if (
-    String(application.campaignId) !== String(targetPreview.campaignId)
-  ) {
+  if (String(application.campaignId) !== String(targetPreview.campaignId)) {
     throw ApiError.badRequest(
       "Ca phỏng vấn không thuộc cùng đợt tuyển với hồ sơ ứng viên",
     );
@@ -508,11 +505,15 @@ export async function markUnbookedNoShow(applicationId) {
   const application = await Application.findById(applicationId);
   if (!application) throw ApiError.notFound("Không tìm thấy hồ sơ");
   if (application.status !== "passed_cv") {
-    throw ApiError.badRequest("Chỉ áp dụng cho hồ sơ Đạt vòng đơn chưa có kết quả PV");
+    throw ApiError.badRequest(
+      "Chỉ áp dụng cho hồ sơ Đạt vòng đơn chưa có kết quả PV",
+    );
   }
   const existing = await InterviewBooking.findOne({ applicationId });
   if (existing) {
-    throw ApiError.badRequest("Ứng viên đã có lịch phỏng vấn — dùng điểm danh vắng trên ca");
+    throw ApiError.badRequest(
+      "Ứng viên đã có lịch phỏng vấn — dùng điểm danh vắng trên ca",
+    );
   }
   return screeningService.decideInterview(applicationId, "failed_interview");
 }

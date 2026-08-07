@@ -7,7 +7,9 @@ import ClubDepartment from "../models/clubDepartment.model.js";
 /** Chỉ tiêu phải trùng tên Ban CLB đang active. */
 async function assertQuotasMatchDepartments(quotas) {
   if (!Array.isArray(quotas) || quotas.length === 0) return;
-  const names = quotas.map((q) => String(q.department || "").trim()).filter(Boolean);
+  const names = quotas
+    .map((q) => String(q.department || "").trim())
+    .filter(Boolean);
   const depts = await ClubDepartment.find({
     status: "active",
     name: { $in: names },
@@ -46,7 +48,11 @@ export async function createCampaign(data, createdBy) {
     throw ApiError.conflict("Tên đợt đăng ký đã tồn tại");
   }
 
-  if (data.openAt && data.closeAt && new Date(data.openAt) >= new Date(data.closeAt)) {
+  if (
+    data.openAt &&
+    data.closeAt &&
+    new Date(data.openAt) >= new Date(data.closeAt)
+  ) {
     throw ApiError.badRequest(
       "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc",
     );
@@ -111,10 +117,7 @@ export async function updateCampaign(id, data) {
     data.name = name;
   }
 
-  if (
-    (data.openAt || campaign.openAt) &&
-    (data.closeAt || campaign.closeAt)
-  ) {
+  if ((data.openAt || campaign.openAt) && (data.closeAt || campaign.closeAt)) {
     const open = new Date(data.openAt ?? campaign.openAt);
     const close = new Date(data.closeAt ?? campaign.closeAt);
     if (open >= close) {
@@ -194,7 +197,9 @@ export async function closeCampaign(id) {
 export async function completeCampaign(id) {
   const campaign = await getCampaign(id);
   if (campaign.status !== "closed") {
-    throw ApiError.badRequest("Chỉ đợt tuyển đã đóng mới được đánh dấu hoàn tất");
+    throw ApiError.badRequest(
+      "Chỉ đợt tuyển đã đóng mới được đánh dấu hoàn tất",
+    );
   }
   campaign.status = "completed";
   await campaign.save();

@@ -39,7 +39,8 @@ async function api(path, { method = "GET", token, body } = {}) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.success === false) {
-    const msg = json.message || json.error || res.statusText || String(res.status);
+    const msg =
+      json.message || json.error || res.statusText || String(res.status);
     const err = new Error(msg);
     err.status = res.status;
     err.json = json;
@@ -81,9 +82,7 @@ async function main() {
   }
 
   if (!tokens.mentor || !tokens.trainee || !tokens.bcn) {
-    console.error(
-      "\nThiếu token — chạy `npm run seed:demo` rồi thử lại.\n",
-    );
+    console.error("\nThiếu token — chạy `npm run seed:demo` rồi thử lại.\n");
     process.exit(1);
   }
 
@@ -262,7 +261,9 @@ async function main() {
     }
   }
 
-  console.log(`\n========== KẾT QUẢ: ${passed} passed, ${failed} failed ==========\n`);
+  console.log(
+    `\n========== KẾT QUẢ: ${passed} passed, ${failed} failed ==========\n`,
+  );
   process.exit(failed > 0 ? 1 : 0);
 }
 

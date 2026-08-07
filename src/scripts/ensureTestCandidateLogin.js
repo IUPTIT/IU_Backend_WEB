@@ -36,7 +36,9 @@ async function upsertCandidate({ email, name, dateOfBirth }) {
     user.requirePasswordChange = true;
     user.password = rawPassword;
     await user.save();
-    console.log(`UPDATED  ${email}  MK=${rawPassword}  requirePasswordChange=true`);
+    console.log(
+      `UPDATED  ${email}  MK=${rawPassword}  requirePasswordChange=true`,
+    );
   } else {
     user = await User.create({
       name,
@@ -48,7 +50,9 @@ async function upsertCandidate({ email, name, dateOfBirth }) {
       emailVerified: true,
       requirePasswordChange: true,
     });
-    console.log(`CREATED  ${email}  MK=${rawPassword}  requirePasswordChange=true`);
+    console.log(
+      `CREATED  ${email}  MK=${rawPassword}  requirePasswordChange=true`,
+    );
   }
   return { email, rawPassword, id: String(user._id) };
 }

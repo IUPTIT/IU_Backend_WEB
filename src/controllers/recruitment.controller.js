@@ -81,7 +81,9 @@ export const listApplications = catchAsync(async (req, res) => {
 });
 
 export const getApplication = catchAsync(async (req, res) => {
-  const application = await applicationService.getApplicationById(req.params.id);
+  const application = await applicationService.getApplicationById(
+    req.params.id,
+  );
   sendSuccess(res, { message: "Chi tiết hồ sơ", data: { application } });
 });
 

@@ -31,7 +31,9 @@ async function main() {
     console.log(`[fix] ${t.fullName} <${t.email}> → candidate`);
   }
 
-  console.log(`Done. Fixed ${fixed}/${activeTrainees.length} trainee account(s).`);
+  console.log(
+    `Done. Fixed ${fixed}/${activeTrainees.length} trainee account(s).`,
+  );
   await disconnectDatabase();
 }
 

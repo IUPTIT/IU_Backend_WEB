@@ -153,7 +153,10 @@ export const listAccounts = catchAsync(async (req, res) => {
     includeDisabled:
       req.query.includeDisabled === "1" || req.query.includeDisabled === "true",
   });
-  sendSuccess(res, { message: "Danh sách tài khoản portal", data: { accounts } });
+  sendSuccess(res, {
+    message: "Danh sách tài khoản portal",
+    data: { accounts },
+  });
 });
 
 export const createAccount = catchAsync(async (req, res) => {
@@ -301,7 +304,10 @@ export const getDashboardOverview = catchAsync(async (_req, res) => {
 export const listEmailTemplates = catchAsync(async (req, res) => {
   const svc = await import("../services/emailTemplate.service.js");
   const templates = await svc.listTemplates(req.query.category);
-  sendSuccess(res, { message: "Danh sách email template", data: { templates } });
+  sendSuccess(res, {
+    message: "Danh sách email template",
+    data: { templates },
+  });
 });
 
 export const getEmailTemplate = catchAsync(async (req, res) => {
@@ -322,7 +328,11 @@ export const createEmailTemplate = catchAsync(async (req, res) => {
 
 export const updateEmailTemplate = catchAsync(async (req, res) => {
   const svc = await import("../services/emailTemplate.service.js");
-  const template = await svc.updateTemplate(req.params.id, req.body, req.user.id);
+  const template = await svc.updateTemplate(
+    req.params.id,
+    req.body,
+    req.user.id,
+  );
   sendSuccess(res, { message: "Đã cập nhật template", data: { template } });
 });
 
