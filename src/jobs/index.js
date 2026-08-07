@@ -8,6 +8,10 @@ import {
   JOB_SEND_INTERVIEW_REMINDER,
 } from "./sendInterviewReminder.job.js";
 import {
+  defineSendUnbookedReminderJob,
+  JOB_SEND_UNBOOKED_REMINDER,
+} from "./sendUnbookedReminder.job.js";
+import {
   defineExpireDraftApplicationsJob,
   JOB_EXPIRE_DRAFT_APPLICATIONS,
 } from "./expireDraftApplications.job.js";
@@ -23,32 +27,39 @@ import {
   definePromoteToMemberJob,
   JOB_PROMOTE_TO_MEMBER,
 } from "./promoteToMember.job.js";
+import {
+  defineSendTaskDeadlineReminderJob,
+  JOB_SEND_TASK_DEADLINE_REMINDER,
+} from "./sendTaskDeadlineReminder.job.js";
 
 export async function initJobs() {
-  // 1. Define job logic handlers
   defineCreateCandidateAccountJob();
   defineSendInterviewReminderJob();
+  defineSendUnbookedReminderJob();
   defineExpireDraftApplicationsJob();
   defineReleaseSlotHoldJob();
   defineDisableAccountJob();
   definePromoteToMemberJob();
+  defineSendTaskDeadlineReminderJob();
 
-  // 2. Start Agenda job processing engine
   await agenda.start();
   console.log("[agenda] Job processing engine started");
 
-  // 3. Schedule recurring background jobs
   await agenda.every("15 minutes", JOB_SEND_INTERVIEW_REMINDER);
+  await agenda.every("1 hour", JOB_SEND_UNBOOKED_REMINDER);
   await agenda.every("1 hour", JOB_EXPIRE_DRAFT_APPLICATIONS);
   await agenda.every("1 minute", JOB_RELEASE_SLOT_HOLD);
+  await agenda.every("30 minutes", JOB_SEND_TASK_DEADLINE_REMINDER);
 }
 
 export {
   agenda,
   JOB_CREATE_CANDIDATE_ACCOUNT,
   JOB_SEND_INTERVIEW_REMINDER,
+  JOB_SEND_UNBOOKED_REMINDER,
   JOB_EXPIRE_DRAFT_APPLICATIONS,
   JOB_RELEASE_SLOT_HOLD,
   JOB_DISABLE_ACCOUNT,
   JOB_PROMOTE_TO_MEMBER,
+  JOB_SEND_TASK_DEADLINE_REMINDER,
 };

@@ -35,6 +35,13 @@ const trainingProgramSchema = new mongoose.Schema(
     department: { type: String, required: true, trim: true },
     stages: { type: [stageSchema], default: [] },
     lessons: { type: [lessonSchema], default: [] },
+    /** Ngưỡng % task approved để BCN chốt Đạt (Ch.4.3) */
+    passThresholdPercent: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 80,
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true, collection: "training_programs" },

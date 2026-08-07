@@ -50,3 +50,12 @@ export const submitTask = catchAsync(async (req, res) => {
   const task = await taskService.submitTask(req.params.id, req.body, req.user);
   sendSuccess(res, { message: "Đã nộp bài", data: { task } });
 });
+
+export const addProgressLog = catchAsync(async (req, res) => {
+  const task = await taskService.addProgressLog(
+    req.params.id,
+    req.body.content,
+    req.user,
+  );
+  sendSuccess(res, { message: "Đã cập nhật nhật ký tiến độ", data: { task } });
+});

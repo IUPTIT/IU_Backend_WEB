@@ -1,4 +1,5 @@
 import { celebrate, Joi, Segments } from "celebrate";
+import { personName, phoneVN, phoneVNOptional } from "./common.validation.js";
 
 // Tra cứu: cần ít nhất email hoặc code (nghiệp vụ 1.5)
 export const lookup = celebrate({
@@ -28,15 +29,11 @@ export const editWithEmail = celebrate({
     email: Joi.string().email().lowercase().trim().required().messages({
       "any.required": "Email xác nhận chủ hồ sơ là bắt buộc",
     }),
-    fullName: Joi.string().trim(),
+    fullName: personName,
     studentId: Joi.string().trim(),
     className: Joi.string().trim(),
     faculty: Joi.string().trim(),
-    phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
-      .messages({
-        "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
-      }),
+    phone: phoneVN,
     dateOfBirth: Joi.date().iso().max("now"),
     avatarUrl: Joi.string().uri(),
     cvUrl: Joi.string().uri(),
@@ -66,9 +63,7 @@ export const updateDraftBody = celebrate({
     studentId: Joi.string().trim().allow(""),
     className: Joi.string().trim().allow(""),
     faculty: Joi.string().trim().allow(""),
-    phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
-      .allow(""),
+    phone: phoneVNOptional,
     dateOfBirth: Joi.date().iso().max("now"),
     avatarUrl: Joi.string().allow(""),
     cvUrl: Joi.string().allow(""),

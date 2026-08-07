@@ -30,6 +30,11 @@ export async function holdSlot(slotId, applicationId) {
     if (!slot) {
       throw ApiError.notFound("Ca phỏng vấn không tồn tại");
     }
+    if (!slot.interviewerIds?.length) {
+      throw ApiError.badRequest(
+        "Ca chưa có người phỏng vấn phụ trách — không thể giữ chỗ",
+      );
+    }
 
     // Kiểm tra xem ứng viên này đã đang giữ chỗ ở bất kỳ slot nào chưa
     const existingHold = await SlotHold.findOne({
