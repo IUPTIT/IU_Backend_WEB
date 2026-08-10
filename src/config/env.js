@@ -10,6 +10,7 @@ const schema = Joi.object({
     .default("development"),
   PORT: Joi.number().default(5000),
   CLIENT_URL: Joi.string().uri().default("http://localhost:3000"),
+  BACKEND_URL: Joi.string().uri().allow("").default(""),
 
   MONGODB_URI: Joi.string().required(),
 
@@ -20,9 +21,8 @@ const schema = Joi.object({
 
   GOOGLE_CLIENT_ID: Joi.string().allow("").default(""),
   GOOGLE_CLIENT_SECRET: Joi.string().allow("").default(""),
-  GOOGLE_CALLBACK_URL: Joi.string()
-    .uri()
-    .default("http://localhost:5000/api/v1/auth/google/callback"),
+  // Bỏ trống = tự suy ra từ BACKEND_URL: ${BACKEND_URL}/api/v1/auth/google/callback
+  GOOGLE_CALLBACK_URL: Joi.string().uri().allow("").default(""),
 
   CLOUDINARY_CLOUD_NAME: Joi.string().allow("").default(""),
   CLOUDINARY_API_KEY: Joi.string().allow("").default(""),
@@ -74,11 +74,19 @@ function expandMongoSrvUri(mongoUri) {
   return `mongodb://${auth}${hosts}${dbPath}?${params.toString()}`;
 }
 
+const backendUrl = (
+  envVars.BACKEND_URL || `http://localhost:${envVars.PORT}`
+).replace(/\/+$/, "");
+
+const googleCallbackUrl =
+  envVars.GOOGLE_CALLBACK_URL || `${backendUrl}/api/v1/auth/google/callback`;
+
 const config = {
   env: envVars.NODE_ENV,
   isProd: envVars.NODE_ENV === "production",
   port: envVars.PORT,
   clientUrl: envVars.CLIENT_URL,
+  backendUrl,
 
   mongoUri: expandMongoSrvUri(envVars.MONGODB_URI),
 
@@ -92,7 +100,7 @@ const config = {
   google: {
     clientId: envVars.GOOGLE_CLIENT_ID,
     clientSecret: envVars.GOOGLE_CLIENT_SECRET,
-    callbackUrl: envVars.GOOGLE_CALLBACK_URL,
+    callbackUrl: googleCallbackUrl,
     get enabled() {
       return Boolean(this.clientId && this.clientSecret);
     },
