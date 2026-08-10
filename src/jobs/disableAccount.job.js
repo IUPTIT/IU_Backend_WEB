@@ -2,6 +2,7 @@ import agenda from "../config/agenda.js";
 import Application from "../models/application.model.js";
 import User from "../models/user.model.js";
 import * as emailService from "../services/email.service.js";
+import * as tokenService from "../services/token.service.js";
 
 export const JOB_DISABLE_ACCOUNT = "disableAccount";
 
@@ -22,10 +23,11 @@ export function defineDisableAccountJob() {
       // Khoá tài khoản (giữ data để đối soát) — hồ sơ rớt vòng đơn chưa có tài khoản
       if (application.userId) {
         const user = await User.findById(application.userId);
-        if (user && user.isActive) {
+        if (user && (user.isActive || user.status !== "disabled")) {
           user.isActive = false;
           user.status = "disabled";
           await user.save();
+          await tokenService.revokeAllRefreshTokens(user.id);
           console.log(
             `[job:${JOB_DISABLE_ACCOUNT}] Disabled account ${user.email}`,
           );

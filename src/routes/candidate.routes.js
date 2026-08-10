@@ -2,6 +2,7 @@ import { Router } from "express";
 import { celebrate, Joi, Segments } from "celebrate";
 import authenticate from "../middlewares/authenticate.js";
 import authorize from "../middlewares/authorize.js";
+import requirePasswordChanged from "../middlewares/requirePasswordChanged.js";
 import * as controller from "../controllers/candidate.controller.js";
 import { objectId } from "../validations/common.validation.js";
 
@@ -20,10 +21,12 @@ const changeSlotBody = celebrate({
 });
 
 // Toàn bộ route dành riêng cho role candidate — thao tác chỉ trên hồ sơ của chính mình
-// (service tra theo req.user.sourceApplicationId, không nhận applicationId từ client)
 router.use(authenticate, authorize("candidate"));
 
+// getMe luôn cho phép — FE dùng để hiện ChangePasswordGate
 router.get("/me", controller.getMe);
+
+router.use(requirePasswordChanged);
 router.get("/slots", controller.listSlots);
 router.post("/slots/:slotId/hold", slotIdParam, controller.holdSlot);
 router.post("/bookings/confirm", confirmBody, controller.confirmBooking);

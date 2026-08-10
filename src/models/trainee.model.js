@@ -59,6 +59,12 @@ const traineeSchema = new mongoose.Schema(
       default: null,
     },
     cohortLabel: { type: String, default: "" },
+    /** Mã chứng nhận điện tử khi BCN cấp (VD: IU-CERT-2026-A1B2C3) */
+    certificateCode: { type: String, default: "" },
+    certificateIssuedAt: { type: Date, default: null },
+    /** Đã gia hạn deadline training 1 lần (Ch.4.3) */
+    extendedOnce: { type: Boolean, default: false },
+    extendedAt: { type: Date, default: null },
   },
   { timestamps: true, collection: "trainees" },
 );

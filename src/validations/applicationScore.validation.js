@@ -71,5 +71,8 @@ export const createScore = celebrate({
         "any.only": "Không được nhập điểm danh (attendance) cho vòng đơn (cv)",
       }),
     }),
+
+    /** BCN sửa điểm hộ interviewer — ObjectId user được ghi đè */
+    asUserId: Joi.string().hex().length(24).optional(),
   }),
 });

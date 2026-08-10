@@ -103,3 +103,15 @@ export async function consumeToken(userId, rawValue, type) {
   await Token.deleteOne({ _id: record._id });
   return record;
 }
+
+/** Consume reset/OTP bằng raw token (không cần email) — link trong email chỉ có token. */
+export async function consumeTokenByValue(rawValue, type) {
+  const record = await Token.findOne({
+    token: hash(rawValue),
+    type,
+    expiresAt: { $gt: new Date() },
+  });
+  if (!record) return null;
+  await Token.deleteOne({ _id: record._id });
+  return record;
+}

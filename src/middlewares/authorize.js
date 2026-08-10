@@ -1,10 +1,11 @@
 import ApiError from "../utils/ApiError.js";
+import { hasRole } from "../utils/roles.js";
 
-// Restrict a route to given roles. Use after authenticate.
+// Restrict a route to given roles (intersection with user.roles / role).
 export default function authorize(...allowedRoles) {
   return (req, _res, next) => {
     if (!req.user) return next(ApiError.unauthorized());
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!hasRole(req.user, ...allowedRoles)) {
       return next(ApiError.forbidden("You do not have permission"));
     }
     return next();
@@ -13,11 +14,10 @@ export default function authorize(...allowedRoles) {
 
 /**
  * Middleware đảm bảo Candidate chỉ có quyền thao tác trên chính hồ sơ/booking của mình.
- * Kiểm tra role candidate và đối chiếu sourceApplicationId với applicationId trong req.params hoặc req.body.
  */
 export function authorizeCandidateOwner(req, _res, next) {
   if (!req.user) return next(ApiError.unauthorized());
-  if (req.user.role !== "candidate") {
+  if (!hasRole(req.user, "candidate")) {
     return next(ApiError.forbidden("You do not have permission"));
   }
 
@@ -31,6 +31,5 @@ export function authorizeCandidateOwner(req, _res, next) {
   ) {
     return next(ApiError.forbidden("Bạn không có quyền truy cập hồ sơ này"));
   }
-
   return next();
 }

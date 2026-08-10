@@ -104,3 +104,8 @@ export const googleCallback = catchAsync(async (req, res) => {
 export const me = catchAsync(async (req, res) => {
   sendSuccess(res, { message: "Current user", data: { user: req.user } });
 });
+
+export const updateMe = catchAsync(async (req, res) => {
+  const user = await authService.updateMyProfile(req.user.id, req.body);
+  sendSuccess(res, { message: "Đã cập nhật hồ sơ", data: { user } });
+});

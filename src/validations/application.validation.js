@@ -1,4 +1,5 @@
 import { celebrate, Joi, Segments } from "celebrate";
+import { personName, phoneVN, phoneVNOptional } from "./common.validation.js";
 
 const departmentPreferenceSchema = Joi.object({
   department: Joi.string().trim().required().messages({
@@ -34,13 +35,7 @@ export const saveDraft = celebrate({
     className: Joi.string().trim().allow("").optional(),
     faculty: Joi.string().trim().allow("").optional(),
 
-    phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
-      .allow("")
-      .optional()
-      .messages({
-        "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
-      }),
+    phone: phoneVNOptional.optional(),
 
     dateOfBirth: Joi.date().iso().max("now").optional().messages({
       "date.max": "Ngày sinh không được là ngày trong tương lai",
@@ -76,7 +71,7 @@ export const submitApplication = celebrate({
       "any.required": "Email là bắt buộc",
     }),
 
-    fullName: Joi.string().trim().required().messages({
+    fullName: personName.required().messages({
       "any.required": "Họ và tên là bắt buộc khi submit hồ sơ",
     }),
 
@@ -92,13 +87,9 @@ export const submitApplication = celebrate({
       "any.required": "Khoa/Ngành là bắt buộc khi submit hồ sơ",
     }),
 
-    phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
-      .required()
-      .messages({
-        "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
-        "any.required": "Số điện thoại là bắt buộc khi submit hồ sơ",
-      }),
+    phone: phoneVN.required().messages({
+      "any.required": "Số điện thoại là bắt buộc khi submit hồ sơ",
+    }),
 
     dateOfBirth: Joi.date().iso().max("now").required().messages({
       "date.max": "Ngày sinh không được là ngày trong tương lai",
@@ -134,17 +125,12 @@ export const submitApplication = celebrate({
 
 export const editApplication = celebrate({
   [Segments.BODY]: Joi.object({
-    fullName: Joi.string().trim().required(),
+    fullName: personName.required(),
     studentId: Joi.string().trim().required(),
     className: Joi.string().trim().required(),
     faculty: Joi.string().trim().required(),
 
-    phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
-      .required()
-      .messages({
-        "string.pattern.base": "Số điện thoại phải có đúng 10 chữ số",
-      }),
+    phone: phoneVN.required(),
 
     dateOfBirth: Joi.date().iso().max("now").required(),
 

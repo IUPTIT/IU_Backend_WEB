@@ -13,11 +13,17 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:real": "node src/scripts/cleanAndSeedReal.js",
+    "seed:demo": "node src/scripts/seedDemoUsers.js",
+    "seed:members": "node src/scripts/seedDemoUsers.js",
+    "reset:training-demo": "node src/scripts/resetTrainingDemo.js",
+    "migrate:separate-leader-mentor": "node src/scripts/separateLeaderMentorRoles.js",
+    "test:training-flow": "node src/scripts/smokeTrainingFlow.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "seed:members": "node src/scripts/seedMembers.js"
   },
   "keywords": [
@@ -28,6 +34,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "agenda": "^5.0.0",
     "bcryptjs": "^2.4.3",
     "celebrate": "^15.0.3",
