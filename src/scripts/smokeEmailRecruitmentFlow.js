@@ -128,8 +128,14 @@ async function autoRecruitmentPass(to, name, code, dob) {
     ),
   );
   results.push(
-    await runStep("final_pass + welcome_member", () =>
+    await runStep("final_pass (admitted)", () =>
       emailService.sendAdmittedEmail(app),
+    ),
+    await runStep("welcome_member (official)", () =>
+      emailService.sendWelcomeMemberEmail({
+        name: app.fullName,
+        email: app.email,
+      }),
     ),
   );
   return results;
