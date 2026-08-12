@@ -4,7 +4,10 @@ import { matrixToXlsxBuffer } from "../../src/services/export.service.js";
 test("matrixToXlsxBuffer ghi header + rows đọc lại đúng", async () => {
   const buf = await matrixToXlsxBuffer(
     ["Họ và tên", "Trạng thái"],
-    [["Nguyễn A", "Trúng tuyển"], ["Trần B", "Chờ xét duyệt"]],
+    [
+      ["Nguyễn A", "Trúng tuyển"],
+      ["Trần B", "Chờ xét duyệt"],
+    ],
   );
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buf);
