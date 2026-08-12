@@ -11,6 +11,10 @@ import { notFound, errorHandler } from "./middlewares/error.js";
 
 const app = express();
 
+// Sau reverse proxy (nginx/PaaS): tin N hop để req.ip là IP client thật, tránh
+// rate-limit gộp mọi người vào 1 bucket (IP proxy). 0 = tắt (chạy trực tiếp).
+if (config.trustProxy) app.set("trust proxy", config.trustProxy);
+
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());

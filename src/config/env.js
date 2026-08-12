@@ -9,6 +9,9 @@ const schema = Joi.object({
     .valid("development", "production", "test")
     .default("development"),
   PORT: Joi.number().default(5000),
+  // Số proxy hop tin cậy để rate-limit lấy đúng IP client (X-Forwarded-For).
+  // 0 = tắt (chạy trực tiếp, không proxy). Sau 1 reverse proxy/PaaS: đặt 1.
+  TRUST_PROXY: Joi.number().min(0).default(0),
   CLIENT_URL: Joi.string().uri().default("http://localhost:3000"),
   BACKEND_URL: Joi.string().uri().allow("").default(""),
 
@@ -85,6 +88,7 @@ const config = {
   env: envVars.NODE_ENV,
   isProd: envVars.NODE_ENV === "production",
   port: envVars.PORT,
+  trustProxy: envVars.TRUST_PROXY,
   clientUrl: envVars.CLIENT_URL,
   backendUrl,
 
