@@ -1,4 +1,7 @@
 import ExcelJS from "exceljs";
+import ApplicationForm from "../models/applicationForm.model.js";
+import RecruitmentCampaign from "../models/recruitmentCampaign.model.js";
+import { getApplicationsForExport } from "./application.service.js";
 
 export async function matrixToXlsxBuffer(headers, rows, sheetName = "Hồ sơ") {
   const wb = new ExcelJS.Workbook();
@@ -25,12 +28,18 @@ function formatVnDate(value) {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function preferredDepartment(app) {
   if (app.assignedDepartment) return app.assignedDepartment;
-  const prefs = [...(app.departmentPreferences ?? [])].sort((a, b) => a.priority - b.priority);
+  const prefs = [...(app.departmentPreferences ?? [])].sort(
+    (a, b) => a.priority - b.priority,
+  );
   return prefs[0]?.department ?? "";
 }
 
@@ -41,17 +50,32 @@ export const PROFILE_COLUMNS = {
   phone: { header: "Số điện thoại", get: (a) => a.phone ?? "" },
   department: { header: "Ban nguyện vọng", get: (a) => preferredDepartment(a) },
   campaign: { header: "Đợt tuyển", get: (_a, ctx) => ctx.campaignName ?? "" },
-  submittedAt: { header: "Ngày nộp", get: (a) => formatVnDate(a.submittedAt ?? a.createdAt) },
+  submittedAt: {
+    header: "Ngày nộp",
+    get: (a) => formatVnDate(a.submittedAt ?? a.createdAt),
+  },
   totalScore: {
     header: "Điểm ĐG",
-    get: (a) => (a.cvScore != null ? String(Number((a.cvScore / 10).toFixed(1))) : ""),
+    get: (a) =>
+      a.cvScore != null ? String(Number((a.cvScore / 10).toFixed(1))) : "",
   },
-  status: { header: "Trạng thái", get: (a) => STATUS_LABEL[a.status] ?? a.status },
+  status: {
+    header: "Trạng thái",
+    get: (a) => STATUS_LABEL[a.status] ?? a.status,
+  },
 };
 
-export function buildExportMatrix({ campaignName, form, applications, columns, questionFieldIds }) {
+export function buildExportMatrix({
+  campaignName,
+  form,
+  applications,
+  columns,
+  questionFieldIds,
+}) {
   const fieldById = new Map((form?.fields ?? []).map((f) => [f.fieldId, f]));
-  const profileCols = (columns ?? []).filter((k) => Object.hasOwn(PROFILE_COLUMNS, k));
+  const profileCols = (columns ?? []).filter((k) =>
+    Object.hasOwn(PROFILE_COLUMNS, k),
+  );
   const questionCols = (questionFieldIds ?? []).filter(
     (id) => fieldById.has(id) && !fieldById.get(id).isFixed,
   );
@@ -62,8 +86,12 @@ export function buildExportMatrix({ campaignName, form, applications, columns, q
   ];
 
   const rows = (applications ?? []).map((app) => {
-    const answerById = new Map((app.answers ?? []).map((ans) => [ans.fieldId, ans.value]));
-    const profileVals = profileCols.map((k) => PROFILE_COLUMNS[k].get(app, { campaignName }));
+    const answerById = new Map(
+      (app.answers ?? []).map((ans) => [ans.fieldId, ans.value]),
+    );
+    const profileVals = profileCols.map((k) =>
+      PROFILE_COLUMNS[k].get(app, { campaignName }),
+    );
     const questionVals = questionCols.map((id) => {
       const v = answerById.get(id);
       if (v == null) return "";
@@ -73,4 +101,42 @@ export function buildExportMatrix({ campaignName, form, applications, columns, q
   });
 
   return { headers, rows };
+}
+
+// Chuẩn hoá tên đợt tuyển thành slug an toàn cho tên file (bỏ dấu tiếng Việt)
+function slugify(name) {
+  return (
+    (name ?? "dot")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .toLowerCase() || "dot"
+  );
+}
+
+// Orchestrator: gộp campaign + form + hồ sơ (đã enrich, lọc draft, đúng thứ tự
+// applicationIds) thành ma trận rồi xuất workbook .xlsx
+export async function buildApplicationsExport({
+  campaignId,
+  applicationIds,
+  columns,
+  questionFieldIds,
+}) {
+  const [campaign, form, applications] = await Promise.all([
+    RecruitmentCampaign.findById(campaignId).select("name").lean(),
+    ApplicationForm.findOne({ campaignId }).lean(),
+    getApplicationsForExport(campaignId, applicationIds),
+  ]);
+  const { headers, rows } = buildExportMatrix({
+    campaignName: campaign?.name ?? "",
+    form,
+    applications,
+    columns,
+    questionFieldIds: questionFieldIds ?? [],
+  });
+  const buffer = await matrixToXlsxBuffer(headers, rows);
+  return { buffer, filename: `ho_so_${slugify(campaign?.name)}.xlsx` };
 }
