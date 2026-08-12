@@ -266,4 +266,19 @@ router.get(
   controller.listNewMembers,
 );
 
+// ---- Xuất dữ liệu hồ sơ (xlsx) ----
+router.post(
+  "/campaigns/:id/applications/export",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+      columns: Joi.array().items(Joi.string()).required(),
+      questionFieldIds: Joi.array().items(Joi.string()).default([]),
+    }),
+  }),
+  controller.exportApplications,
+);
+
 export default router;
