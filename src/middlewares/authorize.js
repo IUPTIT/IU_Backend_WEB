@@ -6,7 +6,7 @@ export default function authorize(...allowedRoles) {
   return (req, _res, next) => {
     if (!req.user) return next(ApiError.unauthorized());
     if (!hasRole(req.user, ...allowedRoles)) {
-      return next(ApiError.forbidden("You do not have permission"));
+      return next(ApiError.forbidden("Bạn không có quyền thực hiện thao tác này"));
     }
     return next();
   };

@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 export const BOOKING_STATUS = ["booked", "changed", "no_show", "completed"];
 
+/** Đổi ca phải trước giờ PV hiện tại ít nhất 12 giờ */
+export const CHANGE_SLOT_MIN_LEAD_MS = 12 * 60 * 60 * 1000;
+
 const interviewBookingSchema = new mongoose.Schema(
   {
     // ID hồ sơ ứng tuyển (Unique: 1 hồ sơ chỉ được có 1 booking active)
@@ -26,12 +29,11 @@ const interviewBookingSchema = new mongoose.Schema(
       default: "booked",
     },
 
-    // Số lần đã đổi ca phỏng vấn (Tối đa 1 lần)
+    // Số lần đã đổi ca (không giới hạn — chỉ để thống kê)
     changeCount: {
       type: Number,
       default: 0,
       min: [0, "Số lần đổi ca tối thiểu là 0"],
-      max: [1, "Tối đa chỉ được đổi ca phỏng vấn 1 lần"],
     },
 
     // Thời điểm ứng viên thực hiện đặt lịch thành công
@@ -57,28 +59,35 @@ interviewBookingSchema.index({ applicationId: 1 }, { unique: true });
 interviewBookingSchema.index({ slotId: 1 });
 
 /**
- * Instance method kiểm tra ứng viên có được phép đổi ca phỏng vấn hay không.
- * Điều kiện:
- * 1. Số lần đổi ca (changeCount) < 1
- * 2. Thời điểm ca mới (newSlotStartDateTime) phải cách thời điểm hiện tại >= 24 giờ.
+ * Được đổi ca khi còn ≥ 12 giờ trước thời điểm bắt đầu ca hiện tại.
+ * (Ca mới còn chỗ — kiểm tra riêng ở service.)
  *
- * @param {Date} newSlotStartDateTime Thời điểm bắt đầu của ca phỏng vấn mới
- * @returns {boolean} true nếu hợp lệ, false nếu không được phép đổi
+ * @param {Date} currentSlotStartDateTime Thời điểm bắt đầu ca đang đặt
  */
-interviewBookingSchema.methods.canChangeSlot = function (newSlotStartDateTime) {
-  if (this.changeCount >= 1) return false;
+interviewBookingSchema.methods.canChangeSlot = function (
+  currentSlotStartDateTime,
+) {
+  if (!currentSlotStartDateTime) return false;
+  const start = new Date(currentSlotStartDateTime).getTime();
+  if (Number.isNaN(start)) return false;
+  return start - Date.now() >= CHANGE_SLOT_MIN_LEAD_MS;
+};
 
-  if (!newSlotStartDateTime) return false;
-
-  const now = Date.now();
-  const targetTime = new Date(newSlotStartDateTime).getTime();
-  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-
-  if (targetTime - now < TWENTY_FOUR_HOURS_MS) {
-    return false;
+/** Lý do cụ thể khi không đổi được ca */
+interviewBookingSchema.methods.changeSlotBlockReason = function (
+  currentSlotStartDateTime,
+) {
+  if (!currentSlotStartDateTime) {
+    return "Không xác định được giờ phỏng vấn hiện tại.";
   }
-
-  return true;
+  const start = new Date(currentSlotStartDateTime).getTime();
+  if (Number.isNaN(start)) {
+    return "Giờ phỏng vấn hiện tại không hợp lệ.";
+  }
+  if (start - Date.now() < CHANGE_SLOT_MIN_LEAD_MS) {
+    return "Chỉ được đổi ca trước giờ phỏng vấn ít nhất 12 giờ.";
+  }
+  return null;
 };
 
 const InterviewBooking = mongoose.model(

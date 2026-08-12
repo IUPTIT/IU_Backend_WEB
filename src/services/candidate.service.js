@@ -113,7 +113,13 @@ export async function confirmBooking(sourceApplicationId, slotId) {
   return booking;
 }
 
-// Đổi ca — tối đa 1 lần, ca mới phải cách hiện tại >= 24h (booking.canChangeSlot)
+/** Huỷ giữ chỗ tạm (khi chọn ca khác / bỏ) */
+export async function releaseHold(sourceApplicationId, slotId = null) {
+  const application = await getOwnApplication(sourceApplicationId);
+  return slotHoldService.releaseHold(application._id, slotId);
+}
+
+// Đổi ca — ca mới còn chỗ; trước giờ PV hiện tại ≥ 12h; không giới hạn số lần
 export async function changeSlot(sourceApplicationId, newSlotId) {
   const application = await getOwnApplication(sourceApplicationId);
   const booking = await InterviewBooking.findOne({
@@ -124,16 +130,27 @@ export async function changeSlot(sourceApplicationId, newSlotId) {
     throw ApiError.badRequest("Ca mới trùng với ca hiện tại");
   }
 
-  const newSlot = await assertBookableSlot(newSlotId, application);
+  const currentSlot = await InterviewSlot.findById(booking.slotId);
+  if (!currentSlot) {
+    throw ApiError.badRequest("Không tìm thấy ca phỏng vấn hiện tại");
+  }
+  const currentStart = new Date(currentSlot.date);
+  const [ch, cm] = String(currentSlot.startTime || "0:0")
+    .split(":")
+    .map(Number);
+  currentStart.setHours(ch || 0, cm || 0, 0, 0);
 
-  const newSlotStart = new Date(newSlot.date);
-  const [h, m] = newSlot.startTime.split(":").map(Number);
-  newSlotStart.setHours(h, m, 0, 0);
-  if (!booking.canChangeSlot(newSlotStart)) {
+  if (!booking.canChangeSlot(currentStart)) {
+    const reason =
+      typeof booking.changeSlotBlockReason === "function"
+        ? booking.changeSlotBlockReason(currentStart)
+        : null;
     throw ApiError.badRequest(
-      "Không thể đổi ca: chỉ được đổi tối đa 1 lần và ca mới phải cách hiện tại ít nhất 24 giờ",
+      reason || "Chỉ được đổi ca trước giờ phỏng vấn ít nhất 12 giờ.",
     );
   }
+
+  await assertBookableSlot(newSlotId, application);
 
   // Giữ chỗ ca mới trước (atomic guard capacity), rồi nhả ca cũ
   const updated = await InterviewSlot.findOneAndUpdate(

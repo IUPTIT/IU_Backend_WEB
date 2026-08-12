@@ -23,6 +23,12 @@ export const createSlot = celebrate({
       "any.required": "Ngày phỏng vấn (date) là bắt buộc",
     }),
 
+    name: Joi.string().trim().max(200).required().messages({
+      "any.required": "Tên ca phỏng vấn là bắt buộc",
+      "string.empty": "Tên ca phỏng vấn là bắt buộc",
+      "string.max": "Tên ca tối đa 200 ký tự",
+    }),
+
     startTime: Joi.string().pattern(TIME_REGEX).required().messages({
       "string.pattern.base": "startTime phải có định dạng HH:mm (VD: 09:00)",
       "any.required": "startTime là bắt buộc",

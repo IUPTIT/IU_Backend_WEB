@@ -38,6 +38,17 @@ export const confirmBooking = catchAsync(async (req, res) => {
   });
 });
 
+export const releaseHold = catchAsync(async (req, res) => {
+  const result = await candidateService.releaseHold(
+    req.user.sourceApplicationId,
+    req.body?.slotId || null,
+  );
+  sendSuccess(res, {
+    message: "Đã huỷ giữ chỗ",
+    data: result,
+  });
+});
+
 export const changeSlot = catchAsync(async (req, res) => {
   const booking = await candidateService.changeSlot(
     req.user.sourceApplicationId,

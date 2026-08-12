@@ -33,6 +33,14 @@ const interviewSlotSchema = new mongoose.Schema(
     // Ngày phỏng vấn
     date: { type: Date, required: true },
 
+    // Tên ca (VD: "Ca sáng CNTT", "PV vòng 1 — Ban HC")
+    name: {
+      type: String,
+      trim: true,
+      maxlength: [200, "Tên ca tối đa 200 ký tự"],
+      default: "",
+    },
+
     // Giờ bắt đầu (Định dạng HH:mm, VD: "09:00")
     startTime: {
       type: String,

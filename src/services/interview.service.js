@@ -251,6 +251,7 @@ export async function updateSlot(slotId, data) {
 
   const allowed = [
     "interviewerIds",
+    "name",
     "location",
     "date",
     "startTime",
