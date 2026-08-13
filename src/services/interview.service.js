@@ -98,8 +98,69 @@ async function notifyInterviewersAssigned(slot, addedUserIds) {
   }
 }
 
+/** User ids từng nộp hồ sơ trong đợt — không được làm interviewer cùng đợt */
+async function getCampaignApplicantUserIds(campaignId) {
+  const applicants = await Application.find({ campaignId })
+    .select("email userId")
+    .lean();
+  const userIds = new Set(
+    applicants.map((a) => a.userId).filter(Boolean).map(String),
+  );
+  const emails = [
+    ...new Set(
+      applicants.map((a) => String(a.email || "").toLowerCase()).filter(Boolean),
+    ),
+  ];
+  if (emails.length) {
+    const byEmail = await User.find({ email: { $in: emails } })
+      .select("_id")
+      .lean();
+    for (const u of byEmail) userIds.add(String(u._id));
+  }
+  return userIds;
+}
+
+async function assertInterviewersNotCampaignApplicants(
+  campaignId,
+  interviewerIds,
+) {
+  const ids = (interviewerIds ?? []).map((id) => String(id?._id ?? id)).filter(Boolean);
+  if (!ids.length || !campaignId) return;
+  const blocked = await getCampaignApplicantUserIds(campaignId);
+  const bad = ids.filter((id) => blocked.has(id));
+  if (bad.length) {
+    throw ApiError.badRequest(
+      "Không thể gán người từng ứng tuyển trong đợt này làm người phỏng vấn (kể cả đã thành viên chính thức)",
+    );
+  }
+}
+
+/** Gỡ interviewer là ứng viên cùng đợt khỏi ca (tự sửa dữ liệu lịch sử bị gán nhầm) */
+async function scrubApplicantInterviewersFromSlots(campaignId, slots) {
+  if (!slots.length) return slots;
+  const blocked = await getCampaignApplicantUserIds(campaignId);
+  if (!blocked.size) return slots;
+
+  for (const slot of slots) {
+    const before = (slot.interviewerIds ?? []).map((id) => String(id?._id ?? id));
+    const kept = (slot.interviewerIds ?? []).filter(
+      (id) => !blocked.has(String(id?._id ?? id)),
+    );
+    if (kept.length !== before.length) {
+      slot.interviewerIds = kept.map((id) => id?._id ?? id);
+      await slot.save();
+      await slot.populate("interviewerIds", "name email");
+    }
+  }
+  return slots;
+}
+
 export async function createSlot(data) {
   await campaignService.getCampaign(data.campaignId);
+  await assertInterviewersNotCampaignApplicants(
+    data.campaignId,
+    data.interviewerIds,
+  );
   const slot = await InterviewSlot.create(data);
   const ids = (data.interviewerIds ?? []).map(String).filter(Boolean);
   if (ids.length) {
@@ -110,6 +171,10 @@ export async function createSlot(data) {
 
 export async function bulkGenerateSlots(data) {
   await campaignService.getCampaign(data.campaignId);
+  await assertInterviewersNotCampaignApplicants(
+    data.campaignId,
+    data.interviewerIds,
+  );
   const slots = InterviewSlot.bulkGenerate(data);
   if (!slots.length) {
     throw ApiError.badRequest(
@@ -131,6 +196,7 @@ export async function listSlots(campaignId) {
   const slots = await InterviewSlot.find({ campaignId })
     .sort({ date: 1, startTime: 1 })
     .populate("interviewerIds", "name email");
+  await scrubApplicantInterviewersFromSlots(campaignId, slots);
   const bookings = await InterviewBooking.find({
     slotId: { $in: slots.map((s) => s._id) },
   }).populate(
@@ -196,6 +262,12 @@ export async function updateSlot(slotId, data) {
   }
   if (data.interviewerIds !== undefined && !slot.interviewerIds?.length) {
     throw ApiError.badRequest("Ca phải có ít nhất 1 người phỏng vấn phụ trách");
+  }
+  if (data.interviewerIds !== undefined) {
+    await assertInterviewersNotCampaignApplicants(
+      slot.campaignId,
+      data.interviewerIds,
+    );
   }
   if (slot.capacity < slot.bookedCount) {
     throw ApiError.badRequest("Sức chứa mới nhỏ hơn số ứng viên đã đặt");
@@ -362,6 +434,7 @@ export async function getSlotDetail(slotId, actor) {
     "name email",
   );
   if (!slot) throw ApiError.notFound("Không tìm thấy ca phỏng vấn");
+  await scrubApplicantInterviewersFromSlots(slot.campaignId, [slot]);
   if (actor) assertCanAccessSlot(slot, actor);
   const bookings = await InterviewBooking.find({ slotId }).populate(
     "applicationId",
@@ -471,15 +544,24 @@ export async function listInterviewResults(campaignId) {
   });
 }
 
-// Danh sách người có thể được phân công PV (BCN / Leader / Member đang hoạt động)
-// Ai nằm trong interviewerIds của ca đều chấm được — không bắt buộc role Leader
-export function listInterviewers() {
-  return User.find({
+// Danh sách người có thể được phân công PV (BCN / Leader / Member đang hoạt động).
+// Nếu có campaignId: loại người từng nộp hồ sơ trong đợt đó (kể cả đã thành Member)
+// — tránh gán ứng viên của đợt làm interviewer cùng đợt.
+export async function listInterviewers(campaignId) {
+  const filter = {
     role: { $in: ["bcn", "leader", "member"] },
     isActive: { $ne: false },
-  })
-    .select("name email role")
-    .sort({ name: 1 });
+    status: { $ne: "disabled" },
+  };
+
+  if (campaignId) {
+    const blocked = await getCampaignApplicantUserIds(campaignId);
+    if (blocked.size) {
+      filter._id = { $nin: [...blocked] };
+    }
+  }
+
+  return User.find(filter).select("name email role").sort({ name: 1 });
 }
 
 /** Ứng viên đã Pass CV nhưng chưa đặt lịch phỏng vấn */

@@ -37,7 +37,13 @@ export const updateCampaign = catchAsync(async (req, res) => {
 });
 
 export const publishCampaign = catchAsync(async (req, res) => {
-  const campaign = await campaignService.publishCampaign(req.params.id);
+  const notify =
+    req.body?.notify !== false &&
+    req.query?.notify !== "false" &&
+    req.query?.notify !== "0";
+  const campaign = await campaignService.publishCampaign(req.params.id, {
+    notify,
+  });
   sendSuccess(res, { message: "Đã mở đợt tuyển", data: { campaign } });
 });
 
@@ -287,8 +293,9 @@ export const decideInterview = catchAsync(async (req, res) => {
   });
 });
 
-export const listInterviewers = catchAsync(async (_req, res) => {
-  const interviewers = await interviewService.listInterviewers();
+export const listInterviewers = catchAsync(async (req, res) => {
+  const campaignId = req.query.campaignId || undefined;
+  const interviewers = await interviewService.listInterviewers(campaignId);
   sendSuccess(res, {
     message: "Danh sách người phỏng vấn",
     data: { interviewers },

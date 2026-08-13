@@ -3,6 +3,8 @@ import RecruitmentCampaign from "../models/recruitmentCampaign.model.js";
 import ApplicationForm from "../models/applicationForm.model.js";
 import Application from "../models/application.model.js";
 import ClubDepartment from "../models/clubDepartment.model.js";
+import User from "../models/user.model.js";
+import { hasRole, mongoRoleIn } from "../utils/roles.js";
 
 /** Chỉ tiêu phải trùng tên Ban CLB đang active. */
 async function assertQuotasMatchDepartments(quotas) {
@@ -147,7 +149,7 @@ export async function updateCampaign(id, data) {
 }
 
 /** Kích hoạt: draft/closed → open (Inactive → Active). Chỉ Active hiện cho SV. */
-export async function publishCampaign(id) {
+export async function publishCampaign(id, { notify = true } = {}) {
   const campaign = await getCampaign(id);
   if (campaign.status === "completed") {
     throw ApiError.badRequest("Không thể kích hoạt đợt đã hoàn tất");
@@ -176,7 +178,38 @@ export async function publishCampaign(id) {
     form.publishedAt = new Date();
     await form.save();
   }
+
+  if (notify) {
+    await notifyCampaignPublished(campaign);
+  }
   return campaign;
+}
+
+/** In-app cho BCN + Leader khi đợt tuyển được mở */
+async function notifyCampaignPublished(campaign) {
+  try {
+    const notificationService = await import("./notification.service.js");
+    const users = await User.find({
+      ...mongoRoleIn(["bcn", "leader"]),
+      isActive: { $ne: false },
+      status: { $ne: "disabled" },
+    }).select("_id role roles");
+
+    for (const u of users) {
+      const link = hasRole(u, "bcn")
+        ? "/admin/recruitment/open"
+        : "/leader/recruitment/interviews";
+      await notificationService.createNotification({
+        userId: u._id,
+        title: "Đợt tuyển đã mở",
+        body: `"${campaign.name}" đã được xuất bản / kích hoạt.`,
+        type: "general",
+        link,
+      });
+    }
+  } catch (err) {
+    console.warn("[campaign] publish notify failed:", err.message);
+  }
 }
 
 /** Tắt kích hoạt: ngừng nhận đăng ký, giữ dữ liệu (open → closed). */

@@ -318,23 +318,37 @@ export async function sendInterviewPassedEmail(application) {
   });
 }
 
-// Trúng tuyển — final_pass (+ welcome_member nếu bật)
+// Trúng tuyển (admitted) — chỉ final_pass.
+// welcome_member gửi khi promote Member chính thức (sau training).
 export async function sendAdmittedEmail(application) {
   const automation = await import("./emailAutomation.service.js");
   const loginUrl = `${config.clientUrl}/login`;
-  const data = automation.applicationEmailData(application, {
-    result: "TRÚNG TUYỂN",
-    login_url: loginUrl,
-  });
-  const r1 = await automation.dispatchAutomatedEmail("final_pass", {
+  return automation.dispatchAutomatedEmail("final_pass", {
     to: application.email,
-    data,
+    data: automation.applicationEmailData(application, {
+      result: "TRÚNG TUYỂN",
+      login_url: loginUrl,
+    }),
   });
-  await automation.dispatchAutomatedEmail("welcome_member", {
-    to: application.email,
-    data,
+}
+
+/** Chào mừng Member chính thức — sau khi hoàn thành training / BCN chốt Đạt */
+export async function sendWelcomeMemberEmail(user, extra = {}) {
+  if (!user?.email) return null;
+  const automation = await import("./emailAutomation.service.js");
+  const loginUrl = `${config.clientUrl}/login`;
+  return automation.dispatchAutomatedEmail("welcome_member", {
+    to: user.email,
+    data: {
+      candidate_name: user.name || "",
+      email: user.email || "",
+      department: extra.department || "",
+      result: "THÀNH VIÊN CHÍNH THỨC",
+      club_name: "IU CLUB",
+      login_url: loginUrl,
+      ...extra,
+    },
   });
-  return r1;
 }
 
 // Xác nhận đặt / đổi lịch phỏng vấn
