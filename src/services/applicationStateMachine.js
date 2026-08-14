@@ -108,9 +108,21 @@ export async function transition(applicationId, nextStatus, { session } = {}) {
 async function handleSideEffects(application, _previousStatus, nextStatus) {
   const applicationId = application._id;
 
-  // Case 1: Pass vòng đơn -> Enqueue job tạo tài khoản candidate & gửi email thông báo
+  // Case 1: Pass vòng đơn -> Tạo tài khoản candidate NGAY (đồng bộ) để login được.
+  // Agenda chỉ là backup nếu sync lỗi.
   if (nextStatus === APPLICATION_STATUS.PASSED_CV) {
-    await agenda.now(JOB_CREATE_CANDIDATE_ACCOUNT, { applicationId });
+    try {
+      const { createCandidateAccountFromApplication } = await import(
+        "../jobs/createCandidateAccount.job.js"
+      );
+      await createCandidateAccountFromApplication(applicationId);
+    } catch (err) {
+      console.warn(
+        "[SM] sync createCandidateAccount failed, enqueue job:",
+        err.message,
+      );
+      await agenda.now(JOB_CREATE_CANDIDATE_ACCOUNT, { applicationId });
+    }
   }
 
   // Case 2: Rớt (CV / Phỏng vấn / Rejected) -> Khoá tài khoản (nếu có) + email báo loại.

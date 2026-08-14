@@ -260,7 +260,10 @@ router.post(
       messages: Joi.array()
         .items(
           Joi.object({
-            to: Joi.string().email().required(),
+            // tlds:false — cho phép .test / seed / email lạ; vẫn bắt buộc dạng local@domain
+            to: Joi.string()
+              .email({ tlds: { allow: false } })
+              .required(),
             subject: Joi.string().trim().max(500).required(),
             html: Joi.string().allow("").required(),
             text: Joi.string().allow("", null),

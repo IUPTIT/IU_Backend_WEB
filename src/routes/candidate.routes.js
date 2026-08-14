@@ -30,6 +30,7 @@ router.use(requirePasswordChanged);
 router.get("/slots", controller.listSlots);
 router.post("/slots/:slotId/hold", slotIdParam, controller.holdSlot);
 router.post("/bookings/confirm", confirmBody, controller.confirmBooking);
+router.post("/bookings/release-hold", controller.releaseHold);
 router.put("/bookings/change-slot", changeSlotBody, controller.changeSlot);
 
 export default router;

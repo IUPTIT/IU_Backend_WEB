@@ -13,17 +13,6 @@ export async function matrixToXlsxBuffer(headers, rows, sheetName = "Hồ sơ") 
   return Buffer.from(buf);
 }
 
-const STATUS_LABEL = {
-  draft: "Chờ xét duyệt",
-  pending_review: "Chờ xét duyệt",
-  passed_cv: "Đạt vòng đơn",
-  failed_cv: "Không đạt vòng đơn",
-  passed_interview: "Đạt phỏng vấn",
-  failed_interview: "Không đạt phỏng vấn",
-  admitted: "Trúng tuyển",
-  rejected: "Không trúng tuyển",
-};
-
 function formatVnDate(value) {
   if (!value) return "";
   const d = new Date(value);
@@ -43,25 +32,63 @@ function preferredDepartment(app) {
   return prefs[0]?.department ?? "";
 }
 
+function allDepartmentPreferences(app) {
+  const prefs = [...(app.departmentPreferences ?? [])].sort(
+    (a, b) => a.priority - b.priority,
+  );
+  if (prefs.length === 0) return preferredDepartment(app);
+  return prefs.map((p, i) => `NV${i + 1}: ${p.department}`).join(" · ");
+}
+
 // key khớp id cột frontend (buildApplicationExportColumns)
 export const PROFILE_COLUMNS = {
   fullName: { header: "Họ và tên", get: (a) => a.fullName ?? "" },
+  studentId: { header: "MSSV", get: (a) => a.studentId ?? "" },
+  className: { header: "Lớp", get: (a) => a.className ?? "" },
+  faculty: { header: "Khoa/Ngành", get: (a) => a.faculty ?? "" },
   email: { header: "Email", get: (a) => a.email ?? "" },
   phone: { header: "Số điện thoại", get: (a) => a.phone ?? "" },
+  dateOfBirth: {
+    header: "Ngày sinh",
+    get: (a) => formatVnDate(a.dateOfBirth),
+  },
   department: { header: "Ban nguyện vọng", get: (a) => preferredDepartment(a) },
+  departmentPreferences: {
+    header: "Nguyện vọng (đủ)",
+    get: (a) => allDepartmentPreferences(a),
+  },
   campaign: { header: "Đợt tuyển", get: (_a, ctx) => ctx.campaignName ?? "" },
   submittedAt: {
     header: "Ngày nộp",
     get: (a) => formatVnDate(a.submittedAt ?? a.createdAt),
   },
   totalScore: {
-    header: "Điểm ĐG",
+    header: "Điểm vòng đơn",
     get: (a) =>
       a.cvScore != null ? String(Number((a.cvScore / 10).toFixed(1))) : "",
   },
+  /** Chỉ kết quả vòng đơn — không lộ trạng thái PV / trúng tuyển */
+  screeningStatus: {
+    header: "Kết quả vòng đơn",
+    get: (a) => {
+      if (a.status === "draft" || a.status === "pending_review") {
+        return "Chờ xét duyệt";
+      }
+      if (a.status === "failed_cv") return "Không đạt vòng đơn";
+      // passed_cv trở đi = đã pass vòng đơn
+      return "Đạt vòng đơn";
+    },
+  },
+  /** Giữ key cũ nếu client cũ còn gửi — map sang nhãn vòng đơn */
   status: {
-    header: "Trạng thái",
-    get: (a) => STATUS_LABEL[a.status] ?? a.status,
+    header: "Kết quả vòng đơn",
+    get: (a) => {
+      if (a.status === "draft" || a.status === "pending_review") {
+        return "Chờ xét duyệt";
+      }
+      if (a.status === "failed_cv") return "Không đạt vòng đơn";
+      return "Đạt vòng đơn";
+    },
   },
   studentId: { header: "MSSV", get: (a) => a.studentId ?? "" },
   className: { header: "Lớp", get: (a) => a.className ?? "" },
@@ -81,17 +108,31 @@ export function buildExportMatrix({
   columns,
   questionFieldIds,
 }) {
-  const fieldById = new Map((form?.fields ?? []).map((f) => [f.fieldId, f]));
+  const fields = form?.fields ?? [];
+  const fieldById = new Map(fields.map((f) => [f.fieldId, f]));
+  const allCustomIds = fields
+    .filter((f) => !f.isFixed)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((f) => f.fieldId);
+
   const profileCols = (columns ?? []).filter((k) =>
     Object.hasOwn(PROFILE_COLUMNS, k),
   );
-  const questionCols = (questionFieldIds ?? []).filter(
-    (id) => fieldById.has(id) && !fieldById.get(id).isFixed,
-  );
+
+  // Client chọn trước (giữ thứ tự); luôn bổ sung mọi câu hỏi custom còn thiếu
+  // để file xuất đủ toàn bộ câu trả lời form đăng ký
+  const requested = questionFieldIds ?? [];
+  const questionCols =
+    requested.length > 0
+      ? [
+          ...requested.filter((id) => allCustomIds.includes(id)),
+          ...allCustomIds.filter((id) => !requested.includes(id)),
+        ]
+      : allCustomIds;
 
   const headers = [
     ...profileCols.map((k) => PROFILE_COLUMNS[k].header),
-    ...questionCols.map((id) => fieldById.get(id).label),
+    ...questionCols.map((id) => fieldById.get(id)?.label ?? id),
   ];
 
   const rows = (applications ?? []).map((app) => {

@@ -255,9 +255,16 @@ export async function deleteCampaign(id) {
 // ---- Form builder ----
 
 export async function getForm(campaignId) {
-  await getCampaign(campaignId);
-  const form = await ApplicationForm.findOne({ campaignId });
-  if (!form) throw ApiError.notFound("Không tìm thấy form của đợt tuyển");
+  const campaign = await getCampaign(campaignId);
+  let form = await ApplicationForm.findOne({ campaignId });
+  // Đợt tạo tay / seed thiếu form → tự seed 10 trường cố định để public không 404
+  if (!form) {
+    form = await ApplicationForm.create({
+      campaignId: campaign._id,
+      fields: ApplicationForm.seedFixedFields(campaign.quotas),
+      publishedAt: campaign.status === "open" ? new Date() : null,
+    });
+  }
   return form;
 }
 
