@@ -90,15 +90,11 @@ export const PROFILE_COLUMNS = {
       return "Đạt vòng đơn";
     },
   },
-  studentId: { header: "MSSV", get: (a) => a.studentId ?? "" },
-  className: { header: "Lớp", get: (a) => a.className ?? "" },
-  faculty: { header: "Khoa", get: (a) => a.faculty ?? "" },
-  dateOfBirth: { header: "Ngày sinh", get: (a) => formatVnDate(a.dateOfBirth) },
   applicationCode: { header: "Mã hồ sơ", get: (a) => a.applicationCode ?? "" },
   assignedDepartment: {
     header: "Ban chính thức",
     get: (a) => a.assignedDepartment ?? "",
-  }
+  },
 };
 
 export function buildExportMatrix({

@@ -112,9 +112,8 @@ async function handleSideEffects(application, _previousStatus, nextStatus) {
   // Agenda chỉ là backup nếu sync lỗi.
   if (nextStatus === APPLICATION_STATUS.PASSED_CV) {
     try {
-      const { createCandidateAccountFromApplication } = await import(
-        "../jobs/createCandidateAccount.job.js"
-      );
+      const { createCandidateAccountFromApplication } =
+        await import("../jobs/createCandidateAccount.job.js");
       await createCandidateAccountFromApplication(applicationId);
     } catch (err) {
       console.warn(

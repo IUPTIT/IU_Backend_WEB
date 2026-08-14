@@ -34,7 +34,11 @@ async function send({ to, subject, html, text }) {
   // SendGrid bắt buộc ít nhất 1 content block — không gửi html/text rỗng
   const safeText =
     (text && String(text).trim()) ||
-    (html ? String(html).replace(/<[^>]+>/g, " ").trim() : "") ||
+    (html
+      ? String(html)
+          .replace(/<[^>]+>/g, " ")
+          .trim()
+      : "") ||
     "(không có nội dung)";
   const safeHtml =
     (html && String(html).trim()) ||

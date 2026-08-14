@@ -119,7 +119,8 @@ export function defineCreateCandidateAccountJob() {
             // Vẫn đảm bảo sourceApplicationId / roles đúng
             if (
               !existing.sourceApplicationId ||
-              String(existing.sourceApplicationId) !== String(application._id) ||
+              String(existing.sourceApplicationId) !==
+                String(application._id) ||
               !existing.roles?.includes("candidate")
             ) {
               await createCandidateAccountFromApplication(applicationId);

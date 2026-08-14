@@ -23,7 +23,10 @@ const ACCOUNTS = [
 
 /** Quotas đợt tuyển = danh sách Ban trong hệ thống (select NV ăn theo Ban) */
 async function quotasFromDepartments() {
-  const deps = await ClubDepartment.find().sort({ name: 1 }).select("name").lean();
+  const deps = await ClubDepartment.find()
+    .sort({ name: 1 })
+    .select("name")
+    .lean();
   if (!deps.length) {
     return [{ department: "Chuyên môn", quota: 10 }];
   }
@@ -47,7 +50,9 @@ async function syncFormDepartmentOptions(campaign) {
     );
     return;
   }
-  const deptField = form.fields.find((f) => f.fieldId === "department_preferences");
+  const deptField = form.fields.find(
+    (f) => f.fieldId === "department_preferences",
+  );
   if (deptField) {
     deptField.options = campaign.quotas.map((q) => q.department);
     form.markModified("fields");
