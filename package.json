@@ -15,7 +15,7 @@
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:real": "node src/scripts/cleanAndSeedReal.js",
     "seed:demo": "node src/scripts/seedDemoUsers.js",
-    "seed:members": "node src/scripts/seedDemoUsers.js",
+    "seed:members": "node src/scripts/seedMembers.js",
     "reset:training-demo": "node src/scripts/resetTrainingDemo.js",
     "migrate:separate-leader-mentor": "node src/scripts/separateLeaderMentorRoles.js",
     "test:training-flow": "node src/scripts/smokeTrainingFlow.js",
@@ -23,8 +23,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky || true",
-    "seed:members": "node src/scripts/seedMembers.js"
+    "prepare": "husky || true"
   },
   "keywords": [
     "iu-club",
@@ -42,6 +41,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",

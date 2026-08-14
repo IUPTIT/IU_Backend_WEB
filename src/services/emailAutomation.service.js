@@ -131,7 +131,7 @@ export const DEFAULT_AUTOMATION_RULES = [
   {
     ruleKey: "welcome_member",
     eventKey: "welcome_member",
-    name: "Chào mừng thành viên",
+    name: "Chào mừng thành viên chính thức",
     enabled: true,
     templateSlug: "tpl-welcome",
     timing: "immediate",

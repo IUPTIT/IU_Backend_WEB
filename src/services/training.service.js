@@ -282,46 +282,86 @@ export async function createGroup(data, createdBy) {
     await grantTrainingMentor(data.mentorId);
   }
 
-  // Trainee phải tồn tại và chưa thuộc team khác
-  const memberIds = data.memberIds ?? [];
-  const trainees = memberIds.length
-    ? await Trainee.find({ _id: { $in: memberIds } })
-    : [];
-  if (trainees.length !== memberIds.length) {
-    throw ApiError.badRequest("Danh sách trainee có thành viên không tồn tại");
-  }
-  const taken = trainees.filter((t) => t.groupId);
-  if (taken.length) {
-    throw ApiError.badRequest(
-      `Trainee đã thuộc team khác: ${taken.map((t) => t.fullName).join(", ")}`,
-    );
+  const memberIds = [...new Set((data.memberIds ?? []).map(String))];
+  if (memberIds.length) {
+    const trainees = await Trainee.find({ _id: { $in: memberIds } });
+    if (trainees.length !== memberIds.length) {
+      throw ApiError.badRequest(
+        "Danh sách trainee có thành viên không tồn tại",
+      );
+    }
   }
 
+  // Tạo nhóm trước, claim atomic từng trainee (tránh race 2 request gán cùng người)
   const group = await TrainingGroup.create({
     name: data.name,
     programId: data.programId || null,
     department: data.department || "Tổng hợp",
     specialtyLabel: data.specialtyLabel ?? "",
     mentorId: data.mentorId || null,
-    memberIds,
+    memberIds: [],
     mentorAccepted: Boolean(data.mentorId),
     createdBy,
     campaignId: data.campaignId || null,
   });
 
+  let claimed = [];
   if (memberIds.length) {
-    await Trainee.updateMany(
-      { _id: { $in: memberIds } },
-      { $set: { groupId: group._id, status: "in_progress" } },
-    );
+    claimed = await claimTraineesForGroup(group._id, memberIds, null);
+    if (claimed.length !== memberIds.length) {
+      const claimedIds = new Set(claimed.map((t) => String(t._id)));
+      const failedIds = memberIds.filter((id) => !claimedIds.has(String(id)));
+      await releaseTraineesFromGroup(
+        group._id,
+        claimed.map((t) => t._id),
+      );
+      await TrainingGroup.deleteOne({ _id: group._id });
+      const failed = await Trainee.find({ _id: { $in: failedIds } }).select(
+        "fullName",
+      );
+      throw ApiError.badRequest(
+        `Trainee đã thuộc team khác: ${failed.map((t) => t.fullName).join(", ") || failedIds.join(", ")}`,
+      );
+    }
+    group.memberIds = claimed.map((t) => t._id);
+    await group.save();
   }
 
   const populated = await group.populate(
     "mentorId",
     "name email role isMentor",
   );
-  if (trainees.length) await notifyGroupAssignment(populated, trainees);
+  if (claimed.length) await notifyGroupAssignment(populated, claimed);
   return populated;
+}
+
+/** Claim trainee chưa có nhóm (hoặc đã thuộc đúng groupId khi update). Atomic per doc. */
+async function claimTraineesForGroup(groupId, memberIds, allowGroupId) {
+  const claimed = [];
+  for (const id of memberIds) {
+    const filter = {
+      _id: id,
+      $or: [{ groupId: null }, { groupId: { $exists: false } }],
+    };
+    if (allowGroupId) {
+      filter.$or.push({ groupId: allowGroupId });
+    }
+    const doc = await Trainee.findOneAndUpdate(
+      filter,
+      { $set: { groupId, status: "in_progress" } },
+      { new: true },
+    );
+    if (doc) claimed.push(doc);
+  }
+  return claimed;
+}
+
+async function releaseTraineesFromGroup(groupId, traineeIds) {
+  if (!traineeIds?.length) return;
+  await Trainee.updateMany(
+    { _id: { $in: traineeIds }, groupId },
+    { $set: { groupId: null, status: "pending" } },
+  );
 }
 
 /** Email + in-app khi được chia nhóm / gán mentor (UC 39) */
@@ -374,18 +414,11 @@ export async function updateGroup(id, data, user) {
 
   let newlyAssigned = [];
   if (data.memberIds !== undefined) {
-    const trainees = await Trainee.find({ _id: { $in: data.memberIds } });
-    if (trainees.length !== data.memberIds.length) {
+    const memberIds = [...new Set(data.memberIds.map(String))];
+    const trainees = await Trainee.find({ _id: { $in: memberIds } });
+    if (trainees.length !== memberIds.length) {
       throw ApiError.badRequest(
         "Danh sách trainee có thành viên không tồn tại",
-      );
-    }
-    const taken = trainees.filter(
-      (t) => t.groupId && String(t.groupId) !== String(group._id),
-    );
-    if (taken.length) {
-      throw ApiError.badRequest(
-        `Trainee đã thuộc team khác: ${taken.map((t) => t.fullName).join(", ")}`,
       );
     }
     const prev = new Set(group.memberIds.map(String));
@@ -393,14 +426,23 @@ export async function updateGroup(id, data, user) {
 
     // Gỡ trainee không còn trong nhóm
     await Trainee.updateMany(
-      { groupId: group._id, _id: { $nin: data.memberIds } },
+      { groupId: group._id, _id: { $nin: memberIds } },
       { $set: { groupId: null, status: "pending" } },
     );
-    await Trainee.updateMany(
-      { _id: { $in: data.memberIds } },
-      { $set: { groupId: group._id, status: "in_progress" } },
+
+    const claimed = await claimTraineesForGroup(
+      group._id,
+      memberIds,
+      group._id,
     );
-    group.memberIds = data.memberIds;
+    if (claimed.length !== memberIds.length) {
+      const claimedIds = new Set(claimed.map((t) => String(t._id)));
+      const failed = trainees.filter((t) => !claimedIds.has(String(t._id)));
+      throw ApiError.badRequest(
+        `Trainee đã thuộc team khác: ${failed.map((t) => t.fullName).join(", ")}`,
+      );
+    }
+    group.memberIds = claimed.map((t) => t._id);
   }
 
   if (data.mentorId !== undefined) {
@@ -830,6 +872,12 @@ export async function updateEvalStatus(traineeId, evalStatus) {
 
 /** Tân binh hoàn thành training → Member chính thức */
 async function promoteTraineeUserToOfficialMember(userId) {
+  const existing = await User.findById(userId);
+  if (!existing) return;
+
+  const alreadyOfficial =
+    existing.role === "member" && existing.memberStatus === "official";
+
   await User.updateOne(
     { _id: userId },
     {
@@ -842,6 +890,16 @@ async function promoteTraineeUserToOfficialMember(userId) {
       },
     },
   );
+
+  // welcome_member chỉ gửi lần đầu trở thành Member official (không gửi lúc admitted)
+  if (!alreadyOfficial && existing.email) {
+    try {
+      const emailService = await import("./email.service.js");
+      await emailService.sendWelcomeMemberEmail(existing);
+    } catch (err) {
+      console.warn("[training] welcome_member email failed:", err.message);
+    }
+  }
 }
 
 function buildCertificateCode(traineeId) {

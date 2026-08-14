@@ -48,6 +48,7 @@ const assignSlotBody = celebrate({
 const updateSlotBody = celebrate({
   [Segments.BODY]: Joi.object({
     interviewerIds: Joi.array().items(objectId).min(1),
+    name: Joi.string().trim().max(200).allow(""),
     location: Joi.string().trim(),
     date: Joi.date().iso(),
     startTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/),
@@ -264,6 +265,21 @@ router.get(
   bcnOnly,
   idParam,
   controller.listNewMembers,
+);
+
+// ---- Xuất dữ liệu hồ sơ (xlsx) ----
+router.post(
+  "/campaigns/:id/applications/export",
+  bcnOnly,
+  idParam,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      applicationIds: Joi.array().items(objectId).min(1).required(),
+      columns: Joi.array().items(Joi.string()).required(),
+      questionFieldIds: Joi.array().items(Joi.string()).default([]),
+    }),
+  }),
+  controller.exportApplications,
 );
 
 export default router;

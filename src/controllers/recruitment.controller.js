@@ -5,6 +5,7 @@ import * as campaignService from "../services/campaign.service.js";
 import * as applicationService from "../services/application.service.js";
 import * as screeningService from "../services/screening.service.js";
 import * as interviewService from "../services/interview.service.js";
+import { buildApplicationsExport } from "../services/export.service.js";
 
 // ---- BCN: quản lý đợt tuyển (Phần 0) ----
 
@@ -36,7 +37,13 @@ export const updateCampaign = catchAsync(async (req, res) => {
 });
 
 export const publishCampaign = catchAsync(async (req, res) => {
-  const campaign = await campaignService.publishCampaign(req.params.id);
+  const notify =
+    req.body?.notify !== false &&
+    req.query?.notify !== "false" &&
+    req.query?.notify !== "0";
+  const campaign = await campaignService.publishCampaign(req.params.id, {
+    notify,
+  });
   sendSuccess(res, { message: "Đã mở đợt tuyển", data: { campaign } });
 });
 
@@ -286,8 +293,9 @@ export const decideInterview = catchAsync(async (req, res) => {
   });
 });
 
-export const listInterviewers = catchAsync(async (_req, res) => {
-  const interviewers = await interviewService.listInterviewers();
+export const listInterviewers = catchAsync(async (req, res) => {
+  const campaignId = req.query.campaignId || undefined;
+  const interviewers = await interviewService.listInterviewers(campaignId);
   sendSuccess(res, {
     message: "Danh sách người phỏng vấn",
     data: { interviewers },
@@ -330,4 +338,22 @@ export const markInterviewResultNotified = catchAsync(async (req, res) => {
 export const listNewMembers = catchAsync(async (req, res) => {
   const members = await screeningService.listNewMembers(req.params.id);
   sendSuccess(res, { message: "Danh sách tân thành viên", data: { members } });
+});
+
+// ---- Xuất dữ liệu hồ sơ (xlsx) ----
+
+export const exportApplications = catchAsync(async (req, res) => {
+  const { applicationIds, columns, questionFieldIds } = req.body;
+  const { buffer, filename } = await buildApplicationsExport({
+    campaignId: req.params.id,
+    applicationIds,
+    columns,
+    questionFieldIds,
+  });
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(buffer);
 });

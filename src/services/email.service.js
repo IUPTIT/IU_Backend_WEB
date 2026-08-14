@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
+import dns from "node:dns/promises";
 import config from "../config/env.js";
 
 // Lazily built SMTP transport (chỉ dùng khi không có SendGrid).
@@ -30,6 +31,18 @@ function getSmtpTransporter() {
 
 async function send({ to, subject, html, text }) {
   const from = config.emailFrom;
+  // SendGrid bắt buộc ít nhất 1 content block — không gửi html/text rỗng
+  const safeText =
+    (text && String(text).trim()) ||
+    (html
+      ? String(html)
+          .replace(/<[^>]+>/g, " ")
+          .trim()
+      : "") ||
+    "(không có nội dung)";
+  const safeHtml =
+    (html && String(html).trim()) ||
+    `<div style="font-family:Arial,sans-serif;color:#1a1a1a;white-space:pre-wrap">${safeText}</div>`;
 
   // 1) SendGrid Web API — ổn định trên PaaS (không phụ thuộc SMTP outbound)
   if (ensureSendgrid()) {
@@ -38,8 +51,8 @@ async function send({ to, subject, html, text }) {
         to,
         from,
         subject,
-        text: text || undefined,
-        html: html || undefined,
+        text: safeText,
+        html: safeHtml,
       });
       return { delivered: true, logged: false, provider: "sendgrid" };
     } catch (err) {
@@ -52,7 +65,13 @@ async function send({ to, subject, html, text }) {
         console.warn(
           `[email:sendgrid] Sender chưa verify — fallback SMTP. Chi tiết: ${detail}`,
         );
-        await tx.sendMail({ from, to, subject, html, text });
+        await tx.sendMail({
+          from,
+          to,
+          subject,
+          html: safeHtml,
+          text: safeText,
+        });
         return {
           delivered: true,
           logged: false,
@@ -67,50 +86,145 @@ async function send({ to, subject, html, text }) {
   // 2) SMTP (local / legacy)
   const tx = getSmtpTransporter();
   if (!tx) {
-    console.log(`[email:dev] To: ${to} | ${subject}\n${text ?? html}`);
+    console.log(`[email:dev] To: ${to} | ${subject}\n${safeText}`);
     return { delivered: false, logged: true, provider: "console" };
   }
-  await tx.sendMail({ from, to, subject, html, text });
+  await tx.sendMail({
+    from,
+    to,
+    subject,
+    html: safeHtml,
+    text: safeText,
+  });
   return { delivered: true, logged: false, provider: "smtp" };
+}
+
+/** TLD reserved / không nhận mail thật (RFC 2606 + local) */
+const RESERVED_TLDS = new Set([
+  "test",
+  "invalid",
+  "localhost",
+  "example",
+  "local",
+  "onion",
+]);
+
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+/**
+ * Kiểm tra địa chỉ trước khi gọi SendGrid/SMTP.
+ * - Chặn TLD giả (.test, .invalid, …)
+ * - Domain chắc chắn không tồn tại (NXDOMAIN) → fail rõ
+ * - DNS mạng lỗi/timeout → không chặn (để provider quyết định)
+ * Không phát hiện được mailbox ảo trên domain thật (vd. xxx@gmail.com).
+ */
+export async function assertRecipientAddress(to) {
+  const email = String(to || "")
+    .trim()
+    .toLowerCase();
+  if (!EMAIL_SHAPE.test(email)) {
+    throw new Error(`Email không hợp lệ: ${to || "(trống)"}`);
+  }
+  const domain = email.split("@")[1];
+  const tld = domain.split(".").pop();
+  if (RESERVED_TLDS.has(tld)) {
+    throw new Error(
+      `Domain .${tld} không nhận được mail thật (${email}) — dùng email thật (Gmail, …)`,
+    );
+  }
+
+  const SOFT_DNS = new Set([
+    "ETIMEOUT",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "ESERVFAIL",
+    "EREFUSED",
+    "EAI_AGAIN",
+  ]);
+
+  const tryResolve = async (fn) => {
+    try {
+      const rows = await Promise.race([
+        fn(domain),
+        new Promise((_, reject) => {
+          const err = new Error("DNS timeout");
+          err.code = "ETIMEOUT";
+          setTimeout(() => reject(err), 4000);
+        }),
+      ]);
+      return {
+        ok: Array.isArray(rows) && rows.length > 0,
+        soft: false,
+      };
+    } catch (err) {
+      const code = err?.code || "";
+      if (SOFT_DNS.has(code) || /timeout/i.test(String(err?.message || ""))) {
+        return { ok: false, soft: true };
+      }
+      // ENOTFOUND / ENODATA / … → domain không resolve được
+      return { ok: false, soft: false };
+    }
+  };
+
+  const mx = await tryResolve((d) => dns.resolveMx(d));
+  if (mx.ok || mx.soft) return email;
+  const a = await tryResolve((d) => dns.resolve4(d));
+  if (a.ok || a.soft) return email;
+  const aaaa = await tryResolve((d) => dns.resolve6(d));
+  if (aaaa.ok || aaaa.soft) return email;
+
+  throw new Error(
+    `Domain không tồn tại hoặc không nhận mail: ${domain} (${email})`,
+  );
 }
 
 /** Gửi email tùy chỉnh (subject/html đã render sẵn từ FE). */
 export async function sendRawEmail({ to, subject, html, text }) {
   if (!to) throw new Error("Thiếu địa chỉ email người nhận");
   if (!subject?.trim()) throw new Error("Subject không được trống");
-  return send({ to, subject, html, text });
+  const normalizedTo = await assertRecipientAddress(to);
+  return send({ to: normalizedTo, subject, html, text });
 }
 
 /**
  * Gửi hàng loạt. Mỗi phần tử đã có subject/html riêng (FE render placeholder).
- * Không dừng cả batch khi 1 thư lỗi.
+ * Không dừng cả batch khi 1 thư lỗi — trả chi tiết từng địa chỉ.
  */
 export async function sendBulkEmails(messages) {
   let sent = 0;
   let failed = 0;
   let logged = 0;
   const errors = [];
+  const results = [];
   for (const msg of messages) {
+    const to = msg?.to;
     try {
       const result = await sendRawEmail(msg);
       if (result.delivered) {
         sent += 1;
+        results.push({ to, status: "sent" });
       } else if (result.logged) {
         // SMTP tắt — chỉ ghi log console, không tính là đã gửi thật
         logged += 1;
+        results.push({
+          to,
+          status: "logged",
+          message: "Chưa gửi thật (SMTP/SendGrid tắt)",
+        });
       } else {
         failed += 1;
-        errors.push({ to: msg.to, message: "Không gửi được email" });
+        const message = "Không gửi được email";
+        errors.push({ to, message });
+        results.push({ to, status: "failed", message });
       }
     } catch (err) {
       failed += 1;
-      errors.push({
-        to: msg.to,
-        message: err instanceof Error ? err.message : "Gửi thất bại",
-      });
+      const message = err instanceof Error ? err.message : "Gửi thất bại";
+      errors.push({ to, message });
+      results.push({ to, status: "failed", message });
     }
   }
-  return { sent, failed, logged, errors };
+  return { sent, failed, logged, errors, results };
 }
 
 /* =====================================================================
@@ -318,23 +432,37 @@ export async function sendInterviewPassedEmail(application) {
   });
 }
 
-// Trúng tuyển — final_pass (+ welcome_member nếu bật)
+// Trúng tuyển (admitted) — chỉ final_pass.
+// welcome_member gửi khi promote Member chính thức (sau training).
 export async function sendAdmittedEmail(application) {
   const automation = await import("./emailAutomation.service.js");
   const loginUrl = `${config.clientUrl}/login`;
-  const data = automation.applicationEmailData(application, {
-    result: "TRÚNG TUYỂN",
-    login_url: loginUrl,
-  });
-  const r1 = await automation.dispatchAutomatedEmail("final_pass", {
+  return automation.dispatchAutomatedEmail("final_pass", {
     to: application.email,
-    data,
+    data: automation.applicationEmailData(application, {
+      result: "TRÚNG TUYỂN",
+      login_url: loginUrl,
+    }),
   });
-  await automation.dispatchAutomatedEmail("welcome_member", {
-    to: application.email,
-    data,
+}
+
+/** Chào mừng Member chính thức — sau khi hoàn thành training / BCN chốt Đạt */
+export async function sendWelcomeMemberEmail(user, extra = {}) {
+  if (!user?.email) return null;
+  const automation = await import("./emailAutomation.service.js");
+  const loginUrl = `${config.clientUrl}/login`;
+  return automation.dispatchAutomatedEmail("welcome_member", {
+    to: user.email,
+    data: {
+      candidate_name: user.name || "",
+      email: user.email || "",
+      department: extra.department || "",
+      result: "THÀNH VIÊN CHÍNH THỨC",
+      club_name: "IU CLUB",
+      login_url: loginUrl,
+      ...extra,
+    },
   });
-  return r1;
 }
 
 // Xác nhận đặt / đổi lịch phỏng vấn

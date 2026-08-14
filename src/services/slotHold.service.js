@@ -36,17 +36,9 @@ export async function holdSlot(slotId, applicationId) {
       );
     }
 
-    // Kiểm tra xem ứng viên này đã đang giữ chỗ ở bất kỳ slot nào chưa
-    const existingHold = await SlotHold.findOne({
-      applicationId,
-      expiresAt: { $gt: new Date() },
-    }).session(session);
-
-    if (existingHold) {
-      throw ApiError.badRequest(
-        "Bạn đang giữ chỗ cho một ca phỏng vấn khác. Vui lòng xác nhận hoặc chờ hết hạn.",
-      );
-    }
+    // Đổi / chọn lại ca: xoá mọi hold của ứng viên này (kể cả hết hạn nhưng TTL chưa dọn —
+    // unique index slotId+applicationId vẫn chặn insert mới nếu còn document cũ).
+    await SlotHold.deleteMany({ applicationId }).session(session);
 
     // Đếm số lượng hold đang còn hiệu lực cho slot này
     const activeHoldsCount = await SlotHold.countDocuments({
@@ -158,6 +150,16 @@ export async function confirmBooking(slotId, applicationId) {
   } finally {
     session.endSession();
   }
+}
+
+/** Huỷ giữ chỗ tạm của ứng viên (chọn ca khác / bỏ hold) */
+export async function releaseHold(applicationId, slotId = null) {
+  const SlotHold = mongoose.model("SlotHold");
+  // Xoá cả hold đã hết hạn (TTL Mongo có thể trễ ~60s) để không kẹt unique index
+  const filter = { applicationId };
+  if (slotId) filter.slotId = slotId;
+  const result = await SlotHold.deleteMany(filter);
+  return { released: result.deletedCount };
 }
 
 /*

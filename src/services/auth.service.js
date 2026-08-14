@@ -55,10 +55,12 @@ export async function resendOtp({ email }) {
 export async function login({ email, password }) {
   const user = await User.findOne({ email }).select("+password");
   if (!user || !(await user.comparePassword(password))) {
-    throw ApiError.unauthorized("Invalid email or password");
+    throw ApiError.unauthorized("Email hoặc mật khẩu không đúng");
   }
   assertAccountActive(user);
-  if (!user.emailVerified) throw ApiError.forbidden("Email not verified");
+  if (!user.emailVerified) {
+    throw ApiError.forbidden("Email chưa được xác thực");
+  }
 
   const tokens = await issueTokens(user);
   return { user, ...tokens };
@@ -129,10 +131,12 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
   if (!user) throw ApiError.unauthorized();
 
   if (!(await user.comparePassword(currentPassword))) {
-    throw ApiError.badRequest("Current password is incorrect");
+    throw ApiError.badRequest(
+      "Mật khẩu hiện tại không đúng (thử ngày sinh dạng DDMMYYYY)",
+    );
   }
   if (currentPassword === newPassword) {
-    throw ApiError.badRequest("New password must be different");
+    throw ApiError.badRequest("Mật khẩu mới phải khác mật khẩu hiện tại");
   }
 
   user.password = newPassword;

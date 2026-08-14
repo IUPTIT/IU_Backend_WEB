@@ -16,11 +16,16 @@ export function errorHandler(err, _req, res, _next) {
 
   if (isCelebrateError(err)) {
     statusCode = 400;
-    message = "Validation failed";
     errors = {};
+    const parts = [];
     for (const [segment, joiError] of err.details.entries()) {
-      errors[segment] = joiError.details.map((d) => d.message);
+      const msgs = joiError.details.map((d) => d.message);
+      errors[segment] = msgs;
+      parts.push(...msgs);
     }
+    message = parts.length
+      ? `Validation failed: ${parts.join("; ")}`
+      : "Validation failed";
   } else if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;

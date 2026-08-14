@@ -359,6 +359,21 @@ export async function listApplications({
   };
 }
 
+// ---- BCN: xuất Excel hồ sơ theo danh sách ID (nghiệp vụ export) ----
+
+// Never trust client: luôn lọc lại theo campaignId + loại bỏ draft, sắp theo
+// đúng thứ tự applicationIds mà client gửi lên (dùng cho export Excel)
+export async function getApplicationsForExport(campaignId, applicationIds) {
+  const docs = await Application.find({
+    _id: { $in: applicationIds },
+    campaignId,
+    status: { $ne: "draft" },
+  });
+  const enriched = await enrichWithScores(docs);
+  const byId = new Map(enriched.map((a) => [String(a._id), a]));
+  return applicationIds.map((id) => byId.get(String(id))).filter(Boolean);
+}
+
 /** Chi tiết 1 hồ sơ (BCN) — kèm điểm TB vòng đơn / PV */
 export async function getApplicationById(id) {
   const application = await Application.findOne({
