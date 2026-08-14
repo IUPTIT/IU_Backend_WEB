@@ -48,6 +48,7 @@ const assignSlotBody = celebrate({
 const updateSlotBody = celebrate({
   [Segments.BODY]: Joi.object({
     interviewerIds: Joi.array().items(objectId).min(1),
+    name: Joi.string().trim().max(200).allow(""),
     location: Joi.string().trim(),
     date: Joi.date().iso(),
     startTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/),

@@ -32,6 +32,7 @@ ES Modules + Express 4 + Mongoose 8. `server.js` connects the DB, starts Agenda
 under `/api/v1` (`src/routes/index.js`).
 
 **Layering — strict, one direction:** `route → validation → controller → service → model`.
+
 - Controllers do HTTP orchestration only (read `req`, call a service, send a
   response). They contain **no business logic**.
 - Services hold all business logic and **never touch `req`/`res`**.
@@ -39,6 +40,7 @@ under `/api/v1` (`src/routes/index.js`).
   so thrown errors reach the central error middleware (`src/middlewares/error.js`).
 
 **Errors & responses — always use the helpers:**
+
 - Throw `ApiError` (`src/utils/ApiError.js`), e.g. `ApiError.badRequest(msg)`,
   `.notFound()`, `.forbidden()`, `.conflict()`. The error middleware turns these
   into the response; don't hand-roll error JSON.

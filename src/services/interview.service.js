@@ -104,11 +104,16 @@ async function getCampaignApplicantUserIds(campaignId) {
     .select("email userId")
     .lean();
   const userIds = new Set(
-    applicants.map((a) => a.userId).filter(Boolean).map(String),
+    applicants
+      .map((a) => a.userId)
+      .filter(Boolean)
+      .map(String),
   );
   const emails = [
     ...new Set(
-      applicants.map((a) => String(a.email || "").toLowerCase()).filter(Boolean),
+      applicants
+        .map((a) => String(a.email || "").toLowerCase())
+        .filter(Boolean),
     ),
   ];
   if (emails.length) {
@@ -124,7 +129,9 @@ async function assertInterviewersNotCampaignApplicants(
   campaignId,
   interviewerIds,
 ) {
-  const ids = (interviewerIds ?? []).map((id) => String(id?._id ?? id)).filter(Boolean);
+  const ids = (interviewerIds ?? [])
+    .map((id) => String(id?._id ?? id))
+    .filter(Boolean);
   if (!ids.length || !campaignId) return;
   const blocked = await getCampaignApplicantUserIds(campaignId);
   const bad = ids.filter((id) => blocked.has(id));
@@ -142,7 +149,9 @@ async function scrubApplicantInterviewersFromSlots(campaignId, slots) {
   if (!blocked.size) return slots;
 
   for (const slot of slots) {
-    const before = (slot.interviewerIds ?? []).map((id) => String(id?._id ?? id));
+    const before = (slot.interviewerIds ?? []).map((id) =>
+      String(id?._id ?? id),
+    );
     const kept = (slot.interviewerIds ?? []).filter(
       (id) => !blocked.has(String(id?._id ?? id)),
     );
@@ -251,6 +260,7 @@ export async function updateSlot(slotId, data) {
 
   const allowed = [
     "interviewerIds",
+    "name",
     "location",
     "date",
     "startTime",

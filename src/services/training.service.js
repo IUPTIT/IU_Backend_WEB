@@ -286,7 +286,9 @@ export async function createGroup(data, createdBy) {
   if (memberIds.length) {
     const trainees = await Trainee.find({ _id: { $in: memberIds } });
     if (trainees.length !== memberIds.length) {
-      throw ApiError.badRequest("Danh sách trainee có thành viên không tồn tại");
+      throw ApiError.badRequest(
+        "Danh sách trainee có thành viên không tồn tại",
+      );
     }
   }
 

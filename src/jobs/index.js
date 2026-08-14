@@ -1,7 +1,9 @@
 import agenda from "../config/agenda.js";
 import {
   defineCreateCandidateAccountJob,
+  defineSendCandidateAccountEmailJob,
   JOB_CREATE_CANDIDATE_ACCOUNT,
+  JOB_SEND_CANDIDATE_ACCOUNT_EMAIL,
 } from "./createCandidateAccount.job.js";
 import {
   defineSendInterviewReminderJob,
@@ -34,6 +36,7 @@ import {
 
 export async function initJobs() {
   defineCreateCandidateAccountJob();
+  defineSendCandidateAccountEmailJob();
   defineSendInterviewReminderJob();
   defineSendUnbookedReminderJob();
   defineExpireDraftApplicationsJob();
@@ -55,6 +58,7 @@ export async function initJobs() {
 export {
   agenda,
   JOB_CREATE_CANDIDATE_ACCOUNT,
+  JOB_SEND_CANDIDATE_ACCOUNT_EMAIL,
   JOB_SEND_INTERVIEW_REMINDER,
   JOB_SEND_UNBOOKED_REMINDER,
   JOB_EXPIRE_DRAFT_APPLICATIONS,
