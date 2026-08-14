@@ -69,16 +69,16 @@ Controllers never contain business logic; services never touch `req`/`res`.
 
 ## API surface (`/api/v1`)
 
-| Prefix                | Audience        | Purpose                                                        |
-| --------------------- | --------------- | ------------------------------------------------------------- |
-| `/public`             | Guest (unauth)  | Browse active campaigns; save/submit/lookup/edit applications  |
-| `/auth`               | All             | Register, verify, login, refresh, password reset, Google SSO   |
-| `/candidate`          | Candidate       | View offer, hold & confirm interview slots, change slot        |
-| `/recruitment`        | BCN             | Campaigns, forms, application scoring & decisions, slots        |
-| `/training`           | BCN / Mentor    | Programs, groups, tasks, trainee reviews, certificates          |
-| `/admin`              | BCN             | Members, accounts, departments, dashboard, email templates      |
-| `/leader/department`  | Leader          | Leader's own department view                                    |
-| `/notifications`      | Authenticated   | List notifications, mark read                                   |
+| Prefix               | Audience       | Purpose                                                       |
+| -------------------- | -------------- | ------------------------------------------------------------- |
+| `/public`            | Guest (unauth) | Browse active campaigns; save/submit/lookup/edit applications |
+| `/auth`              | All            | Register, verify, login, refresh, password reset, Google SSO  |
+| `/candidate`         | Candidate      | View offer, hold & confirm interview slots, change slot       |
+| `/recruitment`       | BCN            | Campaigns, forms, application scoring & decisions, slots      |
+| `/training`          | BCN / Mentor   | Programs, groups, tasks, trainee reviews, certificates        |
+| `/admin`             | BCN            | Members, accounts, departments, dashboard, email templates    |
+| `/leader/department` | Leader         | Leader's own department view                                  |
+| `/notifications`     | Authenticated  | List notifications, mark read                                 |
 
 > `routes/public/**` must **never** import `authenticate` — it is the
 > unauthenticated guest surface (rate-limited via `publicRead/WriteLimiter`).
@@ -129,15 +129,15 @@ Code style is enforced by **Prettier** (`npm run format`).
 
 ## Scripts
 
-| Command                       | Description                                    |
-| ----------------------------- | ---------------------------------------------- |
-| `npm start`                   | Run the server                                 |
-| `npm run dev`                 | Run with nodemon                               |
-| `npm test` / `test:watch`     | Run tests (Vitest)                             |
-| `npm run lint` / `lint:fix`   | ESLint check / autofix                         |
-| `npm run format` / `:check`   | Format / verify formatting (Prettier)          |
-| `npm run seed:admin`          | Seed the first admin account                   |
-| `npm run seed:real`           | Clean DB and seed real members                 |
-| `npm run seed:demo`           | Seed demo users                                |
-| `npm run reset:training-demo` | Reset the training demo data                   |
-| `npm run test:training-flow`  | Smoke-test the end-to-end training flow        |
+| Command                       | Description                             |
+| ----------------------------- | --------------------------------------- |
+| `npm start`                   | Run the server                          |
+| `npm run dev`                 | Run with nodemon                        |
+| `npm test` / `test:watch`     | Run tests (Vitest)                      |
+| `npm run lint` / `lint:fix`   | ESLint check / autofix                  |
+| `npm run format` / `:check`   | Format / verify formatting (Prettier)   |
+| `npm run seed:admin`          | Seed the first admin account            |
+| `npm run seed:real`           | Clean DB and seed real members          |
+| `npm run seed:demo`           | Seed demo users                         |
+| `npm run reset:training-demo` | Reset the training demo data            |
+| `npm run test:training-flow`  | Smoke-test the end-to-end training flow |
