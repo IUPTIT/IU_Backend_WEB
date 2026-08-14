@@ -114,7 +114,11 @@ async function handleSideEffects(application, _previousStatus, nextStatus) {
     try {
       const { createCandidateAccountFromApplication } =
         await import("../jobs/createCandidateAccount.job.js");
-      await createCandidateAccountFromApplication(applicationId);
+      // Tạo account sync (login ngay), email đẩy background — pass hàng loạt
+      // không block request theo từng lần gửi SMTP/SendGrid.
+      await createCandidateAccountFromApplication(applicationId, {
+        deferEmail: true,
+      });
     } catch (err) {
       console.warn(
         "[SM] sync createCandidateAccount failed, enqueue job:",

@@ -4,6 +4,7 @@ import * as emailService from "../services/email.service.js";
 import agenda from "../config/agenda.js";
 
 export const JOB_CREATE_CANDIDATE_ACCOUNT = "createCandidateAccount";
+export const JOB_SEND_CANDIDATE_ACCOUNT_EMAIL = "sendCandidateAccountEmail";
 
 /**
  * Mật khẩu mặc định = ngày sinh DDMMYYYY (bắt buộc đổi lần đăng nhập đầu).
@@ -27,8 +28,16 @@ export function passwordFromDob(dateOfBirth) {
 /**
  * Tạo / kích hoạt tài khoản Candidate sau Pass vòng đơn (idempotent).
  * Gọi trực tiếp từ state machine — không phụ thuộc Agenda chạy kịp.
+ *
+ * @param {string|ObjectId} applicationId
+ * @param {Object} [opts]
+ * @param {boolean} [opts.deferEmail=false] Đẩy email sang Agenda job thay vì gửi
+ *   inline — dùng khi pass hàng loạt để không block HTTP request theo từng SMTP call.
  */
-export async function createCandidateAccountFromApplication(applicationId) {
+export async function createCandidateAccountFromApplication(
+  applicationId,
+  { deferEmail = false } = {},
+) {
   const application = await Application.findById(applicationId);
   if (!application) {
     console.warn(
@@ -79,14 +88,22 @@ export async function createCandidateAccountFromApplication(applicationId) {
     await application.save();
   }
 
-  // Email best-effort — không làm fail việc tạo account (ứng viên vẫn login được)
-  try {
-    await emailService.sendCandidateAccountEmail(application, rawPassword);
-  } catch (err) {
-    console.warn(
-      `[createCandidateAccount] email failed for ${application.email}:`,
-      err.message,
-    );
+  // Email best-effort — không làm fail việc tạo account (ứng viên vẫn login được).
+  // deferEmail: đẩy sang Agenda job (job tự tính lại MK từ dateOfBirth) để pass
+  // hàng loạt không block request theo từng lần gửi SMTP/SendGrid.
+  if (deferEmail) {
+    await agenda.now(JOB_SEND_CANDIDATE_ACCOUNT_EMAIL, {
+      applicationId: String(application._id),
+    });
+  } else {
+    try {
+      await emailService.sendCandidateAccountEmail(application, rawPassword);
+    } catch (err) {
+      console.warn(
+        `[createCandidateAccount] email failed for ${application.email}:`,
+        err.message,
+      );
+    }
   }
 
   console.log(
@@ -136,6 +153,35 @@ export function defineCreateCandidateAccountJob() {
         );
         throw err;
       }
+    },
+  );
+}
+
+/**
+ * Gửi email cấp tài khoản Candidate ở background (dùng cho pass hàng loạt).
+ * MK mặc định tính lại từ dateOfBirth nên không cần truyền plaintext qua job.
+ */
+export function defineSendCandidateAccountEmailJob() {
+  agenda.define(
+    JOB_SEND_CANDIDATE_ACCOUNT_EMAIL,
+    { concurrency: 5 },
+    async (job) => {
+      const { applicationId } = job.attrs.data || {};
+      const application = await Application.findById(applicationId);
+      if (!application) {
+        console.warn(
+          `[job:${JOB_SEND_CANDIDATE_ACCOUNT_EMAIL}] Application not found: ${applicationId}`,
+        );
+        return;
+      }
+      if (!application.dateOfBirth) {
+        console.warn(
+          `[job:${JOB_SEND_CANDIDATE_ACCOUNT_EMAIL}] Missing dateOfBirth: ${applicationId}`,
+        );
+        return;
+      }
+      const rawPassword = passwordFromDob(application.dateOfBirth);
+      await emailService.sendCandidateAccountEmail(application, rawPassword);
     },
   );
 }
