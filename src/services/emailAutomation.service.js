@@ -140,6 +140,18 @@ export const DEFAULT_AUTOMATION_RULES = [
     params: {},
     sortOrder: 100,
   },
+  {
+    ruleKey: "official_member_created",
+    eventKey: "official_member_created",
+    name: "Cấp tài khoản thành viên chính thức",
+    enabled: true,
+    templateSlug: "tpl-official-member-account",
+    timing: "immediate",
+    timingValue: 0,
+    timingUnit: "days",
+    params: {},
+    sortOrder: 110,
+  },
 ];
 
 function toDto(doc) {
