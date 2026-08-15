@@ -13,10 +13,6 @@ import {
 const CLUB_ROLES = ["member", "leader", "bcn"];
 const ROSTER_ROLES = ["member", "leader"];
 
-function randomTempPassword() {
-  return `Tmp@${crypto.randomBytes(4).toString("hex")}`;
-}
-
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
