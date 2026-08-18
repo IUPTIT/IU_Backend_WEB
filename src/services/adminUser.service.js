@@ -167,9 +167,7 @@ export async function createMember(data) {
   const role = data.role;
   const studentId = String(data.studentId || "").trim();
   if (!name || !email) {
-    throw ApiError.badRequest(
-      "Thiếu họ tên hoặc email",
-    );
+    throw ApiError.badRequest("Thiếu họ tên hoặc email");
   }
 
   if (!studentId) {
@@ -191,9 +189,7 @@ export async function createMember(data) {
   }
 
   if (await findByEmail(email)) {
-    throw ApiError.conflict(
-      "Email đã tồn tại trong hệ thống",
-    );
+    throw ApiError.conflict("Email đã tồn tại trong hệ thống");
   }
 
   const roles = role === "leader" ? ["member", "leader"] : ["member"];
@@ -230,16 +226,10 @@ export async function createMember(data) {
   const member = toAdminUserDto(user);
   try {
     const emailService = await import("./email.service.js");
-    await emailService.sendOfficialMemberAccountEmail(
-      member,
-      {
-        department:
-          user.department ||
-          data.department ||
-          "",
-        temporaryPassword,
-      },
-    );
+    await emailService.sendOfficialMemberAccountEmail(member, {
+      department: user.department || data.department || "",
+      temporaryPassword,
+    });
   } catch (error) {
     console.error(
       `[official-member-email] Không thể gửi email tới ${user.email}:`,
