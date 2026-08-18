@@ -97,6 +97,60 @@ Link: {{login_url}}</p>
     body: "Chào {{candidate_name}},\n\nBạn đã hoàn thành training. Chúc mừng!\n\n{{club_name}}",
     status: "active",
   },
+  {
+    slug: "tpl-official-member-account",
+    name: "Tài khoản thành viên chính thức",
+    category: "general",
+    subject: "IU CLUB — Tài khoản Member Portal của bạn, {{candidate_name}}",
+    body: `
+      <p><strong>Chúc mừng {{candidate_name}}! 🎉</strong></p>
+      <p>
+      Bạn đã hoàn thành chương trình Training và chính thức trở thành
+      <strong>thành viên chính thức của IU CLUB</strong>.
+      </p>
+      <p>
+      Ban Chủ nhiệm rất vui khi được chào đón bạn trở thành một phần chính thức
+      của CLB.
+      </p>
+      <p>
+      <strong>Thông tin tài khoản Member Portal:</strong>
+      </p>
+      <ul>
+        <li>
+          Tài khoản:
+          <strong>{{email}}</strong>
+        </li>
+        <li>
+          Mật khẩu:
+          <strong>{{temporary_password}}</strong>
+        </li>
+        <li>
+          Ban:
+          <strong>{{department}}</strong>
+        </li>
+      </ul>
+      <p>
+      Bạn có thể đăng nhập Member Portal tại:
+      </p>
+      <p>
+      <a href="{{login_url}}" target="_blank">
+        {{login_url}}
+      </a>
+      </p>
+      <p>
+      <strong>Lưu ý:</strong>
+      Vui lòng đăng nhập và đổi mật khẩu ngay sau lần đăng nhập đầu tiên
+      để đảm bảo an toàn cho tài khoản.
+      </p>
+      <p>
+      Chúc mừng bạn đã chính thức gia nhập IU CLUB!
+      </p>
+      <p>
+      <strong>IU CLUB – Learn • Connect • Create</strong>
+      </p>
+      `,
+    status: "active",
+  },
 ];
 
 /** Cập nhật subject/body seed cho slug đã biết (để P1 placeholders đủ). */

@@ -13,6 +13,8 @@ const schema = Joi.object({
   // 0 = tắt (chạy trực tiếp, không proxy). Sau 1 reverse proxy/PaaS: đặt 1.
   TRUST_PROXY: Joi.number().min(0).default(0),
   CLIENT_URL: Joi.string().uri().default("http://localhost:3000"),
+  // Origin thêm cho CORS, cách nhau bởi dấu phẩy (preview, IP local, domain phụ)
+  CORS_ORIGINS: Joi.string().allow("").default(""),
   BACKEND_URL: Joi.string().uri().allow("").default(""),
 
   MONGODB_URI: Joi.string().required(),
@@ -84,12 +86,34 @@ const backendUrl = (
 const googleCallbackUrl =
   envVars.GOOGLE_CALLBACK_URL || `${backendUrl}/api/v1/auth/google/callback`;
 
+function buildCorsOrigins(clientUrl, isProd, extraCsv) {
+  const urls = new Set();
+  const add = (value) => {
+    if (value) urls.add(String(value).replace(/\/+$/, ""));
+  };
+  add(clientUrl);
+  for (const part of String(extraCsv || "").split(",")) add(part.trim());
+  if (!isProd) {
+    for (const host of ["localhost", "127.0.0.1"]) {
+      for (const port of [5173, 4173, 6666, 3000, envVars.PORT]) {
+        add(`http://${host}:${port}`);
+      }
+    }
+  }
+  return [...urls];
+}
+
 const config = {
   env: envVars.NODE_ENV,
   isProd: envVars.NODE_ENV === "production",
   port: envVars.PORT,
   trustProxy: envVars.TRUST_PROXY,
   clientUrl: envVars.CLIENT_URL,
+  corsOrigins: buildCorsOrigins(
+    envVars.CLIENT_URL,
+    envVars.NODE_ENV === "production",
+    envVars.CORS_ORIGINS,
+  ),
   backendUrl,
 
   mongoUri: expandMongoSrvUri(envVars.MONGODB_URI),
