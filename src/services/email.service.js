@@ -465,6 +465,36 @@ export async function sendWelcomeMemberEmail(user, extra = {}) {
   });
 }
 
+/**
+ * Gửi thông tin tài khoản cho Member chính thức
+ * sau khi hoàn thành Training.
+ * Account: email
+ * Password: studentId
+ */
+export async function sendOfficialMemberAccountEmail(
+  user,
+  { department = "", temporaryPassword = "" } = {},
+) {
+  if (!user?.email) return null;
+  const automation = await import("./emailAutomation.service.js");
+  const loginUrl = `${config.clientUrl}/login`;
+  return automation.dispatchAutomatedEmail(
+    "official_member_created",
+    {
+      to: user.email,
+      data: {
+        candidate_name: user.name || user.fullName || "",
+        email: user.email || "",
+        department: department || "",
+        temporary_password: temporaryPassword,
+        login_url: loginUrl,
+        result: "THÀNH VIÊN CHÍNH THỨC",
+        club_name: "IU CLUB",
+      },
+    },
+  );
+}
+
 // Xác nhận đặt / đổi lịch phỏng vấn
 export async function sendBookingConfirmedEmail(application, slot) {
   const date = new Date(slot.date).toLocaleDateString("vi-VN");

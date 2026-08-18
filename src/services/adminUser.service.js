@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import ApiError from "../utils/ApiError.js";
 import ClubDepartment from "../models/clubDepartment.model.js";
 import User from "../models/user.model.js";
@@ -12,10 +11,6 @@ import {
 
 const CLUB_ROLES = ["member", "leader", "bcn"];
 const ROSTER_ROLES = ["member", "leader"];
-
-function randomTempPassword() {
-  return `Tmp@${crypto.randomBytes(4).toString("hex")}`;
-}
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -170,26 +165,47 @@ export async function createMember(data) {
     .toLowerCase();
   const name = String(data.name || "").trim();
   const role = data.role;
-  if (!name || !email) throw ApiError.badRequest("Thiếu họ tên hoặc email");
+  const studentId = String(data.studentId || "").trim();
+  if (!name || !email) {
+    throw ApiError.badRequest(
+      "Thiếu họ tên hoặc email",
+    );
+  }
+
+  if (!studentId) {
+    throw ApiError.badRequest(
+      "MSSV (studentId) là bắt buộc để tạo tài khoản thành viên",
+    );
+  }
+
   if (role === "leader") {
     throw ApiError.badRequest(
       "Leader chỉ được chỉ định từ màn Quản lý Ban sau khi thành viên đã thuộc Ban",
     );
   }
+
   if (!ROSTER_ROLES.includes(role)) {
     throw ApiError.badRequest(
       "Chỉ tạo Member hoặc Leader từ Quản lý thành viên",
     );
   }
+
   if (await findByEmail(email)) {
-    throw ApiError.conflict("Email đã tồn tại trong hệ thống");
+    throw ApiError.conflict(
+      "Email đã tồn tại trong hệ thống",
+    );
   }
 
   const roles = role === "leader" ? ["member", "leader"] : ["member"];
+
+  /**
+   * Mật khẩu tạm thời: studentId
+   */
+  const temporaryPassword = studentId;
   const user = new User({
     name,
     email,
-    password: randomTempPassword(),
+    password: temporaryPassword,
     status: "active",
     isActive: true,
     emailVerified: true,
@@ -198,7 +214,7 @@ export async function createMember(data) {
     memberStatus: "official",
     department: "",
     phone: data.phone?.trim() || "",
-    studentId: data.studentId?.trim() || "",
+    studentId,
     generation: data.generation?.trim() || "",
   });
   applyRoles(user, roles);
@@ -207,7 +223,30 @@ export async function createMember(data) {
     department: data.department,
   });
   await user.save();
-  return toAdminUserDto(user);
+
+  /**
+   * Chuyển sang DTO để trả về cho controller
+   */
+  const member = toAdminUserDto(user);
+  try {
+    const emailService = await import("./email.service.js");
+    await emailService.sendOfficialMemberAccountEmail(
+      member,
+      {
+        department:
+          user.department ||
+          data.department ||
+          "",
+        temporaryPassword,
+      },
+    );
+  } catch (error) {
+    console.error(
+      `[official-member-email] Không thể gửi email tới ${user.email}:`,
+      error,
+    );
+  }
+  return member;
 }
 
 /**
