@@ -16,7 +16,16 @@ const app = express();
 if (config.trustProxy) app.set("trust proxy", config.trustProxy);
 
 app.use(helmet());
-app.use(cors({ origin: config.clientUrl, credentials: true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || config.corsOrigins.includes(origin))
+        return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

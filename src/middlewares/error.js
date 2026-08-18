@@ -1,4 +1,4 @@
-import celebrate from "celebrate";
+import * as celebrate from "celebrate";
 import config from "../config/env.js";
 import ApiError from "../utils/ApiError.js";
 
