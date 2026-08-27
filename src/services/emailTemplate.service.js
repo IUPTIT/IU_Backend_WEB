@@ -6,95 +6,88 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-cv-pass",
     name: "Pass vòng đơn",
     category: "recruitment",
-    subject: "THÔNG BÁO KẾT QUẢ VÒNG ĐƠN – CLB IU ({{candidate_name}})",
-    body: `<p><strong>THÔNG BÁO KẾT QUẢ VÒNG ĐƠN – CLB IU</strong></p>
-<p>Xin chúc mừng <strong>{{candidate_name}}</strong>!</p>
-<p>Sau quá trình xem xét hồ sơ đăng ký, Ban Tuyển thành viên CLB IU vui mừng thông báo rằng bạn đã <strong>vượt qua Vòng Đơn</strong> và chính thức bước tiếp vào <strong>Vòng Phỏng vấn</strong>.</p>
-<p><strong>Thông tin phỏng vấn:</strong></p>
-<ul>
-<li>Thời gian: <strong>{{interview_time}}</strong></li>
-<li>Địa điểm/Hình thức: <strong>{{location}}</strong></li>
-<li>Ban đăng ký: <strong>{{department}}</strong></li>
-</ul>
-<p>Vui lòng có mặt trước giờ hẹn khoảng <strong>10–15 phút</strong> và mang theo tinh thần tự tin, thoải mái để có một buổi trao đổi hiệu quả.</p>
-<p>Nếu có bất kỳ thắc mắc hoặc không thể tham gia đúng lịch, vui lòng liên hệ Fanpage hoặc Ban Tuyển thành viên CLB IU để được hỗ trợ.</p>
-<p>Hẹn gặp bạn tại Vòng Phỏng vấn!</p>
-<p><strong>Đăng nhập portal ứng viên</strong> (bắt buộc đổi mật khẩu ở lần đăng nhập đầu):<br/>
-Tài khoản: <strong>{{email}}</strong> (email đăng ký của bạn)<br/>
-Mật khẩu mặc định: <strong>{{temp_password}}</strong> (ngày sinh dạng DDMMYYYY)<br/>
-Link: {{login_url}}</p>
-<p><strong>CLB IU – Learn • Connect • Create</strong></p>`,
+    subject: "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Đơn — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nChúc mừng bạn! 🎉\n\nSau quá trình xem xét hồ sơ, Ban Tuyển thành viên IU CLUB vui mừng thông báo rằng bạn đã vượt qua Vòng Đơn và chính thức bước tiếp vào Vòng Phỏng vấn.\n\nMột chặng đầu tiên đã hoàn thành, và hành trình phía trước đang chờ bạn khám phá.\n\nThông tin phỏng vấn:\n- Thời gian: {{interview_time}}\n- Địa điểm / Hình thức: {{location}}\n- Ban đăng ký: {{department}}\n\nVui lòng có mặt trước giờ hẹn 10–15 phút và chuẩn bị một tinh thần thật thoải mái để chia sẻ về bản thân, những điều bạn yêu thích và những điều bạn muốn khám phá tại IU CLUB.\n\nThông tin đăng nhập Portal ứng viên:\n- Tài khoản: {{email}}\n- Mật khẩu mặc định: {{temp_password}} (ngày sinh dạng DDMMYYYY)\n- Portal ứng viên: {{login_url}}\n\nNếu có bất kỳ thắc mắc nào hoặc không thể tham gia đúng lịch, vui lòng liên hệ Fanpage hoặc Ban Tuyển thành viên IU CLUB để được hỗ trợ.\n\nChặng tiếp theo đang chờ bạn. Hẹn gặp bạn tại Vòng Phỏng vấn! 🧭\n\nTrân trọng,\nBan Tuyển thành viên IU CLUB\nShine and Thrive",
     status: "active",
   },
   {
     slug: "tpl-cv-fail",
     name: "Trượt vòng đơn",
     category: "recruitment",
-    subject: "THÔNG BÁO KẾT QUẢ VÒNG ĐƠN – CLB IU ({{candidate_name}})",
-    body: `<p><strong>THÔNG BÁO KẾT QUẢ VÒNG ĐƠN – CLB IU</strong></p>
-<p>Chào <strong>{{candidate_name}}</strong>,</p>
-<p>CLB IU chân thành cảm ơn bạn đã dành thời gian đăng ký tham gia đợt tuyển thành viên lần này.</p>
-<p>Sau quá trình đánh giá hồ sơ, rất tiếc <strong>bạn chưa phù hợp với yêu cầu của Vòng Đơn</strong> trong đợt tuyển hiện tại.</p>
-<p>Điều này không phản ánh toàn bộ năng lực của bạn. Mỗi vị trí đều có những tiêu chí và nhu cầu khác nhau ở từng thời điểm. CLB hy vọng bạn sẽ tiếp tục phát triển bản thân và mạnh dạn quay trở lại trong những đợt tuyển thành viên tiếp theo.</p>
-<p>Một lần nữa, cảm ơn bạn đã quan tâm đến CLB IU. Chúc bạn luôn học tập tốt và gặt hái nhiều thành công trong thời gian tới.</p>
-<p>Trân trọng,</p>
-<p><strong>Ban Tuyển thành viên CLB IU</strong></p>`,
+    subject: "[IU CLUB] Kết quả Vòng Đơn — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nCảm ơn bạn đã dành thời gian và sự quan tâm để tham gia đợt tuyển thành viên IU CLUB lần này.\n\nSau quá trình xem xét và đánh giá hồ sơ, rất tiếc phải thông báo rằng bạn chưa vượt qua Vòng Đơn trong đợt tuyển hiện tại.\n\nMỗi hành trình đều có những chặng đường và điểm rẽ khác nhau. Kết quả lần này không thể hiện toàn bộ năng lực hay giá trị của bạn, mà chỉ phản ánh sự phù hợp với những tiêu chí và nhu cầu của đợt tuyển tại thời điểm hiện tại.\n\nHãy tiếp tục học hỏi, trải nghiệm và phát triển bản thân. Biết đâu ở một hành trình khác, chúng ta sẽ lại gặp nhau.\n\nCảm ơn bạn vì đã lựa chọn IU CLUB trên hành trình của mình. 💙\n\nThe journey doesn't end here. There are still many roads ahead.\n\nTrân trọng,\nBan Tuyển thành viên IU CLUB\nShine and Thrive",
     status: "active",
   },
   {
     slug: "tpl-book-slot",
     name: "Nhắc đăng ký lịch phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Nhắc đăng ký lịch phỏng vấn — {{candidate_name}}",
-    body: "Chào {{candidate_name}},\n\nBạn đã ĐẠT vòng đơn nhưng chưa đăng ký lịch phỏng vấn.\n\nVui lòng đăng nhập {{login_url}} và chọn ca trước hạn: {{booking_deadline}}.\n\nTrân trọng,\n{{club_name}}",
+    subject: "[IU CLUB] Một bước nữa để tiếp tục hành trình — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nBạn đã vượt qua Vòng Đơn, nhưng hiện tại vẫn chưa hoàn tất đăng ký lịch phỏng vấn.\n\nĐể tiếp tục hành trình cùng IU CLUB, vui lòng đăng nhập Portal và lựa chọn ca phỏng vấn phù hợp trước thời hạn:\n\nHạn đăng ký: {{booking_deadline}}\n\nĐăng ký lịch phỏng vấn: {{login_url}}\n\nHãy hoàn tất đăng ký trước thời hạn để không bỏ lỡ chặng tiếp theo nhé! 🧭\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
   {
     slug: "tpl-interview",
     name: "Mời / xác nhận phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Xác nhận lịch phỏng vấn — {{candidate_name}}",
-    body: "Chào {{candidate_name}},\n\nBạn đã đăng ký lịch phỏng vấn IU CLUB thành công:\n- Ngày: {{interview_date}}\n- Giờ: {{interview_time}}\n- Địa điểm: {{location}}\n\nVui lòng có mặt trước 10 phút.\n\nTrân trọng,\n{{club_name}}",
+    subject: "[IU CLUB] Lịch phỏng vấn của bạn đã được xác nhận — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nBạn đã đăng ký lịch phỏng vấn IU CLUB thành công. 📍\n\nLịch phỏng vấn của bạn:\n- Ngày: {{interview_date}}\n- Thời gian: {{interview_time}}\n- Địa điểm / Hình thức: {{location}}\n{{meeting_link}}\n\nVui lòng kiểm tra lại thông tin và có mặt trước giờ hẹn khoảng 10 phút để chuẩn bị.\n\nMột chặng mới đã được xác nhận — hẹn gặp bạn tại buổi phỏng vấn! 💙\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
   {
     slug: "tpl-reminder",
     name: "Nhắc lịch phỏng vấn sắp diễn ra",
     category: "recruitment",
-    subject: "[IU CLUB] Nhắc lịch PV còn {{time_left}} — {{candidate_name}}",
-    body: "Chào {{candidate_name}},\n\nNhắc bạn lịch phỏng vấn sắp diễn ra (còn {{time_left}}):\n- Ngày: {{interview_date}}\n- Giờ: {{interview_time}}\n- Địa điểm: {{location}}\n\nVui lòng có mặt trước 10 phút.\n\n{{club_name}}",
+    subject: "[IU CLUB] Còn {{time_left}} đến lịch phỏng vấn của bạn",
+    body: "Chào {{candidate_name}},\n\nChỉ còn {{time_left}} nữa là đến lịch phỏng vấn của bạn tại IU CLUB. 🧭\n\nThông tin lịch phỏng vấn:\n- Ngày: {{interview_date}}\n- Thời gian: {{interview_time}}\n- Địa điểm / Hình thức: {{location}}\n\nVui lòng có mặt trước giờ hẹn khoảng 10 phút và kiểm tra lại thông tin trước khi tham gia.\n\nChặng tiếp theo đã đến gần — hẹn gặp bạn tại Vòng Phỏng vấn!\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
   {
-    slug: "tpl-passed",
-    name: "Pass / Trúng tuyển",
+    slug: "tpl-interview-pass",
+    name: "Đạt vòng phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Chúc mừng — {{candidate_name}}",
-    body: "Chào {{candidate_name}},\n\nBạn đã vượt qua vòng tuyển của IU CLUB. Ban: {{department}}.\nKết quả: {{result}}\n\nĐăng nhập: {{login_url}}\n\nTrân trọng,\n{{club_name}}",
+    subject: "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Phỏng vấn — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nChúc mừng bạn! Sau quá trình phỏng vấn và đánh giá, bạn đã vượt qua Vòng Phỏng vấn của IU CLUB.\n\nBan: {{department}}\nKết quả: {{result}}\n\nMột chặng quan trọng đã hoàn thành, và hành trình phía trước đang chờ bạn khám phá. Hãy chuẩn bị một tinh thần thật thoải mái, tự tin và sẵn sàng cho những bước tiếp theo.\n\nĐăng nhập Portal: {{login_url}}\n\nHẹn gặp bạn tại Checkpoint tiếp theo! 🧭\n\nTrân trọng,\nIU CLUB\nShine and Thrive",
     status: "active",
   },
   {
-    slug: "tpl-rejected",
-    name: "Không đạt / Từ chối",
+    slug: "tpl-final-pass",
+    name: "Trúng tuyển chính thức",
     category: "recruitment",
-    subject: "[IU CLUB] Kết quả tuyển dụng — {{candidate_name}}",
-    body: "Chào {{candidate_name}},\n\nCảm ơn bạn đã ứng tuyển IU CLUB. Rất tiếc lần này chúng tôi chưa thể đồng hành cùng bạn.\nKết quả: {{result}}\n\nTrân trọng,\n{{club_name}}",
+    subject: "[IU CLUB] CHÚC MỪNG — Bạn đã chính thức trở thành thành viên IU CLUB! 🎉",
+    body: "Chào {{candidate_name}},\n\nCHÚC MỪNG BẠN ĐÃ VỀ ĐÍCH! 🎉\n\nSau hành trình qua các vòng tuyển thành viên, IU CLUB vui mừng thông báo:\n\nBạn đã chính thức TRÚNG TUYỂN vào IU CLUB.\n\nBan: {{department}}\nKết quả: {{result}}\n\nMột hành trình mới giờ đây chính thức bắt đầu — nơi bạn sẽ được gặp gỡ những người đồng hành mới, thử sức với những điều mới và cùng nhau tạo nên những trải nghiệm đáng nhớ.\n\nTheo dõi thông tin tiếp theo tại: {{login_url}}\n\nWelcome to the journey. Welcome to IU CLUB. 💙\n\nTrân trọng,\n{{club_name}}\nShine and Thrive",
+    status: "active",
+  },
+  {
+    slug: "tpl-interview-fail",
+    name: "Trượt vòng phỏng vấn",
+    category: "recruitment",
+    subject: "[IU CLUB] Kết quả Vòng Phỏng vấn — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nCảm ơn bạn đã dành thời gian tham gia Vòng Phỏng vấn cùng IU CLUB và lựa chọn đồng hành cùng chúng tôi trên hành trình tuyển thành viên lần này.\n\nSau quá trình đánh giá, rất tiếc phải thông báo rằng lần này bạn chưa vượt qua Vòng Phỏng vấn.\n\nKết quả: {{result}}\n\nMỗi hành trình đều có những điểm dừng và những lần rẽ khác nhau. Kết quả lần này không làm mất đi những nỗ lực và giá trị bạn đã thể hiện trong suốt quá trình ứng tuyển.\n\nCảm ơn bạn vì đã để IU CLUB trở thành một phần trong hành trình của mình. Hy vọng chúng ta sẽ có dịp gặp lại nhau trên một chặng đường khác. 💙\n\nThe journey goes on.\n\nTrân trọng,\nIU CLUB\nShine and Thrive",
+    status: "active",
+  },
+  {
+    slug: "tpl-final-fail",
+    name: "Từ chối vòng xét duyệt cuối",
+    category: "recruitment",
+    subject: "[IU CLUB] Kết quả xét duyệt cuối — {{candidate_name}}",
+    body: "Chào {{candidate_name}},\n\nCảm ơn bạn đã đồng hành cùng IU CLUB trong suốt hành trình tuyển thành viên lần này.\n\nSau vòng xét duyệt cuối, rất tiếc phải thông báo rằng bạn chưa được lựa chọn trở thành thành viên IU CLUB trong đợt tuyển hiện tại.\n\nKết quả: {{result}}\n\nChúng tôi trân trọng thời gian, sự nỗ lực và tinh thần bạn đã dành cho hành trình này.\n\nMột điểm dừng không có nghĩa là hành trình kết thúc. Hy vọng bạn sẽ tiếp tục khám phá, học hỏi và phát triển trên những cung đường của riêng mình.\n\nYour journey goes on. We hope to see you on another road someday. 💙\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
   {
     slug: "tpl-welcome",
-    name: "Chào mừng thành viên",
+    name: "Chào mừng thành viên chính thức",
     category: "general",
-    subject: "Chào mừng đến IU CLUB, {{candidate_name}}!",
-    body: "Xin chào {{candidate_name}},\n\nChào mừng bạn gia nhập IU CLUB — Ban {{department}}.\n\nĐăng nhập portal: {{login_url}}\n\n{{club_name}}",
+    subject: "[IU CLUB] Chào mừng {{candidate_name}} đến với hành trình mới! 🎉",
+    body: "Xin chào {{candidate_name}},\n\nCHÀO MỪNG BẠN ĐẾN VỚI IU CLUB! 🎉\n\nTừ hôm nay, bạn chính thức trở thành thành viên của {{club_name}} — Ban {{department}}.\n\nMột hành trình mới đã chính thức bắt đầu.\n\nTại đây, bạn sẽ có cơ hội học hỏi, kết nối, sáng tạo, thử sức với những điều mới và cùng những người đồng hành tạo nên những trải nghiệm đáng nhớ.\n\nThông tin tài khoản Portal:\nEmail: {{email}}\nPortal: {{login_url}}\n\nHãy sẵn sàng cho những chặng đường phía trước.\n\nWelcome aboard. The journey begins now. 🧭\n\nTrân trọng,\n{{club_name}}\nShine and Thrive",
     status: "active",
   },
   {
     slug: "tpl-training-complete",
     name: "Hoàn thành training",
     category: "training",
-    subject: "[IU CLUB] Hoàn thành lộ trình training",
-    body: "Chào {{candidate_name}},\n\nBạn đã hoàn thành training. Chúc mừng!\n\n{{club_name}}",
+    subject: "[IU CLUB] Bạn đã hoàn thành hành trình Training! 🎉",
+    body: "Chào {{candidate_name}},\n\nChúc mừng bạn đã hoàn thành chương trình Training của IU CLUB! 🎉\n\nBạn vừa hoàn thành một chặng quan trọng trong hành trình của mình và sẵn sàng bước vào những trải nghiệm tiếp theo cùng CLB.\n\nHãy tiếp tục học hỏi, kết nối, sáng tạo và phát huy điều bạn có thể mang lại cho tập thể.\n\nOne checkpoint completed. More journeys ahead. 🧭\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
   {
@@ -153,52 +146,20 @@ Link: {{login_url}}</p>
   },
 ];
 
-/** Cập nhật subject/body seed cho slug đã biết (để P1 placeholders đủ). */
+/** Cập nhật subject/body seed cho slug đã biết. */
 async function upsertDefaultTemplate(tpl) {
   const existing = await EmailTemplate.findOne({ slug: tpl.slug });
   if (!existing) {
     await EmailTemplate.create(tpl);
     return;
   }
-  // Đồng bộ wording mật khẩu = ngày sinh (một lần)
-  if (
-    tpl.slug === "tpl-cv-pass" &&
-    !String(existing.body).includes("ngày sinh dạng DDMMYYYY")
-  ) {
-    existing.subject = tpl.subject;
-    existing.body = tpl.body;
-    existing.name = tpl.name;
-    await existing.save();
-    return;
-  }
-  // Một lần: đồng bộ nội dung kết quả vòng đơn (mẫu Ban Tuyển) nếu seed cũ
-  if (
-    (tpl.slug === "tpl-cv-pass" || tpl.slug === "tpl-cv-fail") &&
-    !String(existing.body).includes("THÔNG BÁO KẾT QUẢ VÒNG ĐƠN")
-  ) {
-    existing.subject = tpl.subject;
-    existing.body = tpl.body;
-    existing.name = tpl.name;
-    await existing.save();
-    return;
-  }
-  if (
-    tpl.slug === "tpl-cv-pass" &&
-    !String(existing.body).includes("{{temp_password}}")
-  ) {
-    existing.subject = tpl.subject;
-    existing.body = tpl.body;
-    await existing.save();
-    return;
-  }
-  if (
-    tpl.slug === "tpl-reminder" &&
-    !String(existing.body).includes("{{time_left}}")
-  ) {
-    existing.subject = tpl.subject;
-    existing.body = tpl.body;
-    await existing.save();
-  }
+  // Đồng bộ subject, body, name mới nhất từ seed
+  existing.name = tpl.name;
+  existing.category = tpl.category;
+  existing.subject = tpl.subject;
+  existing.body = tpl.body;
+  existing.status = tpl.status;
+  await existing.save();
 }
 
 function toDto(doc) {

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import ApiError from "../utils/ApiError.js";
 import ClubDepartment from "../models/clubDepartment.model.js";
 import User from "../models/user.model.js";
@@ -8,12 +9,17 @@ import {
   hasRole,
   mongoRoleIn,
 } from "../utils/roles.js";
+import { sendMemberWelcome } from "./email.service.js";
 
 const CLUB_ROLES = ["member", "leader", "bcn"];
 const ROSTER_ROLES = ["member", "leader"];
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function randomTempPassword() {
+  return "Tmp@" + crypto.randomBytes(4).toString("hex");
 }
 
 /** Gắn department string + departmentId nếu Ban tồn tại trong danh mục */
@@ -193,15 +199,11 @@ export async function createMember(data) {
   }
 
   const roles = role === "leader" ? ["member", "leader"] : ["member"];
-
-  /**
-   * Mật khẩu tạm thời: studentId
-   */
-  const temporaryPassword = studentId;
+  const tempPassword = randomTempPassword();
   const user = new User({
     name,
     email,
-    password: temporaryPassword,
+    password: tempPassword,
     status: "active",
     isActive: true,
     emailVerified: true,
@@ -220,23 +222,12 @@ export async function createMember(data) {
   });
   await user.save();
 
-  /**
-   * Chuyển sang DTO để trả về cho controller
-   */
-  const member = toAdminUserDto(user);
-  try {
-    const emailService = await import("./email.service.js");
-    await emailService.sendOfficialMemberAccountEmail(member, {
-      department: user.department || data.department || "",
-      temporaryPassword,
-    });
-  } catch (error) {
-    console.error(
-      `[official-member-email] Không thể gửi email tới ${user.email}:`,
-      error,
-    );
-  }
-  return member;
+  // Gửi email chào mừng kèm mật khẩu tạm (fire-and-forget — không block response)
+  sendMemberWelcome({ name: user.name, email: user.email, tempPassword }).catch(
+    (err) => console.error(`[member:welcome-email] ${user.email} —`, err.message),
+  );
+
+  return { ...toAdminUserDto(user), tempPassword };
 }
 
 /**
@@ -558,7 +549,7 @@ export async function importMembers(rows, { skipInvalid = true } = {}) {
 
   const created = [];
   for (const row of valid) {
-    const member = await createMember({
+    const result = await createMember({
       name: row.fullName,
       email: row.email,
       phone: row.phone || undefined,
@@ -568,7 +559,7 @@ export async function importMembers(rows, { skipInvalid = true } = {}) {
       studentId: row.studentId || undefined,
       generation: row.generation || undefined,
     });
-    created.push(member);
+    created.push(result);
   }
 
   return {
