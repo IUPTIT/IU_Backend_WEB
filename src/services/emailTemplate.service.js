@@ -6,7 +6,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-cv-pass",
     name: "Pass vòng đơn",
     category: "recruitment",
-    subject: "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Đơn — {{candidate_name}}",
+    subject:
+      "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Đơn — {{candidate_name}}",
     body: "Chào {{candidate_name}},\n\nChúc mừng bạn! 🎉\n\nSau quá trình xem xét hồ sơ, Ban Tuyển thành viên IU CLUB vui mừng thông báo rằng bạn đã vượt qua Vòng Đơn và chính thức bước tiếp vào Vòng Phỏng vấn.\n\nMột chặng đầu tiên đã hoàn thành, và hành trình phía trước đang chờ bạn khám phá.\n\nThông tin phỏng vấn:\n- Thời gian: {{interview_time}}\n- Địa điểm / Hình thức: {{location}}\n- Ban đăng ký: {{department}}\n\nVui lòng có mặt trước giờ hẹn 10–15 phút và chuẩn bị một tinh thần thật thoải mái để chia sẻ về bản thân, những điều bạn yêu thích và những điều bạn muốn khám phá tại IU CLUB.\n\nThông tin đăng nhập Portal ứng viên:\n- Tài khoản: {{email}}\n- Mật khẩu mặc định: {{temp_password}} (ngày sinh dạng DDMMYYYY)\n- Portal ứng viên: {{login_url}}\n\nNếu có bất kỳ thắc mắc nào hoặc không thể tham gia đúng lịch, vui lòng liên hệ Fanpage hoặc Ban Tuyển thành viên IU CLUB để được hỗ trợ.\n\nChặng tiếp theo đang chờ bạn. Hẹn gặp bạn tại Vòng Phỏng vấn! 🧭\n\nTrân trọng,\nBan Tuyển thành viên IU CLUB\nShine and Thrive",
     status: "active",
   },
@@ -22,7 +23,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-book-slot",
     name: "Nhắc đăng ký lịch phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Một bước nữa để tiếp tục hành trình — {{candidate_name}}",
+    subject:
+      "[IU CLUB] Một bước nữa để tiếp tục hành trình — {{candidate_name}}",
     body: "Chào {{candidate_name}},\n\nBạn đã vượt qua Vòng Đơn, nhưng hiện tại vẫn chưa hoàn tất đăng ký lịch phỏng vấn.\n\nĐể tiếp tục hành trình cùng IU CLUB, vui lòng đăng nhập Portal và lựa chọn ca phỏng vấn phù hợp trước thời hạn:\n\nHạn đăng ký: {{booking_deadline}}\n\nĐăng ký lịch phỏng vấn: {{login_url}}\n\nHãy hoàn tất đăng ký trước thời hạn để không bỏ lỡ chặng tiếp theo nhé! 🧭\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
@@ -30,7 +32,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-interview",
     name: "Mời / xác nhận phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Lịch phỏng vấn của bạn đã được xác nhận — {{candidate_name}}",
+    subject:
+      "[IU CLUB] Lịch phỏng vấn của bạn đã được xác nhận — {{candidate_name}}",
     body: "Chào {{candidate_name}},\n\nBạn đã đăng ký lịch phỏng vấn IU CLUB thành công. 📍\n\nLịch phỏng vấn của bạn:\n- Ngày: {{interview_date}}\n- Thời gian: {{interview_time}}\n- Địa điểm / Hình thức: {{location}}\n{{meeting_link}}\n\nVui lòng kiểm tra lại thông tin và có mặt trước giờ hẹn khoảng 10 phút để chuẩn bị.\n\nMột chặng mới đã được xác nhận — hẹn gặp bạn tại buổi phỏng vấn! 💙\n\nTrân trọng,\n{{club_name}}",
     status: "active",
   },
@@ -46,7 +49,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-interview-pass",
     name: "Đạt vòng phỏng vấn",
     category: "recruitment",
-    subject: "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Phỏng vấn — {{candidate_name}}",
+    subject:
+      "[IU CLUB] Chúc mừng bạn đã vượt qua Vòng Phỏng vấn — {{candidate_name}}",
     body: "Chào {{candidate_name}},\n\nChúc mừng bạn! Sau quá trình phỏng vấn và đánh giá, bạn đã vượt qua Vòng Phỏng vấn của IU CLUB.\n\nBan: {{department}}\nKết quả: {{result}}\n\nMột chặng quan trọng đã hoàn thành, và hành trình phía trước đang chờ bạn khám phá. Hãy chuẩn bị một tinh thần thật thoải mái, tự tin và sẵn sàng cho những bước tiếp theo.\n\nĐăng nhập Portal: {{login_url}}\n\nHẹn gặp bạn tại Checkpoint tiếp theo! 🧭\n\nTrân trọng,\nIU CLUB\nShine and Thrive",
     status: "active",
   },
@@ -54,7 +58,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-final-pass",
     name: "Trúng tuyển chính thức",
     category: "recruitment",
-    subject: "[IU CLUB] CHÚC MỪNG — Bạn đã chính thức trở thành thành viên IU CLUB! 🎉",
+    subject:
+      "[IU CLUB] CHÚC MỪNG — Bạn đã chính thức trở thành thành viên IU CLUB! 🎉",
     body: "Chào {{candidate_name}},\n\nCHÚC MỪNG BẠN ĐÃ VỀ ĐÍCH! 🎉\n\nSau hành trình qua các vòng tuyển thành viên, IU CLUB vui mừng thông báo:\n\nBạn đã chính thức TRÚNG TUYỂN vào IU CLUB.\n\nBan: {{department}}\nKết quả: {{result}}\n\nMột hành trình mới giờ đây chính thức bắt đầu — nơi bạn sẽ được gặp gỡ những người đồng hành mới, thử sức với những điều mới và cùng nhau tạo nên những trải nghiệm đáng nhớ.\n\nTheo dõi thông tin tiếp theo tại: {{login_url}}\n\nWelcome to the journey. Welcome to IU CLUB. 💙\n\nTrân trọng,\n{{club_name}}\nShine and Thrive",
     status: "active",
   },
@@ -78,7 +83,8 @@ const DEFAULT_TEMPLATES = [
     slug: "tpl-welcome",
     name: "Chào mừng thành viên chính thức",
     category: "general",
-    subject: "[IU CLUB] Chào mừng {{candidate_name}} đến với hành trình mới! 🎉",
+    subject:
+      "[IU CLUB] Chào mừng {{candidate_name}} đến với hành trình mới! 🎉",
     body: "Xin chào {{candidate_name}},\n\nCHÀO MỪNG BẠN ĐẾN VỚI IU CLUB! 🎉\n\nTừ hôm nay, bạn chính thức trở thành thành viên của {{club_name}} — Ban {{department}}.\n\nMột hành trình mới đã chính thức bắt đầu.\n\nTại đây, bạn sẽ có cơ hội học hỏi, kết nối, sáng tạo, thử sức với những điều mới và cùng những người đồng hành tạo nên những trải nghiệm đáng nhớ.\n\nThông tin tài khoản Portal:\nEmail: {{email}}\nPortal: {{login_url}}\n\nHãy sẵn sàng cho những chặng đường phía trước.\n\nWelcome aboard. The journey begins now. 🧭\n\nTrân trọng,\n{{club_name}}\nShine and Thrive",
     status: "active",
   },

@@ -224,7 +224,8 @@ export async function createMember(data) {
 
   // Gửi email chào mừng kèm mật khẩu tạm (fire-and-forget — không block response)
   sendMemberWelcome({ name: user.name, email: user.email, tempPassword }).catch(
-    (err) => console.error(`[member:welcome-email] ${user.email} —`, err.message),
+    (err) =>
+      console.error(`[member:welcome-email] ${user.email} —`, err.message),
   );
 
   return { ...toAdminUserDto(user), tempPassword };

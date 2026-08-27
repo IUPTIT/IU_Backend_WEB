@@ -313,7 +313,8 @@ function renderPlaceholders(template, data) {
     login_url: data.login_url || "https://portal.iuptit.com/login",
     portal_url: data.login_url || "https://portal.iuptit.com/login",
     portal_link: data.login_url || "https://portal.iuptit.com/login",
-    temp_password: data.temp_password || data.tempPassword || data.rawPassword || "",
+    temp_password:
+      data.temp_password || data.tempPassword || data.rawPassword || "",
   };
   return String(template || "").replace(
     /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
@@ -334,7 +335,10 @@ function bodyToHtml(body, opts = {}) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .split(/\n\n+/)
-        .map((p) => `<p style="margin:0 0 16px;line-height:1.7;">${p.replace(/\n/g, "<br/>")}</p>`)
+        .map(
+          (p) =>
+            `<p style="margin:0 0 16px;line-height:1.7;">${p.replace(/\n/g, "<br/>")}</p>`,
+        )
         .join("");
 
   const title = opts.title || "";
@@ -384,7 +388,13 @@ function bodyToHtml(body, opts = {}) {
 <body class="email-page" style="margin:0;padding:0;background-color:#f4f4fb;-webkit-font-smoothing:antialiased;">
   <!-- Preheader text preview -->
   <div style="display:none;font-size:1px;color:#f4f4fb;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
-    ${preheader || raw.replace(/<[^>]+>/g, " ").trim().slice(0, 100)}
+    ${
+      preheader ||
+      raw
+        .replace(/<[^>]+>/g, " ")
+        .trim()
+        .slice(0, 100)
+    }
     ${"&zwnj;&nbsp;".repeat(30)}
   </div>
 

@@ -276,20 +276,31 @@ export function renderEmail({
   preheader = "",
   badge = "HẢI TRÌNH 2026",
 }) {
-  const preheaderText = preheader || (typeof intro === "string" ? intro.replace(/<[^>]+>/g, " ").trim().slice(0, 100) : title);
+  const preheaderText =
+    preheader ||
+    (typeof intro === "string"
+      ? intro
+          .replace(/<[^>]+>/g, " ")
+          .trim()
+          .slice(0, 100)
+      : title);
 
-  const rowsHtml = rows && rows.length
-    ? `<table role="presentation" class="email-info-card" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:14px;background-color:${BRAND_COLORS.surfaceAlt};border:1px solid ${BRAND_COLORS.border};overflow:hidden;">
+  const rowsHtml =
+    rows && rows.length
+      ? `<table role="presentation" class="email-info-card" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-radius:14px;background-color:${BRAND_COLORS.surfaceAlt};border:1px solid ${BRAND_COLORS.border};overflow:hidden;">
 ${rows
   .map(
-    (r, i) => `      <tr class="email-info-row"${i > 0 ? ` style="border-top:1px solid ${BRAND_COLORS.borderSubtle};"` : ""}>
+    (
+      r,
+      i,
+    ) => `      <tr class="email-info-row"${i > 0 ? ` style="border-top:1px solid ${BRAND_COLORS.borderSubtle};"` : ""}>
         <td class="email-info-label" style="padding:13px 18px;color:${BRAND_COLORS.muted};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;${i > 0 ? `border-top:1px solid ${BRAND_COLORS.borderSubtle};` : ""}">${r.label}</td>
         <td class="email-info-value" align="right" style="padding:13px 18px;color:${BRAND_COLORS.ink};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;${i > 0 ? `border-top:1px solid ${BRAND_COLORS.borderSubtle};` : ""}">${r.value}</td>
       </tr>`,
   )
   .join("\n")}
     </table>`
-    : "";
+      : "";
 
   const ctaHtml = cta
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">
@@ -469,7 +480,8 @@ export function sendVerificationEmail(to, otp) {
     text: `Xin chào,\n\nBạn đang thực hiện xác thực tài khoản tại hệ thống IU CLUB.\n\nMã xác thực của bạn: ${otp}\n\nMã có hiệu lực trong 10 phút.\n\nVui lòng không chia sẻ mã này cho bất kỳ ai.\n\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.\n\nIU CLUB — Shine and Thrive\nEmail được gửi tự động, vui lòng không trả lời thư này.`,
     html: renderEmail({
       title: "Xác thực tài khoản 🔐",
-      intro: "Bạn đang thực hiện xác thực tài khoản tại hệ thống IU CLUB.<br>Dùng mã dưới đây để hoàn tất xác thực:",
+      intro:
+        "Bạn đang thực hiện xác thực tài khoản tại hệ thống IU CLUB.<br>Dùng mã dưới đây để hoàn tất xác thực:",
       rows: [{ label: "Mã xác thực", value: otp }],
       note: "Mã có hiệu lực trong 10 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.",
     }),
@@ -521,7 +533,8 @@ export function sendDraftLinkEmail(application, draftToken) {
 
 // Pass vòng đơn — Auto Rule `cv_pass` (tắt rule = không gửi)
 export async function sendCandidateAccountEmail(application, rawPassword) {
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   const automation = await import("./emailAutomation.service.js");
   // Lúc Pass CV thường chưa có lịch — placeholder mặc định; Admin sửa template trong Settings
   return automation.dispatchAutomatedEmail("cv_pass", {
@@ -563,7 +576,8 @@ export async function sendApplicationRejectedEmail(application, round) {
 // Đạt vòng phỏng vấn
 export async function sendInterviewPassedEmail(application) {
   const automation = await import("./emailAutomation.service.js");
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   return automation.dispatchAutomatedEmail("interview_pass", {
     to: application.email,
     data: automation.applicationEmailData(application, {
@@ -577,7 +591,8 @@ export async function sendInterviewPassedEmail(application) {
 // welcome_member gửi khi promote Member chính thức (sau training).
 export async function sendAdmittedEmail(application) {
   const automation = await import("./emailAutomation.service.js");
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   return automation.dispatchAutomatedEmail("final_pass", {
     to: application.email,
     data: automation.applicationEmailData(application, {
@@ -591,7 +606,8 @@ export async function sendAdmittedEmail(application) {
 export async function sendWelcomeMemberEmail(user, extra = {}) {
   if (!user?.email) return null;
   const automation = await import("./emailAutomation.service.js");
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   return automation.dispatchAutomatedEmail("welcome_member", {
     to: user.email,
     data: {
@@ -712,7 +728,8 @@ export function sendPasswordResetEmail(to, resetToken) {
     text: `Xin chào,\n\nBạn hoặc một người có quyền truy cập tài khoản này vừa yêu cầu đặt lại mật khẩu IU CLUB.\n\nĐặt lại mật khẩu: ${url}\n\nLiên kết có hiệu lực trong 30 phút.\n\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email và không chia sẻ liên kết cho người khác.\n\nMột bước nhỏ để tiếp tục hành trình.\n\nIU CLUB — Shine and Thrive\nEmail được gửi tự động, vui lòng không trả lời thư này.`,
     html: renderEmail({
       title: "Đặt lại mật khẩu 🔐",
-      intro: "Bạn hoặc một người có quyền truy cập tài khoản này vừa yêu cầu đặt lại mật khẩu IU CLUB.",
+      intro:
+        "Bạn hoặc một người có quyền truy cập tài khoản này vừa yêu cầu đặt lại mật khẩu IU CLUB.",
       cta: { label: "Đặt lại mật khẩu", url },
       note: "Liên kết có hiệu lực trong 30 phút. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email và không chia sẻ liên kết cho người khác.<br><br>Một bước nhỏ để tiếp tục hành trình.",
     }),
@@ -776,7 +793,8 @@ export async function sendUnbookedReminderEmail(
   application,
   { deadlineLabel } = {},
 ) {
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   const deadline =
     deadlineLabel || "trước khi hết hạn đăng ký lịch (xem portal ứng viên)";
   const automation = await import("./emailAutomation.service.js");
@@ -828,7 +846,8 @@ export function sendLeaderAppointmentEmail(user, title, body) {
  * @param {{ name: string, email: string, tempPassword: string }} opts
  */
 export function sendMemberWelcome({ name, email, tempPassword }) {
-  const loginUrl = config.candidatePortalUrl || "https://portal.iuptit.com/login";
+  const loginUrl =
+    config.candidatePortalUrl || "https://portal.iuptit.com/login";
   return send({
     to: email,
     subject: "IU CLUB — Tài khoản thành viên của bạn đã được tạo",
@@ -850,7 +869,10 @@ export function sendMemberWelcome({ name, email, tempPassword }) {
         `Dưới đây là thông tin đăng nhập của bạn:`,
       rows: [
         { label: "Email đăng nhập", value: email },
-        { label: "Mật khẩu tạm thời", value: `<code style="font-family:monospace;letter-spacing:1px">${tempPassword}</code>` },
+        {
+          label: "Mật khẩu tạm thời",
+          value: `<code style="font-family:monospace;letter-spacing:1px">${tempPassword}</code>`,
+        },
       ],
       cta: { label: "Đăng nhập ngay →", url: loginUrl },
       note:
