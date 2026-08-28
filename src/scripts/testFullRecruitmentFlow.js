@@ -29,7 +29,10 @@ import * as interviewService from "../services/interview.service.js";
 import * as emailService from "../services/email.service.js";
 import * as emailAutomation from "../services/emailAutomation.service.js";
 import { ensureDefaultTemplates } from "../services/emailTemplate.service.js";
-import { createCandidateAccountFromApplication, passwordFromDob } from "../jobs/createCandidateAccount.job.js";
+import {
+  createCandidateAccountFromApplication,
+  passwordFromDob,
+} from "../jobs/createCandidateAccount.job.js";
 import { createTraineeFromApplication } from "../services/training.service.js";
 
 const CANDIDATE_1 = {
@@ -83,7 +86,11 @@ async function runAction(label, fn) {
   process.stdout.write(`  → ${label} ... `);
   try {
     const res = await fn();
-    const info = res?.provider ? ` [${res.provider}]` : res?.code ? ` [Mã: ${res.code}]` : "";
+    const info = res?.provider
+      ? ` [${res.provider}]`
+      : res?.code
+        ? ` [Mã: ${res.code}]`
+        : "";
     console.log(`OK${info}`);
     resultsLog.push({ label, ok: true, details: info });
     return res;
@@ -96,7 +103,11 @@ async function runAction(label, fn) {
 
 async function prepareDepartments(adminUser) {
   const depts = [
-    { name: "Ban Truyền thông", code: "media", field: "Truyền thông & Hình ảnh" },
+    {
+      name: "Ban Truyền thông",
+      code: "media",
+      field: "Truyền thông & Hình ảnh",
+    },
     { name: "Ban Chuyên môn", code: "tech", field: "Lập trình & Kỹ thuật" },
     { name: "Ban Sự kiện", code: "event", field: "Tổ chức sự kiện" },
   ];
@@ -131,7 +142,8 @@ async function prepareCampaignAndSlots(adminUser) {
   if (!campaign) {
     campaign = await RecruitmentCampaign.create({
       name: `Tuyển Thành Viên IU Club Kỳ Fall 2026 (Live Test)`,
-      description: "Đợt tuyển chọn thành viên chính thức CLB Tin học IU Club PTIT.",
+      description:
+        "Đợt tuyển chọn thành viên chính thức CLB Tin học IU Club PTIT.",
       openAt,
       closeAt,
       status: "open",
@@ -217,14 +229,26 @@ async function cleanupTestData(emails) {
 }
 
 async function main() {
-  console.log("================================================================================");
-  console.log("🚀 BẮT ĐẦU TEST TOÀN DIỆN LUỒNG TUYỂN DỤNG IU CLUB (E2E RECRUITMENT FLOW)");
-  console.log(`📧 Mail Provider: ${config.mailProvider} | From: ${config.emailFrom}`);
+  console.log(
+    "================================================================================",
+  );
+  console.log(
+    "🚀 BẮT ĐẦU TEST TOÀN DIỆN LUỒNG TUYỂN DỤNG IU CLUB (E2E RECRUITMENT FLOW)",
+  );
+  console.log(
+    `📧 Mail Provider: ${config.mailProvider} | From: ${config.emailFrom}`,
+  );
   console.log(`🎯 Test Emails:`);
   console.log(`   1. ${CANDIDATE_1.email} -> TRƯỢT VÒNG ĐƠN (failed_cv)`);
-  console.log(`   2. ${CANDIDATE_2.email} -> FULL PASS (Đậu đơn -> Đặt lịch PV -> Đậu PV -> Trúng tuyển)`);
-  console.log(`   3. ${CANDIDATE_3.email} -> TRƯỢT PHỎNG VẤN (Đậu đơn -> Đặt lịch PV -> Rớt PV)`);
-  console.log("================================================================================");
+  console.log(
+    `   2. ${CANDIDATE_2.email} -> FULL PASS (Đậu đơn -> Đặt lịch PV -> Đậu PV -> Trúng tuyển)`,
+  );
+  console.log(
+    `   3. ${CANDIDATE_3.email} -> TRƯỢT PHỎNG VẤN (Đậu đơn -> Đặt lịch PV -> Rớt PV)`,
+  );
+  console.log(
+    "================================================================================",
+  );
 
   await connectDatabase();
   await ensureDefaultTemplates();
@@ -258,36 +282,52 @@ async function main() {
   logStep(2, "Khởi tạo Đợt tuyển dụng (Campaign), Form đăng ký & Ca phỏng vấn");
   const { campaign, slot1, slot2 } = await prepareCampaignAndSlots(admin);
   console.log(`  ✓ Campaign: "${campaign.name}" [ID: ${campaign._id}]`);
-  console.log(`  ✓ Ca PV 1: ${slot1.startTime}-${slot1.endTime} ngày ${new Date(slot1.date).toLocaleDateString("vi-VN")}`);
-  console.log(`  ✓ Ca PV 2: ${slot2.startTime}-${slot2.endTime} ngày ${new Date(slot2.date).toLocaleDateString("vi-VN")}`);
+  console.log(
+    `  ✓ Ca PV 1: ${slot1.startTime}-${slot1.endTime} ngày ${new Date(slot1.date).toLocaleDateString("vi-VN")}`,
+  );
+  console.log(
+    `  ✓ Ca PV 2: ${slot2.startTime}-${slot2.endTime} ngày ${new Date(slot2.date).toLocaleDateString("vi-VN")}`,
+  );
 
   // 3. Dọn dẹp dữ liệu cũ của 3 email
   logStep(3, "Làm sạch dữ liệu test cũ của 3 ứng viên");
-  await cleanupTestData([CANDIDATE_1.email, CANDIDATE_2.email, CANDIDATE_3.email]);
+  await cleanupTestData([
+    CANDIDATE_1.email,
+    CANDIDATE_2.email,
+    CANDIDATE_3.email,
+  ]);
   console.log("  ✓ Đã xóa sạch dữ liệu cũ, sẵn sàng chạy luồng mới!");
 
   // =====================================================================================
   // ỨNG VIÊN 1: lethithao2k6yl@gmail.com -> TRƯỢT VÒNG ĐƠN (failed_cv)
   // =====================================================================================
-  logStep("4.1", `[Ứng viên 1] ${CANDIDATE_1.fullName} (${CANDIDATE_1.email}) - TRƯỢT VÒNG ĐƠN`);
+  logStep(
+    "4.1",
+    `[Ứng viên 1] ${CANDIDATE_1.fullName} (${CANDIDATE_1.email}) - TRƯỢT VÒNG ĐƠN`,
+  );
 
   // 1. Nộp hồ sơ
-  const app1 = await runAction("Ứng viên 1 nộp đơn dự tuyển (Ban Chuyên môn)", async () => {
-    return await applicationService.submitApplication({
-      campaignId: campaign._id,
-      email: CANDIDATE_1.email,
-      fullName: CANDIDATE_1.fullName,
-      studentId: CANDIDATE_1.studentId,
-      className: CANDIDATE_1.className,
-      faculty: CANDIDATE_1.faculty,
-      phone: CANDIDATE_1.phone,
-      dateOfBirth: CANDIDATE_1.dateOfBirth,
-      avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
-      cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
-      departmentPreferences: [{ department: CANDIDATE_1.department, priority: 1 }],
-      answers: [],
-    });
-  });
+  const app1 = await runAction(
+    "Ứng viên 1 nộp đơn dự tuyển (Ban Chuyên môn)",
+    async () => {
+      return await applicationService.submitApplication({
+        campaignId: campaign._id,
+        email: CANDIDATE_1.email,
+        fullName: CANDIDATE_1.fullName,
+        studentId: CANDIDATE_1.studentId,
+        className: CANDIDATE_1.className,
+        faculty: CANDIDATE_1.faculty,
+        phone: CANDIDATE_1.phone,
+        dateOfBirth: CANDIDATE_1.dateOfBirth,
+        avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
+        departmentPreferences: [
+          { department: CANDIDATE_1.department, priority: 1 },
+        ],
+        answers: [],
+      });
+    },
+  );
 
   // 2. Chấm điểm CV (thấp)
   await runAction("BCN chấm điểm CV ứng viên 1 (40/100 điểm)", async () => {
@@ -304,37 +344,51 @@ async function main() {
   });
 
   // 3. BCN quyết định: failed_cv
-  await runAction("BCN cập nhật kết quả: Không đạt vòng đơn (failed_cv)", async () => {
-    return await screeningService.decideCv(app1._id, "failed_cv");
-  });
+  await runAction(
+    "BCN cập nhật kết quả: Không đạt vòng đơn (failed_cv)",
+    async () => {
+      return await screeningService.decideCv(app1._id, "failed_cv");
+    },
+  );
 
   // 4. Gửi email từ chối vòng đơn
-  await runAction("Gửi Email Thông báo kết quả vòng đơn (Thư từ chối)", async () => {
-    return await emailService.sendApplicationRejectedEmail(app1, "failed_cv");
-  });
+  await runAction(
+    "Gửi Email Thông báo kết quả vòng đơn (Thư từ chối)",
+    async () => {
+      return await emailService.sendApplicationRejectedEmail(app1, "failed_cv");
+    },
+  );
 
   // =====================================================================================
   // ỨNG VIÊN 2: lethithao.ptit@gmail.com -> FULL PASS (ĐẬU ĐƠN -> ĐẶT PV -> ĐẬU PV -> ADMITTED)
   // =====================================================================================
-  logStep("4.2", `[Ứng viên 2] ${CANDIDATE_2.fullName} (${CANDIDATE_2.email}) - FULL PASS`);
+  logStep(
+    "4.2",
+    `[Ứng viên 2] ${CANDIDATE_2.fullName} (${CANDIDATE_2.email}) - FULL PASS`,
+  );
 
   // 1. Nộp hồ sơ
-  const app2 = await runAction("Ứng viên 2 nộp đơn dự tuyển (Ban Truyền thông)", async () => {
-    return await applicationService.submitApplication({
-      campaignId: campaign._id,
-      email: CANDIDATE_2.email,
-      fullName: CANDIDATE_2.fullName,
-      studentId: CANDIDATE_2.studentId,
-      className: CANDIDATE_2.className,
-      faculty: CANDIDATE_2.faculty,
-      phone: CANDIDATE_2.phone,
-      dateOfBirth: CANDIDATE_2.dateOfBirth,
-      avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
-      cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
-      departmentPreferences: [{ department: CANDIDATE_2.department, priority: 1 }],
-      answers: [],
-    });
-  });
+  const app2 = await runAction(
+    "Ứng viên 2 nộp đơn dự tuyển (Ban Truyền thông)",
+    async () => {
+      return await applicationService.submitApplication({
+        campaignId: campaign._id,
+        email: CANDIDATE_2.email,
+        fullName: CANDIDATE_2.fullName,
+        studentId: CANDIDATE_2.studentId,
+        className: CANDIDATE_2.className,
+        faculty: CANDIDATE_2.faculty,
+        phone: CANDIDATE_2.phone,
+        dateOfBirth: CANDIDATE_2.dateOfBirth,
+        avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
+        departmentPreferences: [
+          { department: CANDIDATE_2.department, priority: 1 },
+        ],
+        answers: [],
+      });
+    },
+  );
 
   // 2. Chấm điểm CV (cao)
   await runAction("BCN chấm điểm CV ứng viên 2 (92/100 điểm)", async () => {
@@ -351,54 +405,86 @@ async function main() {
   });
 
   // 3. BCN quyết định: passed_cv
-  await runAction("BCN cập nhật kết quả: Đạt vòng đơn (passed_cv)", async () => {
-    return await screeningService.decideCv(app2._id, "passed_cv");
-  });
+  await runAction(
+    "BCN cập nhật kết quả: Đạt vòng đơn (passed_cv)",
+    async () => {
+      return await screeningService.decideCv(app2._id, "passed_cv");
+    },
+  );
 
   // 4. Tạo tài khoản Candidate & Gửi email thông báo trúng tuyển vòng đơn
   const cand2DobPassword = passwordFromDob(CANDIDATE_2.dateOfBirth);
-  await runAction(`Cấp tài khoản Candidate (TK: ${CANDIDATE_2.email}, MK: ${cand2DobPassword}) & Gửi Email`, async () => {
-    const res = await createCandidateAccountFromApplication(app2._id, { deferEmail: false });
-    return { ...res, code: cand2DobPassword };
-  });
+  await runAction(
+    `Cấp tài khoản Candidate (TK: ${CANDIDATE_2.email}, MK: ${cand2DobPassword}) & Gửi Email`,
+    async () => {
+      const res = await createCandidateAccountFromApplication(app2._id, {
+        deferEmail: false,
+      });
+      return { ...res, code: cand2DobPassword };
+    },
+  );
 
   // 5. Ứng viên đặt lịch phỏng vấn Ca 1
-  const booking2 = await runAction("Ứng viên 2 đặt lịch phỏng vấn (Ca 1)", async () => {
-    return await interviewService.assignSlot(app2._id, slot1._id);
-  });
+  const booking2 = await runAction(
+    "Ứng viên 2 đặt lịch phỏng vấn (Ca 1)",
+    async () => {
+      return await interviewService.assignSlot(app2._id, slot1._id);
+    },
+  );
 
   // 6. Gửi email xác nhận đặt lịch & Email nhắc lịch
-  await runAction("Gửi Email Xác nhận đặt lịch phỏng vấn thành công", async () => {
-    return await emailService.sendBookingConfirmedEmail(app2, slot1);
-  });
+  await runAction(
+    "Gửi Email Xác nhận đặt lịch phỏng vấn thành công",
+    async () => {
+      return await emailService.sendBookingConfirmedEmail(app2, slot1);
+    },
+  );
 
   await runAction("Gửi Email Nhắc lịch phỏng vấn trước 24h", async () => {
-    return await emailService.sendInterviewReminderEmail(app2, slot1, "24 giờ", {
-      ruleKey: "interview_remind_24h",
-    });
-  });
-
-  // 7. Phỏng vấn & Chấm điểm (xuất sắc)
-  await runAction("Interviewer chấm điểm phỏng vấn (95/100 điểm, Có mặt)", async () => {
-    return await interviewService.scoreBooking(
-      booking2._id,
-      admin._id,
+    return await emailService.sendInterviewReminderEmail(
+      app2,
+      slot1,
+      "24 giờ",
       {
-        criteriaScores: [
-          { criterion: "Thái độ & Tác phong", weight: 40, score: 95 },
-          { criterion: "Kỹ năng chuyên môn & Xử lý tình huống", weight: 60, score: 95 },
-        ],
-        comment: "Ứng viên tự tin, định hướng rõ ràng, phù hợp văn hoá CLB.",
-        attendance: "present",
+        ruleKey: "interview_remind_24h",
       },
-      "bcn",
     );
   });
 
+  // 7. Phỏng vấn & Chấm điểm (xuất sắc)
+  await runAction(
+    "Interviewer chấm điểm phỏng vấn (95/100 điểm, Có mặt)",
+    async () => {
+      return await interviewService.scoreBooking(
+        booking2._id,
+        admin._id,
+        {
+          criteriaScores: [
+            { criterion: "Thái độ & Tác phong", weight: 40, score: 95 },
+            {
+              criterion: "Kỹ năng chuyên môn & Xử lý tình huống",
+              weight: 60,
+              score: 95,
+            },
+          ],
+          comment: "Ứng viên tự tin, định hướng rõ ràng, phù hợp văn hoá CLB.",
+          attendance: "present",
+        },
+        "bcn",
+      );
+    },
+  );
+
   // 8. BCN quyết định: passed_interview
-  await runAction("BCN cập nhật kết quả: Đạt phỏng vấn (passed_interview)", async () => {
-    return await screeningService.decideInterview(app2._id, "passed_interview");
-  });
+  await runAction(
+    "BCN cập nhật kết quả: Đạt phỏng vấn (passed_interview)",
+    async () => {
+      return await screeningService.decideInterview(
+        app2._id,
+        "passed_interview",
+      );
+    },
+  );
 
   // 9. Gửi email đạt phỏng vấn
   await runAction("Gửi Email Thông báo Đạt vòng phỏng vấn", async () => {
@@ -406,49 +492,69 @@ async function main() {
   });
 
   // 10. BCN xác nhận kết quả cuối: admitted (Trúng tuyển chính thức)
-  await runAction("BCN xác nhận Trúng tuyển chính thức (admitted)", async () => {
-    return await screeningService.confirmFinal(app2._id, "admitted");
-  });
+  await runAction(
+    "BCN xác nhận Trúng tuyển chính thức (admitted)",
+    async () => {
+      return await screeningService.confirmFinal(app2._id, "admitted");
+    },
+  );
 
   // 11. Bàn giao sang Tân binh Training & Gửi email chào mừng
-  await runAction("Bàn giao sang danh sách Tân binh Đào tạo (Trainee)", async () => {
-    const updatedApp = await Application.findById(app2._id);
-    return await createTraineeFromApplication(updatedApp);
-  });
+  await runAction(
+    "Bàn giao sang danh sách Tân binh Đào tạo (Trainee)",
+    async () => {
+      const updatedApp = await Application.findById(app2._id);
+      return await createTraineeFromApplication(updatedApp);
+    },
+  );
 
-  await runAction("Gửi Email Chúc mừng trúng tuyển (Admitted Email)", async () => {
-    return await emailService.sendAdmittedEmail(app2);
-  });
+  await runAction(
+    "Gửi Email Chúc mừng trúng tuyển (Admitted Email)",
+    async () => {
+      return await emailService.sendAdmittedEmail(app2);
+    },
+  );
 
-  await runAction("Gửi Email Chào mừng thành viên mới (Welcome Member)", async () => {
-    return await emailService.sendWelcomeMemberEmail({
-      name: app2.fullName,
-      email: app2.email,
-    });
-  });
+  await runAction(
+    "Gửi Email Chào mừng thành viên mới (Welcome Member)",
+    async () => {
+      return await emailService.sendWelcomeMemberEmail({
+        name: app2.fullName,
+        email: app2.email,
+      });
+    },
+  );
 
   // =====================================================================================
   // ỨNG VIÊN 3: minhdt.ptit@gmail.com -> PASS ĐƠN -> ĐẶT LỊCH PV -> TRƯỢT PHỎNG VẤN
   // =====================================================================================
-  logStep("4.3", `[Ứng viên 3] ${CANDIDATE_3.fullName} (${CANDIDATE_3.email}) - TRƯỢT PHỎNG VẤN`);
+  logStep(
+    "4.3",
+    `[Ứng viên 3] ${CANDIDATE_3.fullName} (${CANDIDATE_3.email}) - TRƯỢT PHỎNG VẤN`,
+  );
 
   // 1. Nộp hồ sơ
-  const app3 = await runAction("Ứng viên 3 nộp đơn dự tuyển (Ban Sự kiện)", async () => {
-    return await applicationService.submitApplication({
-      campaignId: campaign._id,
-      email: CANDIDATE_3.email,
-      fullName: CANDIDATE_3.fullName,
-      studentId: CANDIDATE_3.studentId,
-      className: CANDIDATE_3.className,
-      faculty: CANDIDATE_3.faculty,
-      phone: CANDIDATE_3.phone,
-      dateOfBirth: CANDIDATE_3.dateOfBirth,
-      avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
-      cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
-      departmentPreferences: [{ department: CANDIDATE_3.department, priority: 1 }],
-      answers: [],
-    });
-  });
+  const app3 = await runAction(
+    "Ứng viên 3 nộp đơn dự tuyển (Ban Sự kiện)",
+    async () => {
+      return await applicationService.submitApplication({
+        campaignId: campaign._id,
+        email: CANDIDATE_3.email,
+        fullName: CANDIDATE_3.fullName,
+        studentId: CANDIDATE_3.studentId,
+        className: CANDIDATE_3.className,
+        faculty: CANDIDATE_3.faculty,
+        phone: CANDIDATE_3.phone,
+        dateOfBirth: CANDIDATE_3.dateOfBirth,
+        avatarUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        cvUrl: "https://res.cloudinary.com/demo/image/upload/sample.pdf",
+        departmentPreferences: [
+          { department: CANDIDATE_3.department, priority: 1 },
+        ],
+        answers: [],
+      });
+    },
+  );
 
   // 2. Chấm điểm CV (khá)
   await runAction("BCN chấm điểm CV ứng viên 3 (85/100 điểm)", async () => {
@@ -465,57 +571,93 @@ async function main() {
   });
 
   // 3. BCN quyết định: passed_cv
-  await runAction("BCN cập nhật kết quả: Đạt vòng đơn (passed_cv)", async () => {
-    return await screeningService.decideCv(app3._id, "passed_cv");
-  });
+  await runAction(
+    "BCN cập nhật kết quả: Đạt vòng đơn (passed_cv)",
+    async () => {
+      return await screeningService.decideCv(app3._id, "passed_cv");
+    },
+  );
 
   // 4. Cấp tài khoản Candidate
   const cand3DobPassword = passwordFromDob(CANDIDATE_3.dateOfBirth);
-  await runAction(`Cấp tài khoản Candidate (TK: ${CANDIDATE_3.email}, MK: ${cand3DobPassword}) & Gửi Email`, async () => {
-    const res = await createCandidateAccountFromApplication(app3._id, { deferEmail: false });
-    return { ...res, code: cand3DobPassword };
-  });
+  await runAction(
+    `Cấp tài khoản Candidate (TK: ${CANDIDATE_3.email}, MK: ${cand3DobPassword}) & Gửi Email`,
+    async () => {
+      const res = await createCandidateAccountFromApplication(app3._id, {
+        deferEmail: false,
+      });
+      return { ...res, code: cand3DobPassword };
+    },
+  );
 
   // 5. Ứng viên đặt lịch phỏng vấn Ca 2
-  const booking3 = await runAction("Ứng viên 3 đặt lịch phỏng vấn (Ca 2)", async () => {
-    return await interviewService.assignSlot(app3._id, slot2._id);
-  });
+  const booking3 = await runAction(
+    "Ứng viên 3 đặt lịch phỏng vấn (Ca 2)",
+    async () => {
+      return await interviewService.assignSlot(app3._id, slot2._id);
+    },
+  );
 
   // 6. Gửi email xác nhận đặt lịch
-  await runAction("Gửi Email Xác nhận đặt lịch phỏng vấn thành công", async () => {
-    return await emailService.sendBookingConfirmedEmail(app3, slot2);
-  });
+  await runAction(
+    "Gửi Email Xác nhận đặt lịch phỏng vấn thành công",
+    async () => {
+      return await emailService.sendBookingConfirmedEmail(app3, slot2);
+    },
+  );
 
   // 7. Phỏng vấn & Chấm điểm (không đạt)
-  await runAction("Interviewer chấm điểm phỏng vấn (45/100 điểm, Có mặt)", async () => {
-    return await interviewService.scoreBooking(
-      booking3._id,
-      admin._id,
-      {
-        criteriaScores: [
-          { criterion: "Thái độ & Tác phong", weight: 40, score: 50 },
-          { criterion: "Kỹ năng chuyên môn & Xử lý tình huống", weight: 60, score: 42 },
-        ],
-        comment: "Kỹ năng tổ chức sự kiện chưa đáp ứng yêu cầu của đợt này.",
-        attendance: "present",
-      },
-      "bcn",
-    );
-  });
+  await runAction(
+    "Interviewer chấm điểm phỏng vấn (45/100 điểm, Có mặt)",
+    async () => {
+      return await interviewService.scoreBooking(
+        booking3._id,
+        admin._id,
+        {
+          criteriaScores: [
+            { criterion: "Thái độ & Tác phong", weight: 40, score: 50 },
+            {
+              criterion: "Kỹ năng chuyên môn & Xử lý tình huống",
+              weight: 60,
+              score: 42,
+            },
+          ],
+          comment: "Kỹ năng tổ chức sự kiện chưa đáp ứng yêu cầu của đợt này.",
+          attendance: "present",
+        },
+        "bcn",
+      );
+    },
+  );
 
   // 8. BCN quyết định: failed_interview
-  await runAction("BCN cập nhật kết quả: Không đạt phỏng vấn (failed_interview)", async () => {
-    return await screeningService.decideInterview(app3._id, "failed_interview");
-  });
+  await runAction(
+    "BCN cập nhật kết quả: Không đạt phỏng vấn (failed_interview)",
+    async () => {
+      return await screeningService.decideInterview(
+        app3._id,
+        "failed_interview",
+      );
+    },
+  );
 
   // 9. Khóa tài khoản Candidate & Gửi email từ chối phỏng vấn
-  await runAction("Khóa tài khoản Candidate & Gửi Email thông báo không đạt phỏng vấn", async () => {
-    const appDoc = await Application.findById(app3._id);
-    if (appDoc.userId) {
-      await User.updateOne({ _id: appDoc.userId }, { $set: { isActive: false, status: "disabled" } });
-    }
-    return await emailService.sendApplicationRejectedEmail(app3, "failed_interview");
-  });
+  await runAction(
+    "Khóa tài khoản Candidate & Gửi Email thông báo không đạt phỏng vấn",
+    async () => {
+      const appDoc = await Application.findById(app3._id);
+      if (appDoc.userId) {
+        await User.updateOne(
+          { _id: appDoc.userId },
+          { $set: { isActive: false, status: "disabled" } },
+        );
+      }
+      return await emailService.sendApplicationRejectedEmail(
+        app3,
+        "failed_interview",
+      );
+    },
+  );
 
   // =====================================================================================
   // BÁO CÁO & TỔNG KẾT
@@ -526,27 +668,49 @@ async function main() {
   const okSteps = resultsLog.filter((x) => x.ok).length;
   const failSteps = resultsLog.filter((x) => !x.ok).length;
 
-  console.log("\n================================================================================");
+  console.log(
+    "\n================================================================================",
+  );
   console.log("📊 BẢNG TỔNG KẾT LUỒNG TUYỂN DỤNG:");
-  console.log("================================================================================");
+  console.log(
+    "================================================================================",
+  );
   console.log(`1. Ứng viên 1: ${CANDIDATE_1.fullName} (${CANDIDATE_1.email})`);
   console.log(`   - Mã hồ sơ: ${app1.applicationCode}`);
   console.log(`   - Trạng thái: TRƯỢT VÒNG ĐƠN (failed_cv)`);
   console.log(`   - Email đã gửi: Xác nhận nộp đơn, Thư từ chối vòng đơn.`);
-  console.log(`--------------------------------------------------------------------------------`);
+  console.log(
+    `--------------------------------------------------------------------------------`,
+  );
   console.log(`2. Ứng viên 2: ${CANDIDATE_2.fullName} (${CANDIDATE_2.email})`);
   console.log(`   - Mã hồ sơ: ${app2.applicationCode}`);
-  console.log(`   - Trạng thái: TRÚNG TUYỂN CHÍNH THỨC (admitted) -> TÂN BINH ĐÀO TẠO`);
-  console.log(`   - Tài khoản đăng nhập: ${CANDIDATE_2.email} / Mật khẩu: ${cand2DobPassword}`);
-  console.log(`   - Email đã gửi: Xác nhận nộp đơn, Cấp tài khoản & Pass CV, Xác nhận lịch PV, Nhắc lịch PV 24h, Pass PV, Chúc mừng Trúng tuyển.`);
-  console.log(`--------------------------------------------------------------------------------`);
+  console.log(
+    `   - Trạng thái: TRÚNG TUYỂN CHÍNH THỨC (admitted) -> TÂN BINH ĐÀO TẠO`,
+  );
+  console.log(
+    `   - Tài khoản đăng nhập: ${CANDIDATE_2.email} / Mật khẩu: ${cand2DobPassword}`,
+  );
+  console.log(
+    `   - Email đã gửi: Xác nhận nộp đơn, Cấp tài khoản & Pass CV, Xác nhận lịch PV, Nhắc lịch PV 24h, Pass PV, Chúc mừng Trúng tuyển.`,
+  );
+  console.log(
+    `--------------------------------------------------------------------------------`,
+  );
   console.log(`3. Ứng viên 3: ${CANDIDATE_3.fullName} (${CANDIDATE_3.email})`);
   console.log(`   - Mã hồ sơ: ${app3.applicationCode}`);
   console.log(`   - Trạng thái: TRƯỢT PHỎNG VẤN (failed_interview)`);
-  console.log(`   - Tài khoản đăng nhập: ${CANDIDATE_3.email} / Mật khẩu: ${cand3DobPassword} (Đã vô hiệu hóa)`);
-  console.log(`   - Email đã gửi: Xác nhận nộp đơn, Cấp tài khoản & Pass CV, Xác nhận lịch PV, Thư từ chối PV.`);
-  console.log("================================================================================");
-  console.log(`✅ Kết quả: ${okSteps}/${totalSteps} bước thành công (${failSteps} thất bại)`);
+  console.log(
+    `   - Tài khoản đăng nhập: ${CANDIDATE_3.email} / Mật khẩu: ${cand3DobPassword} (Đã vô hiệu hóa)`,
+  );
+  console.log(
+    `   - Email đã gửi: Xác nhận nộp đơn, Cấp tài khoản & Pass CV, Xác nhận lịch PV, Thư từ chối PV.`,
+  );
+  console.log(
+    "================================================================================",
+  );
+  console.log(
+    `✅ Kết quả: ${okSteps}/${totalSteps} bước thành công (${failSteps} thất bại)`,
+  );
 
   const reportHtml = `
   <h2>IU CLUB — BÁO CÁO NGHIỆM THU TEST FULL LUỒNG TUYỂN DỤNG</h2>
@@ -603,7 +767,9 @@ async function main() {
       html: reportHtml,
       text: `Báo cáo Nghiệm thu Full Luồng Tuyển Dụng: ${okSteps}/${totalSteps} OK`,
     });
-    console.log(`\n📧 Đã gửi email báo cáo nghiệm thu về ${CLUB_REPORT_EMAIL} thành công!`);
+    console.log(
+      `\n📧 Đã gửi email báo cáo nghiệm thu về ${CLUB_REPORT_EMAIL} thành công!`,
+    );
   } catch (err) {
     console.log(`\n⚠️ Gửi email báo cáo nghiệm thu thất bại: ${err.message}`);
   }

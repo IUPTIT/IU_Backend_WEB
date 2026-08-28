@@ -35,10 +35,34 @@ async function main() {
 
   // 3. Departments
   const departmentsData = [
-    { name: "Ban Chuyên môn", code: "BCM", description: "Lập trình, AI, Web, App", field: "Kỹ thuật", headcountTarget: 15 },
-    { name: "Ban Truyền thông", code: "BTT", description: "Nội dung, Thiết kế, Media", field: "Truyền thông", headcountTarget: 10 },
-    { name: "Ban Sự kiện", code: "BSK", description: "Tổ chức hoạt động, Workshop, Gala", field: "Sự kiện", headcountTarget: 8 },
-    { name: "Ban Đối ngoại", code: "BDN", description: "Hợp tác đối tác, Tài trợ", field: "Đối ngoại", headcountTarget: 7 },
+    {
+      name: "Ban Chuyên môn",
+      code: "BCM",
+      description: "Lập trình, AI, Web, App",
+      field: "Kỹ thuật",
+      headcountTarget: 15,
+    },
+    {
+      name: "Ban Truyền thông",
+      code: "BTT",
+      description: "Nội dung, Thiết kế, Media",
+      field: "Truyền thông",
+      headcountTarget: 10,
+    },
+    {
+      name: "Ban Sự kiện",
+      code: "BSK",
+      description: "Tổ chức hoạt động, Workshop, Gala",
+      field: "Sự kiện",
+      headcountTarget: 8,
+    },
+    {
+      name: "Ban Đối ngoại",
+      code: "BDN",
+      description: "Hợp tác đối tác, Tài trợ",
+      field: "Đối ngoại",
+      headcountTarget: 7,
+    },
   ];
 
   const createdDepts = [];
@@ -60,7 +84,8 @@ async function main() {
 
   const campaign = await RecruitmentCampaign.create({
     name: "Đợt Tuyển Thành Viên Gen 2026 - IU CLUB",
-    description: "Chào mừng các bạn sinh viên gia nhập đại gia đình IU CLUB mùa 2026! Cùng phát triển kỹ năng chuyên môn, kỹ năng mềm và bứt phá đam mê công nghệ.",
+    description:
+      "Chào mừng các bạn sinh viên gia nhập đại gia đình IU CLUB mùa 2026! Cùng phát triển kỹ năng chuyên môn, kỹ năng mềm và bứt phá đam mê công nghệ.",
     openAt: now,
     closeAt: closeDate,
     status: "open",
@@ -72,11 +97,13 @@ async function main() {
       { department: "Ban Đối ngoại", quota: 7 },
     ],
   });
-  console.log(`✅ 4. Mở đợt tuyển thành công: "${campaign.name}" (ID: ${campaign._id})`);
+  console.log(
+    `✅ 4. Mở đợt tuyển thành công: "${campaign.name}" (ID: ${campaign._id})`,
+  );
 
   // 5. Create Application Form with fixed fields + custom questions
   const fixedFields = ApplicationForm.seedFixedFields(campaign.quotas);
-  
+
   const customQuestions = [
     {
       fieldId: "gioi_thieu_ban_than",
@@ -88,7 +115,8 @@ async function main() {
     },
     {
       fieldId: "kinh_nghiem_du_an",
-      label: "Bạn đã từng tham gia dự án, sự kiện hoặc hoạt động ngoại khóa nào chưa?",
+      label:
+        "Bạn đã từng tham gia dự án, sự kiện hoặc hoạt động ngoại khóa nào chưa?",
       type: "text_long",
       required: false,
       order: 10,
@@ -98,7 +126,13 @@ async function main() {
       fieldId: "ky_nang_noi_bat",
       label: "Kỹ năng bạn tự tin nhất là gì?",
       type: "single_choice",
-      options: ["Lập trình (Frontend / Backend / Mobile)", "Thiết kế đồ họa (Figma, Photoshop, Canva)", "Viết nội dung (Content writing)", "Quản lý & Tổ chức sự kiện", "Giao tiếp & Thuyết trình"],
+      options: [
+        "Lập trình (Frontend / Backend / Mobile)",
+        "Thiết kế đồ họa (Figma, Photoshop, Canva)",
+        "Viết nội dung (Content writing)",
+        "Quản lý & Tổ chức sự kiện",
+        "Giao tiếp & Thuyết trình",
+      ],
       required: true,
       order: 11,
       isFixed: false,
@@ -119,10 +153,14 @@ async function main() {
     isLocked: false,
   });
 
-  console.log(`✅ 5. Khởi tạo Form đăng ký thành công (${form.fields.length} trường: 8 trường cố định + 4 câu hỏi chuyên môn)`);
+  console.log(
+    `✅ 5. Khởi tạo Form đăng ký thành công (${form.fields.length} trường: 8 trường cố định + 4 câu hỏi chuyên môn)`,
+  );
   console.log("\n------------------------------------------------------------");
   console.log("🌐 LINK TRANG NỘP ĐƠN: http://localhost:5173/tuyen-thanh-vien");
-  console.log("🌐 LINK ADMIN QUẢN LÝ:  http://localhost:5173/admin/recruitment/open");
+  console.log(
+    "🌐 LINK ADMIN QUẢN LÝ:  http://localhost:5173/admin/recruitment/open",
+  );
   console.log("🔑 TÀI KHOẢN ADMIN:    iuptit.com@gmail.com / admin123456");
   console.log("------------------------------------------------------------\n");
 
