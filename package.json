@@ -20,6 +20,7 @@
     "migrate:separate-leader-mentor": "node src/scripts/separateLeaderMentorRoles.js",
     "test:training-flow": "node src/scripts/smokeTrainingFlow.js",
     "test:recruitment-flow": "node src/scripts/testFullRecruitmentFlow.js",
+    "seed:campaign": "node src/scripts/seedCampaignAndForm.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
