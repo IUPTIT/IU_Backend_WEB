@@ -154,18 +154,20 @@ const DEFAULT_TEMPLATES = [
 
 /** Cập nhật subject/body seed cho slug đã biết. */
 async function upsertDefaultTemplate(tpl) {
-  const existing = await EmailTemplate.findOne({ slug: tpl.slug });
-  if (!existing) {
-    await EmailTemplate.create(tpl);
-    return;
-  }
-  // Đồng bộ subject, body, name mới nhất từ seed
-  existing.name = tpl.name;
-  existing.category = tpl.category;
-  existing.subject = tpl.subject;
-  existing.body = tpl.body;
-  existing.status = tpl.status;
-  await existing.save();
+  await EmailTemplate.findOneAndUpdate(
+    { slug: tpl.slug },
+    {
+      $set: {
+        name: tpl.name,
+        category: tpl.category,
+        subject: tpl.subject,
+        body: tpl.body,
+        status: tpl.status,
+      },
+      $setOnInsert: { slug: tpl.slug },
+    },
+    { upsert: true, new: true },
+  );
 }
 
 function toDto(doc) {

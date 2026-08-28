@@ -16,12 +16,12 @@ const departmentPreferenceSchema = new mongoose.Schema(
     // Tên ban nguyện vọng
     department: { type: String, required: true, trim: true },
 
-    // Thứ tự ưu tiên nguyện vọng (1, 2, hoặc 3)
+    // Thứ tự ưu tiên nguyện vọng (1 hoặc 2)
     priority: {
       type: Number,
       required: true,
       min: [1, "Thứ tự ưu tiên tối thiểu là 1"],
-      max: [3, "Thứ tự ưu tiên tối đa là 3"],
+      max: [2, "Thứ tự ưu tiên tối đa là 2"],
     },
   },
   { _id: false },
@@ -148,16 +148,16 @@ const applicationSchema = new mongoose.Schema(
     // Đường dẫn file CV (PDF/DOCX)
     cvUrl: { type: String, default: "" },
 
-    // Danh sách ban nguyện vọng (tối đa 3, priority không trùng lặp)
+    // Danh sách ban nguyện vọng (tối đa 2, priority không trùng lặp)
     departmentPreferences: {
       type: [departmentPreferenceSchema],
       validate: [
         {
           validator: function (arr) {
             if (!arr) return true;
-            return arr.length <= 3;
+            return arr.length <= 2;
           },
-          message: "Tối đa chỉ được chọn 3 ban nguyện vọng",
+          message: "Tối đa chỉ được chọn 2 ban nguyện vọng",
         },
         {
           validator: function (arr) {
