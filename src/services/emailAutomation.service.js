@@ -85,7 +85,7 @@ export const DEFAULT_AUTOMATION_RULES = [
     eventKey: "interview_pass",
     name: "Đạt vòng phỏng vấn",
     enabled: true,
-    templateSlug: "tpl-passed",
+    templateSlug: "tpl-interview-pass",
     timing: "immediate",
     timingValue: 0,
     timingUnit: "days",
@@ -97,7 +97,7 @@ export const DEFAULT_AUTOMATION_RULES = [
     eventKey: "interview_fail",
     name: "Trượt vòng phỏng vấn",
     enabled: true,
-    templateSlug: "tpl-rejected",
+    templateSlug: "tpl-interview-fail",
     timing: "immediate",
     timingValue: 0,
     timingUnit: "days",
@@ -109,7 +109,7 @@ export const DEFAULT_AUTOMATION_RULES = [
     eventKey: "final_pass",
     name: "Trúng tuyển",
     enabled: true,
-    templateSlug: "tpl-passed",
+    templateSlug: "tpl-final-pass",
     timing: "immediate",
     timingValue: 0,
     timingUnit: "days",
@@ -121,7 +121,7 @@ export const DEFAULT_AUTOMATION_RULES = [
     eventKey: "final_fail",
     name: "Từ chối cuối",
     enabled: true,
-    templateSlug: "tpl-rejected",
+    templateSlug: "tpl-final-fail",
     timing: "immediate",
     timingValue: 0,
     timingUnit: "days",
@@ -175,9 +175,23 @@ function toDto(doc) {
 export async function ensureDefaultAutomationRules() {
   await ensureDefaultTemplates();
   for (const rule of DEFAULT_AUTOMATION_RULES) {
-    await EmailAutomationRule.updateOne(
+    await EmailAutomationRule.findOneAndUpdate(
       { ruleKey: rule.ruleKey },
-      { $setOnInsert: rule },
+      {
+        $set: {
+          eventKey: rule.eventKey,
+          name: rule.name,
+          templateSlug: rule.templateSlug,
+          timing: rule.timing,
+          sortOrder: rule.sortOrder,
+        },
+        $setOnInsert: {
+          enabled: rule.enabled,
+          timingValue: rule.timingValue,
+          timingUnit: rule.timingUnit,
+          params: rule.params,
+        },
+      },
       { upsert: true },
     );
   }
@@ -290,31 +304,171 @@ export async function resolveEnabledRules(eventKey) {
 }
 
 function renderPlaceholders(template, data) {
+  const normalized = {
+    ...data,
+    name: data.candidate_name || data.name || data.fullName || "",
+    candidate_name: data.candidate_name || data.name || data.fullName || "",
+    full_name: data.candidate_name || data.name || data.fullName || "",
+    department: data.department || data.assignedDepartment || "",
+    login_url: data.login_url || "https://portal.iuptit.com/login",
+    portal_url: data.login_url || "https://portal.iuptit.com/login",
+    portal_link: data.login_url || "https://portal.iuptit.com/login",
+    temp_password:
+      data.temp_password || data.tempPassword || data.rawPassword || "",
+  };
   return String(template || "").replace(
     /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
     (_m, key) => {
-      const v = data[key];
+      const v = normalized[key];
       return v == null ? "" : String(v);
     },
   );
 }
 
-/** Wrap body cho client mail (Gmail nền trắng) — tránh chữ xám/trắng khó đọc */
-function bodyToHtml(body) {
+/** Wrap body cho client mail với chuẩn layout editorial "HẢI TRÌNH 2026" 600px */
+function bodyToHtml(body, opts = {}) {
   const raw = String(body || "");
-  const wrap = (inner) =>
-    `<div style="margin:0;padding:16px 4px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;background:#ffffff">${inner}</div>`;
+  const formattedBody = /<[a-z][\s\S]*>/i.test(raw)
+    ? raw
+    : raw
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .split(/\n\n+/)
+        .map(
+          (p) =>
+            `<p style="margin:0 0 16px;line-height:1.7;">${p.replace(/\n/g, "<br/>")}</p>`,
+        )
+        .join("");
 
-  if (/<[a-z][\s\S]*>/i.test(raw)) {
-    return wrap(raw);
-  }
-  const escaped = raw
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return wrap(
-    `<div style="white-space:pre-wrap">${escaped.replace(/\n/g, "<br/>")}</div>`,
-  );
+  const title = opts.title || "";
+  const preheader = opts.preheader || "";
+  const badge = opts.badge || "HẢI TRÌNH 2026";
+
+  return `<!doctype html>
+<html lang="vi" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>${title}</title>
+  <!--[if mso]>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml>
+  <![endif]-->
+  <style>
+    :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    html, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; }
+    * { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+    table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
+    img { -ms-interpolation-mode: bicubic; }
+    a { text-decoration: none; }
+    a[x-apple-data-detectors], .unstyle-auto-detected-links a, a[href^="tel"], a[href^="sms"] {
+      color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important;
+    }
+    @media (prefers-color-scheme: dark) {
+      body, .email-page { background-color: #0d0a14 !important; }
+      .email-card { background-color: #171322 !important; border-color: #2b243d !important; }
+      .email-title { color: #f4f4fb !important; }
+      .email-content, .email-intro, .email-text, p { color: #cfcde0 !important; }
+      .email-footer-text { color: #7f7a95 !important; }
+      .email-badge { background-color: #2d1f4a !important; color: #c4b5fd !important; }
+      .email-wordmark { color: #f4f4fb !important; }
+    }
+  </style>
+</head>
+<body class="email-page" style="margin:0;padding:0;background-color:#f4f4fb;-webkit-font-smoothing:antialiased;">
+  <!-- Preheader text preview -->
+  <div style="display:none;font-size:1px;color:#f4f4fb;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
+    ${
+      preheader ||
+      raw
+        .replace(/<[^>]+>/g, " ")
+        .trim()
+        .slice(0, 100)
+    }
+    ${"&zwnj;&nbsp;".repeat(30)}
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-page" style="background-color:#f4f4fb;padding:36px 12px 48px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container (600px max) -->
+        <table role="presentation" width="600" class="email-card" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:18px;border:1px solid #eaeaf4;box-shadow:0 8px 30px rgba(25,26,44,0.04);overflow:hidden;">
+          
+          <!-- Top Route Accent Line (Hải trình) -->
+          <tr>
+            <td height="4" style="height:4px;line-height:4px;font-size:4px;background:linear-gradient(90deg,#6e2ce6 0%,#7c3aed 50%,#e0348c 100%);">&nbsp;</td>
+          </tr>
+
+          <!-- Header: Brand & Checkpoint Badge -->
+          <tr>
+            <td style="padding:28px 36px 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="left" style="vertical-align:middle;">
+                    <span class="email-wordmark" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;font-weight:800;letter-spacing:1.5px;color:#191a2c;">IU <span style="color:#7c3aed;">CLUB</span></span>
+                  </td>
+                  <td align="right" style="vertical-align:middle;">
+                    <span class="email-badge" style="display:inline-block;padding:5px 13px;background-color:#f1e9fe;color:#6d28d9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;border-radius:999px;">${badge}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Hairline Divider -->
+          <tr>
+            <td style="padding:0 36px;">
+              <div style="height:1px;background-color:#f0f1f8;line-height:1px;font-size:1px;">&nbsp;</div>
+            </td>
+          </tr>
+
+          <!-- Main Content Area -->
+          <tr>
+            <td class="email-content" style="padding:28px 36px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#4d536b;">
+              
+              <!-- Route Waypoint indicator -->
+              <div style="margin-bottom:14px;">
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background-color:#7c3aed;margin-right:6px;vertical-align:middle;"></span>
+                <span style="font-size:11px;font-weight:800;letter-spacing:1px;color:#7c3aed;text-transform:uppercase;vertical-align:middle;">CHECKPOINT</span>
+              </div>
+
+              ${formattedBody}
+
+            </td>
+          </tr>
+
+          <!-- Footer Area -->
+          <tr>
+            <td style="padding:0 36px 28px;">
+              <div style="height:1px;background-color:#f0f1f8;line-height:1px;font-size:1px;margin-bottom:20px;">&nbsp;</div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <p class="email-footer-text" style="margin:0;font-size:13px;font-weight:700;color:#4d536b;letter-spacing:0.5px;">IU CLUB · Shine and Thrive</p>
+                    <p class="email-footer-text" style="margin:4px 0 0;font-size:12px;color:#9aa0b4;">Câu lạc bộ IT — Học viện Công nghệ Bưu chính Viễn thông</p>
+                    <p class="email-footer-text" style="margin:8px 0 0;font-size:11px;color:#9aa0b4;line-height:1.5;">Email tự động gửi từ hệ thống tuyển dụng IU CLUB · Vui lòng không trả lời thư này.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 function toHours(value, unit) {
@@ -349,9 +503,11 @@ export async function dispatchAutomatedEmail(eventKey, opts = {}) {
   }
 
   const emailService = await import("./email.service.js");
+  const config = (await import("../config/env.js")).default;
   const base = {
     club_name: "IU CLUB",
     contact_name: "Ban Chủ nhiệm",
+    login_url: config.candidatePortalUrl || "https://portal.iuptit.com/login",
     ...Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v == null ? "" : String(v)]),
     ),
@@ -374,7 +530,7 @@ export async function dispatchAutomatedEmail(eventKey, opts = {}) {
     await emailService.sendRawEmail({
       to,
       subject,
-      html: bodyToHtml(body),
+      html: bodyToHtml(body, { title: subject }),
       text: body.replace(/<[^>]+>/g, " "),
     });
     count += 1;
@@ -431,6 +587,7 @@ export function applicationEmailData(application, extra = {}) {
     candidate_name: application.fullName || "",
     email: application.email || "",
     department: dept,
+    login_url: "https://portal.iuptit.com/login",
     score:
       application.cvScore != null
         ? String(application.cvScore)

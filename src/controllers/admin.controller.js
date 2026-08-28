@@ -28,7 +28,7 @@ export const listMembers = catchAsync(async (req, res) => {
 });
 
 export const createMember = catchAsync(async (req, res) => {
-  const member = await adminUserService.createMember({
+  const result = await adminUserService.createMember({
     name: req.body.name ?? req.body.fullName,
     email: req.body.email,
     phone: req.body.phone,
@@ -38,10 +38,11 @@ export const createMember = catchAsync(async (req, res) => {
     studentId: req.body.studentId,
     generation: req.body.generation,
   });
+  const { tempPassword, ...member } = result;
   sendSuccess(res, {
     statusCode: 201,
     message: "Đã thêm thành viên",
-    data: { member },
+    data: { member, tempPassword },
   });
 });
 

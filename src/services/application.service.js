@@ -50,8 +50,6 @@ async function validateAnswers(campaign, answers = []) {
     "email",
     "phone",
     "date_of_birth",
-    "avatar",
-    "cv",
     "department_preferences",
   ]);
   for (const field of form.fields) {

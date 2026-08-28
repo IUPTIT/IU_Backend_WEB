@@ -144,27 +144,11 @@ applicationFormSchema.statics.seedFixedFields = function (campaignQuotas = []) {
       // cho tài khoản Ứng viên sau này, TUYỆT ĐỐI không được set required=false ở bất kỳ đợt tuyển nào.
     },
     {
-      fieldId: "avatar",
-      label: "Ảnh đại diện",
-      type: "file_upload",
-      required: true,
-      order: 8,
-      isFixed: true,
-    },
-    {
-      fieldId: "cv",
-      label: "CV",
-      type: "file_upload",
-      required: true,
-      order: 9,
-      isFixed: true,
-    },
-    {
       fieldId: "department_preferences",
       label: "Ban nguyện vọng",
       type: "multi_choice",
       required: true,
-      order: 10,
+      order: 8,
       isFixed: true,
       // Load động từ danh sách department trong campaign quotas
       options: departmentOptions,
