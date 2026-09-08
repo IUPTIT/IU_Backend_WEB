@@ -59,30 +59,6 @@ if (error) {
   throw new Error(`Config validation error: ${error.message}`);
 }
 
-/** Tránh mongodb+srv querySrv ECONNREFUSED trên một số DNS Windows */
-function expandMongoSrvUri(mongoUri) {
-  if (!mongoUri.startsWith("mongodb+srv://")) return mongoUri;
-  const parsed = new URL(mongoUri.replace("mongodb+srv://", "https://"));
-  const auth =
-    parsed.username || parsed.password
-      ? `${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}@`
-      : "";
-  const dbPath =
-    parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "/";
-  const params = new URLSearchParams(parsed.search);
-  if (!params.has("authSource")) params.set("authSource", "admin");
-  if (!params.has("replicaSet")) {
-    params.set("replicaSet", "atlas-58z8f3-shard-0");
-  }
-  params.set("tls", "true");
-  const hosts = [
-    "ac-nfptywg-shard-00-00.n3liatt.mongodb.net:27017",
-    "ac-nfptywg-shard-00-01.n3liatt.mongodb.net:27017",
-    "ac-nfptywg-shard-00-02.n3liatt.mongodb.net:27017",
-  ].join(",");
-  return `mongodb://${auth}${hosts}${dbPath}?${params.toString()}`;
-}
-
 const backendUrl = (
   envVars.BACKEND_URL || `http://localhost:${envVars.PORT}`
 ).replace(/\/+$/, "");
@@ -122,7 +98,7 @@ const config = {
   ),
   backendUrl,
 
-  mongoUri: expandMongoSrvUri(envVars.MONGODB_URI),
+  mongoUri: envVars.MONGODB_URI,
 
   jwt: {
     accessSecret: envVars.JWT_ACCESS_SECRET,
