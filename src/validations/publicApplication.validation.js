@@ -15,7 +15,7 @@ export const lookup = celebrate({
 
 const departmentPreferenceSchema = Joi.object({
   department: Joi.string().trim().required(),
-  priority: Joi.number().integer().min(1).max(3).required(),
+  priority: Joi.number().integer().min(1).max(2).required(),
 });
 
 const answerSchema = Joi.object({
@@ -35,12 +35,10 @@ export const editWithEmail = celebrate({
     faculty: Joi.string().trim(),
     phone: phoneVN,
     dateOfBirth: Joi.date().iso().max("now"),
-    avatarUrl: Joi.string().uri(),
-    cvUrl: Joi.string().uri(),
     departmentPreferences: Joi.array()
       .items(departmentPreferenceSchema)
       .min(1)
-      .max(3)
+      .max(2)
       .unique("priority"),
     answers: Joi.array().items(answerSchema),
   })
@@ -65,11 +63,9 @@ export const updateDraftBody = celebrate({
     faculty: Joi.string().trim().allow(""),
     phone: phoneVNOptional,
     dateOfBirth: Joi.date().iso().max("now"),
-    avatarUrl: Joi.string().allow(""),
-    cvUrl: Joi.string().allow(""),
     departmentPreferences: Joi.array()
       .items(departmentPreferenceSchema)
-      .max(3)
+      .max(2)
       .unique("priority"),
     answers: Joi.array().items(answerSchema),
   }).min(1),

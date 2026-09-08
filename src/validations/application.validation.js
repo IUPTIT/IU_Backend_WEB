@@ -5,9 +5,9 @@ const departmentPreferenceSchema = Joi.object({
   department: Joi.string().trim().required().messages({
     "any.required": "Tên ban (department) là bắt buộc",
   }),
-  priority: Joi.number().integer().min(1).max(3).required().messages({
+  priority: Joi.number().integer().min(1).max(2).required().messages({
     "number.min": "Thứ tự ưu tiên nhỏ nhất là 1",
-    "number.max": "Thứ tự ưu tiên lớn nhất là 3",
+    "number.max": "Thứ tự ưu tiên lớn nhất là 2",
     "any.required": "Thứ tự ưu tiên (priority) là bắt buộc",
   }),
 });
@@ -46,11 +46,11 @@ export const saveDraft = celebrate({
 
     departmentPreferences: Joi.array()
       .items(departmentPreferenceSchema)
-      .max(3)
+      .max(2)
       .unique("priority")
       .optional()
       .messages({
-        "array.max": "Tối đa chỉ được chọn 3 ban nguyện vọng",
+        "array.max": "Tối đa chỉ được chọn 2 ban nguyện vọng",
         "array.unique": "Thứ tự ưu tiên các ban không được trùng nhau",
       }),
 
@@ -96,25 +96,18 @@ export const submitApplication = celebrate({
       "any.required": "Ngày sinh là bắt buộc khi submit hồ sơ",
     }),
 
-    avatarUrl: Joi.string().uri().required().messages({
-      "string.uri": "Avatar URL phải là một đường dẫn URI hợp lệ",
-      "any.required": "Ảnh đại diện (avatarUrl) là bắt buộc khi submit hồ sơ",
-    }),
-
-    cvUrl: Joi.string().uri().required().messages({
-      "string.uri": "CV URL phải là một đường dẫn URI hợp lệ",
-      "any.required": "File CV (cvUrl) là bắt buộc khi submit hồ sơ",
-    }),
+    avatarUrl: Joi.string().allow("").optional(),
+    cvUrl: Joi.string().allow("").optional(),
 
     departmentPreferences: Joi.array()
       .items(departmentPreferenceSchema)
       .min(1)
-      .max(3)
+      .max(2)
       .unique("priority")
       .required()
       .messages({
         "array.min": "Phải chọn ít nhất 1 ban nguyện vọng",
-        "array.max": "Tối đa chỉ được chọn 3 ban nguyện vọng",
+        "array.max": "Tối đa chỉ được chọn 2 ban nguyện vọng",
         "array.unique": "Thứ tự ưu tiên các ban không được trùng nhau",
         "any.required": "Danh sách ban nguyện vọng là bắt buộc",
       }),
@@ -134,14 +127,11 @@ export const editApplication = celebrate({
 
     dateOfBirth: Joi.date().iso().max("now").required(),
 
-    // Cho phép optional khi chỉnh sửa (nếu ứng viên giữ nguyên file đã upload trước đó)
-    avatarUrl: Joi.string().uri().optional(),
-    cvUrl: Joi.string().uri().optional(),
-
+    // avatarUrl và cvUrl đã bỏ khỏi form
     departmentPreferences: Joi.array()
       .items(departmentPreferenceSchema)
       .min(1)
-      .max(3)
+      .max(2)
       .unique("priority")
       .required(),
 

@@ -13,6 +13,10 @@ const schema = Joi.object({
   // 0 = tắt (chạy trực tiếp, không proxy). Sau 1 reverse proxy/PaaS: đặt 1.
   TRUST_PROXY: Joi.number().min(0).default(0),
   CLIENT_URL: Joi.string().uri().default("http://localhost:3000"),
+  CANDIDATE_PORTAL_URL: Joi.string()
+    .uri()
+    .allow("")
+    .default("https://portal.iuptit.com/login"),
   // Origin thêm cho CORS, cách nhau bởi dấu phẩy (preview, IP local, domain phụ)
   CORS_ORIGINS: Joi.string().allow("").default(""),
   BACKEND_URL: Joi.string().uri().allow("").default(""),
@@ -109,6 +113,8 @@ const config = {
   port: envVars.PORT,
   trustProxy: envVars.TRUST_PROXY,
   clientUrl: envVars.CLIENT_URL,
+  candidatePortalUrl:
+    envVars.CANDIDATE_PORTAL_URL || "https://portal.iuptit.com/login",
   corsOrigins: buildCorsOrigins(
     envVars.CLIENT_URL,
     envVars.NODE_ENV === "production",
